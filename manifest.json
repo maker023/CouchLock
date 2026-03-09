@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "CouchLock",
+  "version": "1.0.0",
+  "description": "Your phone. Your remote. Every screen. Nothing leaves your network.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "debugger",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://www.netflix.com/*",
+    "https://play.max.com/*",
+    "https://www.youtube.com/*",
+    "https://www.disneyplus.com/*",
+    "https://www.hulu.com/*",
+    "*://localhost/*",
+    "*://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "CouchLock"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.netflix.com/*",
+        "https://play.max.com/*",
+        "https://www.youtube.com/*",
+        "https://www.disneyplus.com/*",
+        "https://www.hulu.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}
