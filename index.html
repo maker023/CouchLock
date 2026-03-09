@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0A0B10">
+<title>CouchLock</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --void: #0A0B10;
+  --ink: #0D0F1C;
+  --accent: #4F52E0;
+  --accent-rgb: 79,82,224;
+  --accent-light: #6366F1;
+  --teal: #16A37F;
+  --teal-rgb: 22,163,127;
+  --amber: #D97706;
+  --amber-rgb: 217,119,6;
+  --rose: #E04F5F;
+  --rose-rgb: 224,79,95;
+  --font-d: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-b: 'DM Sans', system-ui, sans-serif;
+  --font-m: 'DM Mono', monospace;
+  --ease-mag: cubic-bezier(0.22, 1, 0.36, 1);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--void);
+  color: white;
+  font-family: var(--font-b);
+  -webkit-font-smoothing: antialiased;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+
+/* ═══════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════ */
+.app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+
+/* ── Top Bar ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  flex-shrink: 0;
+}
+.conn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.15);
+  letter-spacing: 0.5px;
+}
+.conn-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+}
+.conn-dot.on {
+  background: var(--teal);
+  box-shadow: 0 0 6px rgba(var(--teal-rgb),0.5);
+}
+.tier-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.15);
+  cursor: pointer;
+}
+.tier-pill {
+  width: 36px; height: 20px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  position: relative;
+  transition: background 200ms var(--ease-mag);
+}
+.tier-pill::after {
+  content: '';
+  position: absolute;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  top: 2px; left: 2px;
+  transition: transform 200ms var(--ease-mag), background 200ms var(--ease-mag);
+}
+.tier-pill.paid {
+  background: rgba(var(--accent-rgb),0.2);
+}
+.tier-pill.paid::after {
+  transform: translateX(16px);
+  background: var(--accent);
+}
+
+/* ── Main Content ── */
+.main {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Mode Views ── */
+.mode-view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms var(--ease-mag);
+}
+.mode-view.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Bottom Nav (Orb + Controls) ── */
+.bottomnav {
+  padding: 12px 20px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.nav-btn {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+  position: relative;
+}
+.nav-btn:hover { opacity: 0.8; }
+.nav-btn.active {
+  background: rgba(var(--accent-rgb),0.15);
+  border-color: rgba(var(--accent-rgb),0.3);
+}
+.nav-btn.active svg { stroke: var(--accent); }
+.nav-btn.locked::after {
+  content: '';
+  position: absolute;
+  top: -2px; right: -2px;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.nav-btn svg {
+  width: 20px; height: 20px;
+  stroke: rgba(255,255,255,0.3);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.nav-label {
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-m);
+  font-size: 7px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.1);
+  white-space: nowrap;
+}
+.nav-btn.active .nav-label { color: rgba(var(--accent-rgb),0.5); }
+
+/* Orb */
+.orb-btn {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  box-shadow: 0 0 24px rgba(var(--accent-rgb),0.25);
+  cursor: pointer;
+  flex-shrink: 0;
+  animation: bleep 3s steps(1) infinite;
+}
+@keyframes bleep {
+  0%   { box-shadow: 0 0 24px rgba(var(--accent-rgb),0.2); }
+  72%  { box-shadow: 0 0 40px rgba(var(--accent-rgb),0.7); }
+  80%  { box-shadow: 0 0 24px rgba(var(--accent-rgb),0.2); }
+}
+
+/* ═══════════════════════════════════════════
+   PAIRING SCREEN
+═══════════════════════════════════════════ */
+.pairing {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 40px;
+  text-align: center;
+  z-index: 50;
+  background: var(--void);
+}
+.pairing.hidden { display: none; }
+.pairing-title {
+  font-family: var(--font-d);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: rgba(255,255,255,0.9);
+}
+.pairing-title span { color: var(--accent); }
+.pairing-sub {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.2);
+  line-height: 1.6;
+}
+.pairing-status {
+  font-family: var(--font-m);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  color: rgba(var(--accent-rgb),0.4);
+}
+.pairing-orb {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: bleep 3s steps(1) infinite;
+}
+
+/* ═══════════════════════════════════════════
+   PAYWALL OVERLAY
+═══════════════════════════════════════════ */
+.paywall {
+  position: absolute;
+  inset: 0;
+  background: rgba(10,11,16,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 40;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms var(--ease-mag);
+}
+.paywall.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.paywall-icon {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb),0.1);
+  border: 1px solid rgba(var(--accent-rgb),0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.paywall-icon svg {
+  width: 24px; height: 24px;
+  stroke: var(--accent);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.paywall-title {
+  font-family: var(--font-d);
+  font-size: 18px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.9);
+}
+.paywall-sub {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.25);
+  text-align: center;
+  padding: 0 40px;
+  line-height: 1.5;
+}
+.paywall-btn {
+  padding: 14px 32px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  font-family: var(--font-d);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 0 24px rgba(var(--accent-rgb),0.3);
+  cursor: pointer;
+}
+
+/* ═══════════════════════════════════════════
+   TRACKPAD MODE
+═══════════════════════════════════════════ */
+.trackpad {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.trackpad-surface {
+  flex: 1;
+  position: relative;
+  background: rgba(255,255,255,0.01);
+  border: 1px solid rgba(255,255,255,0.03);
+  border-radius: 24px;
+  margin: 8px 16px;
+  overflow: hidden;
+}
+.trackpad-surface::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at center, rgba(var(--accent-rgb),0.03) 0%, transparent 70%);
+  pointer-events: none;
+}
+.trackpad-hint {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.06);
+  pointer-events: none;
+}
+.trackpad-buttons {
+  display: flex;
+  gap: 2px;
+  padding: 0 16px 8px;
+}
+.trackpad-btn {
+  flex: 1;
+  height: 48px;
+  border: none;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.12);
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.trackpad-btn:active { opacity: 0.6; }
+
+/* ═══════════════════════════════════════════
+   AIR MOUSE MODE
+═══════════════════════════════════════════ */
+.airmouse {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 20px;
+}
+.airmouse-orb {
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 60px rgba(var(--accent-rgb),0.3);
+  animation: bleep 3s steps(1) infinite;
+}
+.airmouse-label {
+  font-family: var(--font-d);
+  font-size: 15px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.4);
+}
+.airmouse-hint {
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.1);
+  text-align: center;
+  line-height: 1.8;
+}
+.airmouse-recal {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.2);
+  cursor: pointer;
+}
+
+/* ═══════════════════════════════════════════
+   MEDIA MODE
+═══════════════════════════════════════════ */
+.media {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 12px;
+  overflow-y: auto;
+}
+.media-now {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 24px;
+  padding: 20px;
+}
+.media-platform {
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(var(--accent-rgb),0.4);
+  margin-bottom: 8px;
+}
+.media-title {
+  font-family: var(--font-d);
+  font-size: 17px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 12px;
+}
+.media-progress {
+  height: 3px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.media-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  width: 0%;
+  transition: width 500ms linear;
+}
+.media-time {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.12);
+}
+.media-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.media-btn {
+  width: 48px; height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.media-btn:active { opacity: 0.6; }
+.media-btn svg {
+  width: 20px; height: 20px;
+  stroke: rgba(255,255,255,0.4);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.media-btn-play {
+  width: 64px; height: 64px;
+  background: var(--accent);
+  border-color: transparent;
+  box-shadow: 0 0 24px rgba(var(--accent-rgb),0.3);
+}
+.media-btn-play svg { stroke: white; width: 24px; height: 24px; }
+.media-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+}
+.media-action {
+  padding: 14px;
+  border: none;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.2);
+  cursor: pointer;
+  text-align: center;
+  transition: opacity 150ms var(--ease-mag);
+}
+.media-action:active { opacity: 0.6; }
+
+/* ═══════════════════════════════════════════
+   KEYBOARD MODE
+═══════════════════════════════════════════ */
+.keyboard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 8px;
+}
+.kb-display {
+  min-height: 48px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 16px;
+  font-family: var(--font-m);
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.5);
+  word-break: break-all;
+  position: relative;
+}
+.kb-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 16px;
+  background: var(--accent);
+  vertical-align: middle;
+  animation: cursor-blink 1s steps(1) infinite;
+}
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+.kb-special {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+}
+.kb-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.kb-row {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+}
+.kb-key {
+  height: 42px;
+  min-width: 32px;
+  flex: 1;
+  max-width: 42px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-b);
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 100ms;
+}
+.kb-key:active {
+  opacity: 0.5;
+  background: rgba(var(--accent-rgb),0.1);
+}
+.kb-key-special {
+  font-family: var(--font-m);
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.2);
+  max-width: none;
+}
+.kb-key-wide { flex: 1.5; max-width: 64px; }
+.kb-key-space { flex: 4; max-width: none; }
+
+/* ═══════════════════════════════════════════
+   TAB SWITCHER MODE
+═══════════════════════════════════════════ */
+.tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 2px;
+  overflow-y: auto;
+}
+.tab-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.tab-item:active { opacity: 0.7; }
+.tab-item.active-tab {
+  background: rgba(var(--accent-rgb),0.06);
+  border-color: rgba(var(--accent-rgb),0.1);
+}
+.tab-pip {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+.tab-item.active-tab .tab-pip {
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(var(--accent-rgb),0.4);
+}
+.tab-info { flex: 1; min-width: 0; }
+.tab-title {
+  font-family: var(--font-d);
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tab-url {
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tabs-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-m);
+  font-size: 10px;
+  color: rgba(255,255,255,0.1);
+  letter-spacing: 1px;
+}
+
+/* ═══════════════════════════════════════════
+   SETTINGS MODE
+═══════════════════════════════════════════ */
+.settings {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 2px;
+  overflow-y: auto;
+}
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 16px;
+}
+.setting-label {
+  font-family: var(--font-d);
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+}
+.setting-desc {
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.12);
+  margin-top: 2px;
+}
+.setting-toggle {
+  width: 40px; height: 24px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255,255,255,0.08);
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.setting-toggle::after {
+  content: '';
+  position: absolute;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  top: 3px; left: 3px;
+  transition: transform 200ms var(--ease-mag), background 200ms var(--ease-mag);
+}
+.setting-toggle.on {
+  background: rgba(var(--accent-rgb),0.2);
+}
+.setting-toggle.on::after {
+  transform: translateX(16px);
+  background: var(--accent);
+}
+.setting-slider {
+  width: 100px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  outline: none;
+}
+.setting-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+.settings-about {
+  margin-top: 8px;
+  padding: 16px;
+  text-align: center;
+}
+.about-brand {
+  font-family: var(--font-d);
+  font-size: 16px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.3);
+  margin-bottom: 4px;
+}
+.about-brand span { color: rgba(var(--accent-rgb),0.4); }
+.about-ver {
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.08);
+  letter-spacing: 1px;
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- Pairing Screen -->
+  <div class="pairing" id="pairing">
+    <div class="pairing-orb"></div>
+    <div class="pairing-title">Couch<span>Lock</span></div>
+    <div class="pairing-sub">Scan the QR code from the extension to connect your phone.</div>
+    <div class="pairing-status" id="pairing-status">Waiting for connection...</div>
+  </div>
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="conn">
+      <div class="conn-dot" id="conn-dot"></div>
+      <span id="conn-text">Disconnected</span>
+    </div>
+    <div class="tier-toggle" id="tier-toggle">
+      <span id="tier-label">FREE</span>
+      <div class="tier-pill" id="tier-pill"></div>
+    </div>
+  </div>
+
+  <!-- Mode Views -->
+  <div class="main" id="main">
+
+    <!-- Trackpad -->
+    <div class="mode-view active" id="view-trackpad">
+      <div class="trackpad">
+        <div class="trackpad-surface" id="trackpad-surface">
+          <div class="trackpad-hint">Slide to move cursor</div>
+        </div>
+        <div class="trackpad-buttons">
+          <button class="trackpad-btn" id="btn-left-click">Left</button>
+          <button class="trackpad-btn" id="btn-right-click">Right</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Air Mouse -->
+    <div class="mode-view" id="view-airmouse">
+      <div class="airmouse">
+        <div class="airmouse-orb"></div>
+        <div class="airmouse-label">Air Mouse Active</div>
+        <div class="airmouse-hint">Tilt your phone to move the cursor<br>Double-tap to recalibrate</div>
+        <button class="airmouse-recal" id="btn-recalibrate">Recalibrate</button>
+      </div>
+      <div class="paywall" id="paywall-airmouse">
+        <div class="paywall-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
+        <div class="paywall-title">Air Mouse</div>
+        <div class="paywall-sub">Gyroscope cursor control. Tilt your phone like a Wii remote.</div>
+        <button class="paywall-btn">Unlock Everything — $9</button>
+      </div>
+    </div>
+
+    <!-- Media -->
+    <div class="mode-view" id="view-media">
+      <div class="media">
+        <div class="media-now">
+          <div class="media-platform" id="media-platform">No media detected</div>
+          <div class="media-title" id="media-title">—</div>
+          <div class="media-progress"><div class="media-progress-fill" id="media-progress"></div></div>
+          <div class="media-time"><span id="media-current">0:00</span><span id="media-duration">0:00</span></div>
+        </div>
+        <div class="media-controls">
+          <button class="media-btn" id="btn-seek-back"><svg viewBox="0 0 24 24"><path d="M12 8l-6 4 6 4V8z"/><path d="M18 8l-6 4 6 4V8z"/></svg></button>
+          <button class="media-btn media-btn-play" id="btn-play-pause"><svg viewBox="0 0 24 24"><polygon points="8,5 20,12 8,19"/></svg></button>
+          <button class="media-btn" id="btn-seek-fwd"><svg viewBox="0 0 24 24"><path d="M6 8l6 4-6 4V8z"/><path d="M12 8l6 4-6 4V8z"/></svg></button>
+        </div>
+        <div class="media-actions">
+          <button class="media-action" id="btn-skip-intro">Skip Intro</button>
+          <button class="media-action" id="btn-next-ep">Next Episode</button>
+          <button class="media-action" id="btn-vol-down">Volume −</button>
+          <button class="media-action" id="btn-vol-up">Volume +</button>
+          <button class="media-action" id="btn-fullscreen">Fullscreen</button>
+          <button class="media-action" id="btn-mute">Mute</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Keyboard -->
+    <div class="mode-view" id="view-keyboard">
+      <div class="keyboard">
+        <div class="kb-display"><span id="kb-text"></span><span class="kb-cursor"></span></div>
+        <div class="kb-special">
+          <button class="kb-key kb-key-special" data-key="Escape" data-code="Escape">Esc</button>
+          <button class="kb-key kb-key-special" data-key="Tab" data-code="Tab">Tab</button>
+          <button class="kb-key kb-key-special" data-key="Backspace" data-code="Backspace">Del</button>
+          <button class="kb-key kb-key-special" data-key="Enter" data-code="Enter">Enter</button>
+        </div>
+        <div class="kb-grid" id="kb-grid">
+          <!-- Rows generated by JS -->
+        </div>
+        <div class="kb-row">
+          <button class="kb-key kb-key-special kb-key-wide" data-key="ArrowLeft" data-code="ArrowLeft">←</button>
+          <button class="kb-key kb-key-special kb-key-wide" data-key="ArrowUp" data-code="ArrowUp">↑</button>
+          <button class="kb-key kb-key-special kb-key-wide" data-key="ArrowDown" data-code="ArrowDown">↓</button>
+          <button class="kb-key kb-key-special kb-key-wide" data-key="ArrowRight" data-code="ArrowRight">→</button>
+          <button class="kb-key kb-key-special kb-key-space" data-key=" " data-code="Space">Space</button>
+        </div>
+      </div>
+      <div class="paywall" id="paywall-keyboard">
+        <div class="paywall-icon"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h1M10 8h1M14 8h1M18 8h1M7 12h10M9 16h6"/></svg></div>
+        <div class="paywall-title">Full Keyboard</div>
+        <div class="paywall-sub">You typed one line for free. Unlock the full keyboard and all features forever.</div>
+        <button class="paywall-btn">Unlock Everything — $9</button>
+      </div>
+    </div>
+
+    <!-- Tab Switcher -->
+    <div class="mode-view" id="view-tabs">
+      <div class="tabs" id="tab-list">
+        <div class="tabs-empty">Tap to load tabs</div>
+      </div>
+      <div class="paywall" id="paywall-tabs">
+        <div class="paywall-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg></div>
+        <div class="paywall-title">Tab Switcher</div>
+        <div class="paywall-sub">See and switch between all open browser tabs from your phone.</div>
+        <button class="paywall-btn">Unlock Everything — $9</button>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="mode-view" id="view-settings">
+      <div class="settings">
+        <div class="setting-row">
+          <div><div class="setting-label">Gyro sensitivity</div><div class="setting-desc">Air mouse movement speed</div></div>
+          <input type="range" class="setting-slider" id="setting-gyro" min="0.5" max="3" step="0.1" value="1.5">
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Scroll acceleration</div><div class="setting-desc">Faster scroll on quick swipes</div></div>
+          <button class="setting-toggle on" id="setting-scroll-accel"></button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Trackpad sensitivity</div><div class="setting-desc">Cursor movement speed</div></div>
+          <input type="range" class="setting-slider" id="setting-trackpad" min="0.5" max="3" step="0.1" value="1.5">
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Auto-reconnect</div><div class="setting-desc">Reconnect automatically on drop</div></div>
+          <button class="setting-toggle on" id="setting-auto-reconnect"></button>
+        </div>
+        <div class="settings-about">
+          <div class="about-brand">Couch<span>Lock</span></div>
+          <div class="about-ver">V1.0.0 — NOTHING LEAVES YOUR NETWORK</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottomnav">
+    <button class="nav-btn active" data-mode="trackpad">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3"/></svg>
+      <span class="nav-label">Pad</span>
+    </button>
+    <button class="nav-btn" data-mode="airmouse">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
+      <span class="nav-label">Air</span>
+    </button>
+    <button class="nav-btn" data-mode="media">
+      <svg viewBox="0 0 24 24"><polygon points="8,5 20,12 8,19"/></svg>
+      <span class="nav-label">Media</span>
+    </button>
+    <button class="orb-btn" id="orb"></button>
+    <button class="nav-btn" data-mode="keyboard">
+      <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h1M10 8h1M14 8h1M7 12h10"/></svg>
+      <span class="nav-label">Keys</span>
+    </button>
+    <button class="nav-btn" data-mode="tabs">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+      <span class="nav-label">Tabs</span>
+    </button>
+    <button class="nav-btn" data-mode="settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+      <span class="nav-label">Set</span>
+    </button>
+  </div>
+</div>
+
+<!-- Transport (shared with extension) -->
+<script>
+// Inline transport for PWA context (uses const/let where possible, but transport.js uses var)
+</script>
+<script src="transport.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ── Config ──
+  const MODES = ['trackpad', 'airmouse', 'media', 'keyboard', 'tabs', 'settings'];
+  const PAID_MODES = ['airmouse', 'tabs']; // Modes locked behind paywall
+  const KB_ROWS = [
+    ['q','w','e','r','t','y','u','i','o','p'],
+    ['a','s','d','f','g','h','j','k','l'],
+    ['z','x','c','v','b','n','m']
+  ];
+  const KB_FREE_LINE_LIMIT = 1;
+
+  // ── State ──
+  let isPaid = false;
+  let currentMode = 'trackpad';
+  let isConnected = false;
+  let isPaired = false;
+  let kbText = '';
+  let kbLineCount = 0;
+  let gyroActive = false;
+  let gyroLastAlpha = null;
+  let gyroLastBeta = null;
+  let mediaState = { platform: '', title: '', playing: false, currentTime: 0, duration: 0 };
+
+  // ── DOM ──
+  const $ = function (s) { return document.querySelector(s); };
+  const $$ = function (s) { return document.querySelectorAll(s); };
+
+  // ── Parse URL Params (from QR scan) ──
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('t');
+  const sessionId = params.get('s');
+
+  // ── Transport ──
+  function connect() {
+    if (!token) {
+      $('#pairing-status').textContent = 'No connection params. Scan QR from extension.';
+      return;
+    }
+
+    $('#pairing-status').textContent = 'Connecting...';
+
+    CouchTransport.onStatus(function (status) {
+      if (status === 'connected') {
+        // Send hello with token
+        CouchTransport.send({ type: 'hello', token: token });
+        $('#pairing-status').textContent = 'Authenticating...';
+      } else if (status === 'disconnected' || status === 'failed') {
+        isConnected = false;
+        isPaired = false;
+        updateConnUI();
+        $('#pairing').classList.remove('hidden');
+        $('#pairing-status').textContent = status === 'failed' ? 'Connection failed' : 'Disconnected';
+      } else if (status === 'reconnecting') {
+        $('#pairing-status').textContent = 'Reconnecting...';
+      }
+    });
+
+    CouchTransport.onMessage(function (msg) {
+      if (!msg) return;
+
+      if (msg.type === 'ready') {
+        isPaired = true;
+        isConnected = true;
+        $('#pairing').classList.add('hidden');
+        updateConnUI();
+        // Request tab list
+        CouchTransport.send({ type: 'tab_list' });
+      }
+
+      if (msg.type === 'pong') {
+        // Latency calc if needed
+      }
+
+      if (msg.type === 'media_status') {
+        mediaState = {
+          platform: msg.platform || '',
+          title: msg.title || '—',
+          playing: msg.playing || false,
+          currentTime: msg.currentTime || 0,
+          duration: msg.duration || 0
+        };
+        updateMediaUI();
+      }
+
+      if (msg.type === 'tab_list_result') {
+        renderTabs(msg.tabs || []);
+      }
+
+      if (msg.type === 'cmd_result') {
+        // Could show feedback
+      }
+    });
+
+    CouchTransport.connect({ token: token, sessionId: sessionId });
+  }
+
+  function send(data) {
+    if (CouchTransport.isConnected()) {
+      CouchTransport.send(data);
+    }
+  }
+
+  // ── Connection UI ──
+  function updateConnUI() {
+    const dot = $('#conn-dot');
+    const text = $('#conn-text');
+    if (isPaired) {
+      dot.classList.add('on');
+      text.textContent = 'Connected';
+    } else {
+      dot.classList.remove('on');
+      text.textContent = 'Disconnected';
+    }
+  }
+
+  // ── Tier Toggle ──
+  function updateTierUI() {
+    const pill = $('#tier-pill');
+    const label = $('#tier-label');
+    if (isPaid) {
+      pill.classList.add('paid');
+      label.textContent = 'PAID';
+    } else {
+      pill.classList.remove('paid');
+      label.textContent = 'FREE';
+    }
+    // Update paywall visibility
+    PAID_MODES.forEach(function (mode) {
+      const pw = $('#paywall-' + mode);
+      if (pw) {
+        if (isPaid) pw.classList.remove('active');
+        else pw.classList.add('active');
+      }
+    });
+    // Keyboard paywall is conditional on line count
+    updateKbPaywall();
+    // Update locked indicators on nav
+    $$('.nav-btn').forEach(function (btn) {
+      const mode = btn.getAttribute('data-mode');
+      if (PAID_MODES.indexOf(mode) !== -1) {
+        if (isPaid) btn.classList.remove('locked');
+        else btn.classList.add('locked');
+      }
+    });
+  }
+
+  $('#tier-toggle').addEventListener('click', function () {
+    isPaid = !isPaid;
+    updateTierUI();
+  });
+
+  // ── Mode Switching ──
+  function switchMode(mode) {
+    if (MODES.indexOf(mode) === -1) return;
+    currentMode = mode;
+
+    $$('.mode-view').forEach(function (v) { v.classList.remove('active'); });
+    $('#view-' + mode).classList.add('active');
+
+    $$('.nav-btn').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-mode') === mode);
+    });
+
+    // Gyro management
+    if (mode === 'airmouse' && isPaid) startGyro();
+    else stopGyro();
+
+    // Request tab list when switching to tabs
+    if (mode === 'tabs' && isPaired) {
+      send({ type: 'tab_list' });
+    }
+  }
+
+  $$('.nav-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const mode = btn.getAttribute('data-mode');
+      if (mode) switchMode(mode);
+    });
+  });
+
+  // Orb cycles through modes
+  let modeIndex = 0;
+  $('#orb').addEventListener('click', function () {
+    modeIndex = (modeIndex + 1) % MODES.length;
+    switchMode(MODES[modeIndex]);
+  });
+
+  // ── Trackpad ──
+  (function () {
+    const surface = $('#trackpad-surface');
+    let lastX = 0, lastY = 0, touching = false;
+    let scrollMode = false;
+    let touchCount = 0;
+
+    surface.addEventListener('touchstart', function (e) {
+      e.preventDefault();
+      const t = e.touches[0];
+      lastX = t.clientX;
+      lastY = t.clientY;
+      touching = true;
+      touchCount = e.touches.length;
+      scrollMode = touchCount >= 2;
+    });
+
+    surface.addEventListener('touchmove', function (e) {
+      e.preventDefault();
+      if (!touching) return;
+      const t = e.touches[0];
+      const dx = t.clientX - lastX;
+      const dy = t.clientY - lastY;
+      lastX = t.clientX;
+      lastY = t.clientY;
+
+      const sensitivity = parseFloat($('#setting-trackpad').value) || 1.5;
+
+      if (scrollMode || e.touches.length >= 2) {
+        send({ type: 'scroll', dx: 0, dy: Math.round(-dy * 3) });
+      } else {
+        send({ type: 'mousemove', dx: dx, dy: dy, sensitivity: sensitivity });
+      }
+    });
+
+    surface.addEventListener('touchend', function (e) {
+      e.preventDefault();
+      touching = false;
+      scrollMode = false;
+      // Tap detection (quick touch with no significant movement)
+    });
+
+    // Single tap on surface = click
+    let tapTimer = null;
+    surface.addEventListener('touchstart', function (e) {
+      if (e.touches.length === 1) {
+        tapTimer = setTimeout(function () { tapTimer = null; }, 200);
+      }
+    });
+    surface.addEventListener('touchend', function (e) {
+      if (tapTimer !== null) {
+        clearTimeout(tapTimer);
+        tapTimer = null;
+        send({ type: 'click' });
+      }
+    });
+
+    $('#btn-left-click').addEventListener('click', function () { send({ type: 'click' }); });
+    $('#btn-right-click').addEventListener('click', function () {
+      if (!isPaid) return; // Right click is paid
+      send({ type: 'rightclick' });
+    });
+  })();
+
+  // ── Air Mouse (Gyroscope) ──
+  function startGyro() {
+    if (gyroActive) return;
+
+    // iOS permission
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().then(function (state) {
+        if (state === 'granted') initGyro();
+      });
+    } else {
+      initGyro();
+    }
+  }
+
+  function initGyro() {
+    gyroActive = true;
+    gyroLastAlpha = null;
+    gyroLastBeta = null;
+    window.addEventListener('deviceorientation', onGyro);
+  }
+
+  function stopGyro() {
+    gyroActive = false;
+    window.removeEventListener('deviceorientation', onGyro);
+  }
+
+  function onGyro(e) {
+    if (!gyroActive || currentMode !== 'airmouse') return;
+    if (gyroLastAlpha === null) {
+      gyroLastAlpha = e.alpha;
+      gyroLastBeta = e.beta;
+      return;
+    }
+
+    let dAlpha = e.alpha - gyroLastAlpha;
+    let dBeta = e.beta - gyroLastBeta;
+
+    // Handle alpha wraparound (0-360)
+    if (dAlpha > 180) dAlpha -= 360;
+    if (dAlpha < -180) dAlpha += 360;
+
+    const sensitivity = parseFloat($('#setting-gyro').value) || 1.5;
+    const dx = dAlpha * sensitivity * 2;
+    const dy = dBeta * sensitivity * 2;
+
+    // Apply threshold to filter jitter
+    if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+      send({ type: 'mousemove', dx: dx, dy: dy, sensitivity: 1 });
+    }
+
+    gyroLastAlpha = e.alpha;
+    gyroLastBeta = e.beta;
+  }
+
+  $('#btn-recalibrate').addEventListener('click', function () {
+    gyroLastAlpha = null;
+    gyroLastBeta = null;
+  });
+
+  // Double-tap to recalibrate
+  let lastTap = 0;
+  $('#view-airmouse').addEventListener('touchend', function () {
+    const now = Date.now();
+    if (now - lastTap < 300) {
+      gyroLastAlpha = null;
+      gyroLastBeta = null;
+    }
+    lastTap = now;
+  });
+
+  // ── Media ──
+  function updateMediaUI() {
+    $('#media-platform').textContent = mediaState.platform ? mediaState.platform.toUpperCase() : 'NO MEDIA DETECTED';
+    $('#media-title').textContent = mediaState.title || '—';
+
+    const pct = mediaState.duration > 0 ? (mediaState.currentTime / mediaState.duration * 100) : 0;
+    $('#media-progress').style.width = pct + '%';
+    $('#media-current').textContent = formatTime(mediaState.currentTime);
+    $('#media-duration').textContent = formatTime(mediaState.duration);
+  }
+
+  function formatTime(s) {
+    if (!s || isNaN(s)) return '0:00';
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  $('#btn-play-pause').addEventListener('click', function () { send({ type: 'cmd', action: 'playPause' }); });
+  $('#btn-seek-back').addEventListener('click', function () { send({ type: 'cmd', action: 'seekBack' }); });
+  $('#btn-seek-fwd').addEventListener('click', function () { send({ type: 'cmd', action: 'seekForward' }); });
+  $('#btn-skip-intro').addEventListener('click', function () { send({ type: 'cmd', action: 'skipIntro' }); });
+  $('#btn-next-ep').addEventListener('click', function () { send({ type: 'cmd', action: 'nextEpisode' }); });
+  $('#btn-vol-down').addEventListener('click', function () { send({ type: 'cmd', action: 'volumeDown' }); });
+  $('#btn-vol-up').addEventListener('click', function () { send({ type: 'cmd', action: 'volumeUp' }); });
+  $('#btn-fullscreen').addEventListener('click', function () { send({ type: 'cmd', action: 'fullscreen' }); });
+  $('#btn-mute').addEventListener('click', function () { send({ type: 'cmd', action: 'mute' }); });
+
+  // ── Keyboard ──
+  function buildKeyboard() {
+    const grid = $('#kb-grid');
+    KB_ROWS.forEach(function (row) {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'kb-row';
+      row.forEach(function (key) {
+        const btn = document.createElement('button');
+        btn.className = 'kb-key';
+        btn.textContent = key;
+        btn.setAttribute('data-key', key);
+        btn.setAttribute('data-code', 'Key' + key.toUpperCase());
+        rowEl.appendChild(btn);
+      });
+      grid.appendChild(rowEl);
+    });
+  }
+
+  function updateKbPaywall() {
+    const pw = $('#paywall-keyboard');
+    if (isPaid) {
+      pw.classList.remove('active');
+    } else if (kbLineCount >= KB_FREE_LINE_LIMIT) {
+      pw.classList.add('active');
+    } else {
+      pw.classList.remove('active');
+    }
+  }
+
+  // Key press handler (delegated)
+  document.addEventListener('click', function (e) {
+    const key = e.target.closest('.kb-key');
+    if (!key) return;
+
+    const keyVal = key.getAttribute('data-key');
+    const codeVal = key.getAttribute('data-code');
+
+    if (!keyVal) return;
+
+    // Track typed text for display
+    if (keyVal === 'Backspace') {
+      kbText = kbText.slice(0, -1);
+    } else if (keyVal === 'Enter') {
+      kbText += '\n';
+      kbLineCount++;
+      updateKbPaywall();
+    } else if (keyVal.length === 1) {
+      kbText += keyVal;
+    }
+
+    $('#kb-text').textContent = kbText;
+    send({ type: 'keychar', key: keyVal, code: codeVal });
+  });
+
+  buildKeyboard();
+
+  // ── Tab Switcher ──
+  function renderTabs(tabs) {
+    const list = $('#tab-list');
+    list.innerHTML = '';
+
+    if (tabs.length === 0) {
+      list.innerHTML = '<div class="tabs-empty">No tabs found</div>';
+      return;
+    }
+
+    tabs.forEach(function (tab) {
+      const el = document.createElement('div');
+      el.className = 'tab-item' + (tab.active ? ' active-tab' : '');
+      el.innerHTML = '<div class="tab-pip"></div><div class="tab-info"><div class="tab-title">' +
+        escapeHTML(tab.title || 'Untitled') + '</div><div class="tab-url">' +
+        escapeHTML(tab.url || '') + '</div></div>';
+      el.addEventListener('click', function () {
+        send({ type: 'tab_switch', tabId: tab.id });
+      });
+      list.appendChild(el);
+    });
+  }
+
+  function escapeHTML(s) {
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  // ── Settings Toggles ──
+  $$('.setting-toggle').forEach(function (toggle) {
+    toggle.addEventListener('click', function () {
+      toggle.classList.toggle('on');
+    });
+  });
+
+  // ── Ping (keepalive) ──
+  setInterval(function () {
+    if (isPaired) {
+      send({ type: 'ping', ts: Date.now() });
+    }
+  }, 10000);
+
+  // ── Init ──
+  updateTierUI();
+  connect();
+
+})();
+</script>
+<script>
+// Service Worker Registration
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(function () {});
+}
+</script>
+</body>
+</html>
