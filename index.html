@@ -1435,8 +1435,11 @@ html, body {
       flushMove();
     });
 
-    // Tap detection
+    // Tap detection (single tap = click, double tap = double-click)
     var tapTimer = null;
+    var lastTapTime = 0;
+    var DOUBLE_TAP_WINDOW = 300;
+
     surface.addEventListener('touchstart', function (e) {
       if (e.touches.length === 1) {
         tapTimer = setTimeout(function () { tapTimer = null; }, 200);
@@ -1446,7 +1449,16 @@ html, body {
       if (tapTimer !== null) {
         clearTimeout(tapTimer);
         tapTimer = null;
-        send({ type: 'click' });
+
+        var now = Date.now();
+        if (now - lastTapTime < DOUBLE_TAP_WINDOW) {
+          // Second tap within window — double-click
+          send({ type: 'doubleclick' });
+          lastTapTime = 0; // Reset so a third tap starts fresh
+        } else {
+          send({ type: 'click' });
+          lastTapTime = now;
+        }
       }
     });
 
@@ -1829,11 +1841,35 @@ html, body {
     sendCursorSettings();
   });
 
+  function rgbToHex(r, g, b) {
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+  }
+
+  function applyThemeColor(rgbStr) {
+    var parts = rgbStr.split(',');
+    var r = parseInt(parts[0], 10);
+    var g = parseInt(parts[1], 10);
+    var b = parseInt(parts[2], 10);
+    var hex = rgbToHex(r, g, b);
+
+    // Lighter variant: shift each channel 20% toward 255
+    var lr = Math.round(r + (255 - r) * 0.2);
+    var lg = Math.round(g + (255 - g) * 0.2);
+    var lb = Math.round(b + (255 - b) * 0.2);
+    var hexLight = rgbToHex(lr, lg, lb);
+
+    var root = document.documentElement;
+    root.style.setProperty('--accent', hex);
+    root.style.setProperty('--accent-rgb', rgbStr);
+    root.style.setProperty('--accent-light', hexLight);
+  }
+
   $$('.color-swatch').forEach(function (swatch) {
     swatch.addEventListener('click', function () {
       $$('.color-swatch').forEach(function (s) { s.classList.remove('active'); });
       swatch.classList.add('active');
       cursorColor = swatch.getAttribute('data-color');
+      applyThemeColor(cursorColor);
       sendCursorSettings();
     });
   });
