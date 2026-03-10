@@ -59,7 +59,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
+  padding: 14px 20px;
   flex-shrink: 0;
 }
 .conn {
@@ -81,40 +81,26 @@ html, body {
   background: var(--teal);
   box-shadow: 0 0 6px rgba(var(--teal-rgb),0.5);
 }
-.tier-toggle {
+.topbar-settings {
+  width: 40px; height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-family: var(--font-m);
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.15);
+  justify-content: center;
   cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
 }
-.tier-pill {
-  width: 36px; height: 20px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.06);
-  position: relative;
-  transition: background 200ms var(--ease-mag);
-}
-.tier-pill::after {
-  content: '';
-  position: absolute;
-  width: 16px; height: 16px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.25);
-  top: 2px; left: 2px;
-  transition: transform 200ms var(--ease-mag), background 200ms var(--ease-mag);
-}
-.tier-pill.paid {
-  background: rgba(var(--accent-rgb),0.2);
-}
-.tier-pill.paid::after {
-  transform: translateX(16px);
-  background: var(--accent);
+.topbar-settings:active { opacity: 0.7; }
+.topbar-settings svg {
+  width: 18px; height: 18px;
+  stroke: rgba(255,255,255,0.3);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* ── Main Content ── */
@@ -139,32 +125,40 @@ html, body {
   pointer-events: auto;
 }
 
-/* ── Bottom Nav (Orb + Controls) ── */
+/* ── Bottom Nav ── */
 .bottomnav {
-  padding: 12px 20px 16px;
+  padding: 10px 12px 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
   flex-shrink: 0;
 }
+.nav-group {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+}
+.nav-group-right { justify-content: flex-end; }
 .nav-btn {
-  width: 44px; height: 44px;
-  border-radius: 50%;
+  flex: 1;
+  max-width: 72px;
+  height: 52px;
   border: none;
+  border-radius: 4px;
   background: rgba(255,255,255,0.03);
   border: 1px solid rgba(255,255,255,0.06);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   cursor: pointer;
   transition: opacity 150ms var(--ease-mag);
-  position: relative;
 }
-.nav-btn:hover { opacity: 0.8; }
+.nav-btn:active { opacity: 0.7; }
 .nav-btn.active {
-  background: rgba(var(--accent-rgb),0.15);
-  border-color: rgba(var(--accent-rgb),0.3);
+  background: rgba(var(--accent-rgb),0.12);
+  border-color: rgba(var(--accent-rgb),0.25);
 }
 .nav-btn.active svg { stroke: var(--accent); }
 .nav-btn.locked::after {
@@ -185,35 +179,52 @@ html, body {
   stroke-linejoin: round;
 }
 .nav-label {
-  position: absolute;
-  bottom: -14px;
-  left: 50%;
-  transform: translateX(-50%);
   font-family: var(--font-m);
   font-size: 8px;
   font-weight: 500;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
   color: rgba(255,255,255,0.12);
-  white-space: nowrap;
 }
 .nav-btn.active .nav-label { color: rgba(var(--accent-rgb),0.5); }
 
 /* Orb */
+.orb-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
 .orb-btn {
-  width: 52px; height: 52px;
+  width: 96px; height: 96px;
   border-radius: 50%;
   border: none;
   background: var(--accent);
-  box-shadow: 0 0 24px rgba(var(--accent-rgb),0.25);
+  box-shadow: 0 0 24px rgba(var(--accent-rgb),0.15);
   cursor: pointer;
   flex-shrink: 0;
-  animation: bleep 3s steps(1) infinite;
+  animation: heartbeat-rest 833ms ease infinite;
+  transition: animation 300ms;
 }
-@keyframes bleep {
-  0%   { box-shadow: 0 0 24px rgba(var(--accent-rgb),0.2); }
-  72%  { box-shadow: 0 0 40px rgba(var(--accent-rgb),0.7); }
-  80%  { box-shadow: 0 0 24px rgba(var(--accent-rgb),0.2); }
+.orb-btn.active {
+  animation: heartbeat-active 462ms ease infinite;
+}
+@keyframes heartbeat-rest {
+  0%   { box-shadow: 0 0 24px rgba(var(--accent-rgb),0.15); }
+  12%  { box-shadow: 0 0 40px rgba(var(--accent-rgb),0.45); }
+  18%  { box-shadow: 0 0 30px rgba(var(--accent-rgb),0.28); }
+  28%  { box-shadow: 0 0 36px rgba(var(--accent-rgb),0.35); }
+  45%  { box-shadow: 0 0 24px rgba(var(--accent-rgb),0.15); }
+  100% { box-shadow: 0 0 20px rgba(var(--accent-rgb),0.1); }
+}
+@keyframes heartbeat-active {
+  0%   { box-shadow: 0 0 30px rgba(var(--accent-rgb),0.25); }
+  12%  { box-shadow: 0 0 56px rgba(var(--accent-rgb),0.7); }
+  18%  { box-shadow: 0 0 40px rgba(var(--accent-rgb),0.45); }
+  28%  { box-shadow: 0 0 48px rgba(var(--accent-rgb),0.55); }
+  45%  { box-shadow: 0 0 30px rgba(var(--accent-rgb),0.25); }
+  100% { box-shadow: 0 0 26px rgba(var(--accent-rgb),0.2); }
 }
 
 /* ═══════════════════════════════════════════
@@ -226,39 +237,41 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 24px;
+  gap: 20px;
   padding: 40px;
   text-align: center;
   z-index: 50;
   background: var(--void);
 }
 .pairing.hidden { display: none; }
+.pairing-orb {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: heartbeat-rest 833ms ease infinite;
+}
 .pairing-title {
   font-family: var(--font-d);
-  font-size: 24px;
+  font-size: 64px;
   font-weight: 800;
-  letter-spacing: -0.5px;
+  letter-spacing: -2px;
   color: rgba(255,255,255,0.9);
+  line-height: 1;
 }
 .pairing-title span { color: var(--accent); }
 .pairing-sub {
-  font-size: 14px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.2);
-  line-height: 1.6;
+  font-size: 22px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.25);
+  line-height: 1.2;
+  max-width: 320px;
 }
 .pairing-status {
   font-family: var(--font-m);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 1px;
   color: rgba(var(--accent-rgb),0.4);
-}
-.pairing-orb {
-  width: 64px; height: 64px;
-  border-radius: 50%;
-  background: var(--accent);
-  animation: bleep 3s steps(1) infinite;
 }
 
 /* ═══════════════════════════════════════════
@@ -285,7 +298,7 @@ html, body {
   pointer-events: auto;
 }
 .paywall-icon {
-  width: 48px; height: 48px;
+  width: 56px; height: 56px;
   border-radius: 50%;
   background: rgba(var(--accent-rgb),0.1);
   border: 1px solid rgba(var(--accent-rgb),0.15);
@@ -294,7 +307,7 @@ html, body {
   justify-content: center;
 }
 .paywall-icon svg {
-  width: 24px; height: 24px;
+  width: 26px; height: 26px;
   stroke: var(--accent);
   fill: none;
   stroke-width: 1.8;
@@ -303,26 +316,27 @@ html, body {
 }
 .paywall-title {
   font-family: var(--font-d);
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 800;
+  letter-spacing: -0.5px;
   color: rgba(255,255,255,0.9);
 }
 .paywall-sub {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   color: rgba(255,255,255,0.25);
   text-align: center;
-  padding: 0 40px;
+  padding: 0 32px;
   line-height: 1.5;
 }
 .paywall-btn {
-  padding: 15px 32px;
+  padding: 16px 36px;
   border: none;
   border-radius: 999px;
   background: var(--accent);
   color: white;
   font-family: var(--font-d);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   box-shadow: 0 0 32px rgba(var(--accent-rgb),0.35);
   cursor: pointer;
@@ -359,28 +373,28 @@ html, body {
   position: absolute;
   top: 50%; left: 50%;
   transform: translate(-50%,-50%);
-  font-family: var(--font-m);
-  font-size: 9px;
+  font-family: var(--font-b);
+  font-size: 14px;
   font-weight: 500;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.15);
   pointer-events: none;
+  transition: opacity 300ms var(--ease-mag);
 }
+.trackpad-hint.hidden { opacity: 0; }
 .trackpad-buttons {
   display: flex;
-  gap: 2px;
+  gap: 6px;
   padding: 0 16px 8px;
 }
 .trackpad-btn {
   flex: 1;
-  height: 48px;
+  height: 52px;
   border: none;
   border-radius: 999px;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.06);
   font-family: var(--font-d);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: rgba(255,255,255,0.4);
   cursor: pointer;
@@ -397,63 +411,58 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 24px;
+  gap: 20px;
   padding: 20px;
 }
 .airmouse-orb {
-  width: 100px; height: 100px;
+  width: 120px; height: 120px;
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 60px rgba(var(--accent-rgb),0.3);
-  animation: bleep 3s steps(1) infinite;
+  animation: heartbeat-rest 833ms ease infinite;
 }
 .airmouse-label {
   font-family: var(--font-d);
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-  color: rgba(255,255,255,0.5);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: rgba(255,255,255,0.6);
+  transition: color 200ms var(--ease-mag);
 }
 .airmouse-hint {
   font-family: var(--font-b);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
-  color: rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.25);
   text-align: center;
-  line-height: 1.65;
+  line-height: 1.5;
 }
 .airmouse-recal {
-  padding: 14px 28px;
+  padding: 16px 36px;
   border: none;
   border-radius: 999px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--accent);
+  color: white;
   font-family: var(--font-d);
-  font-size: 14px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.5);
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 0 32px rgba(var(--accent-rgb),0.35);
   cursor: pointer;
-  transition: opacity 150ms var(--ease-mag), background 150ms var(--ease-mag), border-color 150ms var(--ease-mag), color 150ms var(--ease-mag);
+  transition: opacity 150ms var(--ease-mag), box-shadow 200ms var(--ease-mag);
 }
-.airmouse-recal:active { opacity: 0.7; }
+.airmouse-recal:active { opacity: 0.85; }
 .airmouse-recal.confirmed {
-  background: rgba(var(--accent-rgb),0.15);
-  border-color: rgba(var(--accent-rgb),0.3);
-  color: var(--accent);
-}
-.airmouse-label {
-  transition: opacity 200ms var(--ease-mag);
+  box-shadow: 0 0 48px rgba(var(--accent-rgb),0.5);
 }
 .airmouse-hint-tip {
   font-family: var(--font-m);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.1);
   text-align: center;
   line-height: 1.8;
-  margin-top: 8px;
 }
 
 /* ═══════════════════════════════════════════
@@ -487,7 +496,7 @@ html, body {
 }
 .media-title {
   font-family: var(--font-d);
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
   letter-spacing: -0.6px;
   color: rgba(255,255,255,0.8);
@@ -571,65 +580,61 @@ html, body {
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.06);
   font-family: var(--font-d);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: rgba(255,255,255,0.4);
   cursor: pointer;
   text-align: center;
-  transition: opacity 150ms var(--ease-mag);
+  transition: opacity 150ms var(--ease-mag), background 200ms var(--ease-mag), color 200ms var(--ease-mag);
 }
 .media-action:active { opacity: 0.6; }
+.media-action.faded {
+  opacity: 0.25;
+  pointer-events: none;
+}
+.media-action.highlight {
+  background: rgba(var(--accent-rgb),0.15);
+  border-color: rgba(var(--accent-rgb),0.3);
+  color: var(--accent);
+}
 
 /* ═══════════════════════════════════════════
-   KEYBOARD MODE
+   KEYBOARD OVERLAY (slides up over current view)
 ═══════════════════════════════════════════ */
-.keyboard {
-  flex: 1;
+.kb-overlay {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  background: var(--void);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 12px 12px 16px;
+  z-index: 45;
+  transform: translateY(100%);
+  transition: transform 300ms var(--ease-mag);
   display: flex;
   flex-direction: column;
-  padding: 12px;
   gap: 8px;
-  justify-content: flex-end;
 }
-.kb-display {
-  min-height: 56px;
-  padding: 14px 18px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 24px;
+.kb-overlay.visible { transform: translateY(0); }
+.kb-overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 4px;
+}
+.kb-overlay-preview {
+  flex: 1;
   font-family: var(--font-m);
   font-size: 14px;
   font-weight: 500;
   color: rgba(255,255,255,0.5);
-  word-break: break-all;
-  position: relative;
-  margin-bottom: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.kb-native-input {
-  position: absolute;
-  left: 0; top: 0;
-  width: 100%; height: 100%;
-  opacity: 0;
-  font-size: 16px;
-  z-index: 2;
-  border: none;
-  background: none;
-}
-.kb-display-tap {
-  position: absolute;
-  bottom: 8px; right: 14px;
-  font-family: var(--font-m);
-  font-size: 8px;
-  font-weight: 500;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.1);
-  pointer-events: none;
-}
-.kb-cursor {
+.kb-overlay-preview .kb-cursor {
   display: inline-block;
   width: 2px;
-  height: 16px;
+  height: 14px;
   background: var(--accent);
   vertical-align: middle;
   animation: cursor-blink 1s steps(1) infinite;
@@ -638,17 +643,33 @@ html, body {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0; }
 }
-.kb-fallback {
+.kb-dismiss {
+  width: 36px; height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
-.kb-special {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
+.kb-dismiss svg {
+  width: 16px; height: 16px;
+  stroke: rgba(255,255,255,0.3);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
-.kb-grid {
+.kb-native-input {
+  position: absolute;
+  left: -9999px;
+  width: 1px; height: 1px;
+  opacity: 0;
+  font-size: 16px;
+}
+.kb-fallback {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -683,10 +704,8 @@ html, body {
 }
 .kb-key-special {
   font-family: var(--font-d);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0;
-  text-transform: none;
   color: rgba(255,255,255,0.3);
   max-width: none;
   background: rgba(255,255,255,0.03);
@@ -714,14 +733,14 @@ html, body {
   display: flex;
   flex-direction: column;
   padding: 16px;
-  gap: 2px;
+  gap: 6px;
   overflow-y: auto;
 }
 .tab-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 18px;
+  padding: 18px 20px;
   background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.04);
   border-radius: 24px;
@@ -746,7 +765,7 @@ html, body {
 .tab-info { flex: 1; min-width: 0; }
 .tab-title {
   font-family: var(--font-d);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.3px;
   color: rgba(255,255,255,0.5);
@@ -763,17 +782,16 @@ html, body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-top: 2px;
+  margin-top: 3px;
 }
 .tabs-empty {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-m);
-  font-size: 10px;
-  color: rgba(255,255,255,0.1);
-  letter-spacing: 1px;
+  font-family: var(--font-b);
+  font-size: 14px;
+  color: rgba(255,255,255,0.12);
 }
 
 /* ═══════════════════════════════════════════
@@ -784,21 +802,31 @@ html, body {
   display: flex;
   flex-direction: column;
   padding: 16px;
-  gap: 2px;
+  gap: 10px;
   overflow-y: auto;
+}
+.setting-section-label {
+  font-family: var(--font-m);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(var(--accent-rgb),0.4);
+  padding: 8px 4px 4px;
 }
 .setting-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 20px;
+  padding: 20px 22px;
   background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.04);
   border-radius: 24px;
+  min-height: 68px;
 }
 .setting-label {
   font-family: var(--font-d);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.3px;
   color: rgba(255,255,255,0.5);
@@ -811,7 +839,7 @@ html, body {
   margin-top: 3px;
 }
 .setting-toggle {
-  width: 40px; height: 24px;
+  width: 44px; height: 26px;
   border-radius: 999px;
   border: none;
   background: rgba(255,255,255,0.08);
@@ -822,7 +850,7 @@ html, body {
 .setting-toggle::after {
   content: '';
   position: absolute;
-  width: 18px; height: 18px;
+  width: 20px; height: 20px;
   border-radius: 50%;
   background: rgba(255,255,255,0.3);
   top: 3px; left: 3px;
@@ -832,11 +860,11 @@ html, body {
   background: rgba(var(--accent-rgb),0.2);
 }
 .setting-toggle.on::after {
-  transform: translateX(16px);
+  transform: translateX(18px);
   background: var(--accent);
 }
 .setting-slider {
-  width: 100px;
+  width: 120px;
   height: 4px;
   -webkit-appearance: none;
   appearance: none;
@@ -846,19 +874,33 @@ html, body {
 }
 .setting-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 16px; height: 16px;
+  width: 18px; height: 18px;
   border-radius: 50%;
   background: var(--accent);
   cursor: pointer;
 }
+.color-swatches {
+  display: flex;
+  gap: 8px;
+}
+.color-swatch {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 150ms var(--ease-mag);
+}
+.color-swatch.active {
+  border-color: white;
+}
 .settings-about {
-  margin-top: 8px;
-  padding: 16px;
+  margin-top: 12px;
+  padding: 20px;
   text-align: center;
 }
 .about-brand {
   font-family: var(--font-d);
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 800;
   color: rgba(255,255,255,0.3);
   margin-bottom: 4px;
@@ -891,10 +933,9 @@ html, body {
       <div class="conn-dot" id="conn-dot"></div>
       <span id="conn-text">Disconnected</span>
     </div>
-    <div class="tier-toggle" id="tier-toggle">
-      <span id="tier-label">FREE</span>
-      <div class="tier-pill" id="tier-pill"></div>
-    </div>
+    <button class="topbar-settings" id="btn-settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+    </button>
   </div>
 
   <!-- Mode Views -->
@@ -904,7 +945,7 @@ html, body {
     <div class="mode-view active" id="view-trackpad">
       <div class="trackpad">
         <div class="trackpad-surface" id="trackpad-surface">
-          <div class="trackpad-hint">Slide to move cursor</div>
+          <div class="trackpad-hint" id="trackpad-hint">Slide to move cursor</div>
         </div>
         <div class="trackpad-buttons">
           <button class="trackpad-btn" id="btn-left-click">Left</button>
@@ -942,58 +983,22 @@ html, body {
         <div class="media-bottom">
           <div class="media-controls">
             <button class="media-btn" id="btn-seek-back"><svg viewBox="0 0 24 24"><path d="M12 8l-6 4 6 4V8z"/><path d="M18 8l-6 4 6 4V8z"/></svg></button>
-            <button class="media-btn media-btn-play" id="btn-play-pause"><svg viewBox="0 0 24 24"><polygon points="8,5 20,12 8,19"/></svg></button>
+            <button class="media-btn media-btn-play" id="btn-play-pause">
+              <svg viewBox="0 0 24 24" id="icon-play"><polygon points="8,5 20,12 8,19"/></svg>
+              <svg viewBox="0 0 24 24" id="icon-pause" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+            </button>
             <button class="media-btn" id="btn-seek-fwd"><svg viewBox="0 0 24 24"><path d="M6 8l6 4-6 4V8z"/><path d="M12 8l6 4-6 4V8z"/></svg></button>
           </div>
           <div class="media-actions">
-            <button class="media-action" id="btn-skip-intro">Skip</button>
-            <button class="media-action" id="btn-next-ep">Next</button>
+            <button class="media-action faded" id="btn-skip-ad">Skip Ad</button>
+            <button class="media-action faded" id="btn-skip-intro">Skip</button>
+            <button class="media-action" id="btn-next-ep">Next Ep</button>
             <button class="media-action" id="btn-fullscreen">Full</button>
             <button class="media-action" id="btn-vol-down">Vol −</button>
             <button class="media-action" id="btn-vol-up">Vol +</button>
             <button class="media-action" id="btn-mute">Mute</button>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Keyboard -->
-    <div class="mode-view" id="view-keyboard">
-      <div class="keyboard">
-        <div class="kb-display" id="kb-display">
-          <input type="text" class="kb-native-input" id="kb-native-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" inputmode="text">
-          <span id="kb-text"></span><span class="kb-cursor"></span>
-          <div class="kb-display-tap" id="kb-tap-hint">Tap to type</div>
-        </div>
-        <div class="kb-fallback" id="kb-fallback">
-          <div class="kb-special">
-            <button class="kb-key kb-key-special" data-key="Escape" data-code="Escape">Esc</button>
-            <button class="kb-key kb-key-special" data-key="Tab" data-code="Tab">Tab</button>
-            <button class="kb-key kb-key-special" data-key="Backspace" data-code="Backspace">Del</button>
-            <button class="kb-key kb-key-special" data-key="Enter" data-code="Enter">Go</button>
-          </div>
-          <div class="kb-grid" id="kb-grid">
-            <!-- Rows generated by JS -->
-          </div>
-          <div class="kb-row">
-            <button class="kb-key kb-key-special kb-key-shift" data-action="shift" id="kb-shift">⇧</button>
-            <button class="kb-key kb-key-special kb-key-wide" data-key="ArrowLeft" data-code="ArrowLeft">←</button>
-            <button class="kb-key kb-key-special kb-key-wide" data-key="ArrowUp" data-code="ArrowUp">↑</button>
-            <button class="kb-key kb-key-special kb-key-wide" data-key="ArrowDown" data-code="ArrowDown">↓</button>
-            <button class="kb-key kb-key-special kb-key-wide" data-key="ArrowRight" data-code="ArrowRight">→</button>
-            <button class="kb-key kb-key-special kb-key-shift" data-key="Backspace" data-code="Backspace">⌫</button>
-          </div>
-          <div class="kb-row">
-            <button class="kb-key kb-key-special kb-key-space" data-key=" " data-code="Space">space</button>
-            <button class="kb-key kb-key-return" data-key="Enter" data-code="Enter">return</button>
-          </div>
-        </div>
-      </div>
-      <div class="paywall" id="paywall-keyboard">
-        <div class="paywall-icon"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h1M10 8h1M14 8h1M18 8h1M7 12h10M9 16h6"/></svg></div>
-        <div class="paywall-title">Full Keyboard</div>
-        <div class="paywall-sub">You typed one line for free. Unlock the full keyboard and all features forever.</div>
-        <button class="paywall-btn">Unlock Everything — $9</button>
       </div>
     </div>
 
@@ -1013,22 +1018,57 @@ html, body {
     <!-- Settings -->
     <div class="mode-view" id="view-settings">
       <div class="settings">
+        <div class="setting-section-label">General</div>
         <div class="setting-row">
-          <div><div class="setting-label">Gyro sensitivity</div><div class="setting-desc">Air mouse movement speed</div></div>
-          <input type="range" class="setting-slider" id="setting-gyro" min="0.5" max="3" step="0.1" value="1.5">
-        </div>
-        <div class="setting-row">
-          <div><div class="setting-label">Scroll acceleration</div><div class="setting-desc">Faster scroll on quick swipes</div></div>
-          <button class="setting-toggle on" id="setting-scroll-accel"></button>
-        </div>
-        <div class="setting-row">
-          <div><div class="setting-label">Trackpad sensitivity</div><div class="setting-desc">Cursor movement speed</div></div>
-          <input type="range" class="setting-slider" id="setting-trackpad" min="0.5" max="3" step="0.1" value="1.5">
+          <div><div class="setting-label">Premium Mode</div><div class="setting-desc">Toggle free / paid features</div></div>
+          <button class="setting-toggle on" id="setting-tier"></button>
         </div>
         <div class="setting-row">
           <div><div class="setting-label">Auto-reconnect</div><div class="setting-desc">Reconnect automatically on drop</div></div>
           <button class="setting-toggle on" id="setting-auto-reconnect"></button>
         </div>
+
+        <div class="setting-section-label">Trackpad</div>
+        <div class="setting-row">
+          <div><div class="setting-label">Sensitivity</div><div class="setting-desc">Cursor movement speed</div></div>
+          <input type="range" class="setting-slider" id="setting-trackpad" min="0.5" max="3" step="0.1" value="1.5">
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Scroll acceleration</div><div class="setting-desc">Faster scroll on quick swipes</div></div>
+          <button class="setting-toggle on" id="setting-scroll-accel"></button>
+        </div>
+
+        <div class="setting-section-label">Air Mouse</div>
+        <div class="setting-row">
+          <div><div class="setting-label">Gyro sensitivity</div><div class="setting-desc">Air mouse movement speed</div></div>
+          <input type="range" class="setting-slider" id="setting-gyro" min="0.2" max="5" step="0.1" value="1.5">
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Invert X axis</div><div class="setting-desc">Flip horizontal direction</div></div>
+          <button class="setting-toggle" id="setting-invert-x"></button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Invert Y axis</div><div class="setting-desc">Flip vertical direction</div></div>
+          <button class="setting-toggle" id="setting-invert-y"></button>
+        </div>
+
+        <div class="setting-section-label">Cursor</div>
+        <div class="setting-row">
+          <div><div class="setting-label">Cursor size</div><div class="setting-desc">Size on laptop screen</div></div>
+          <input type="range" class="setting-slider" id="setting-cursor-size" min="12" max="32" step="2" value="16">
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Cursor color</div></div>
+          <div class="color-swatches" id="cursor-colors">
+            <div class="color-swatch active" data-color="79,82,224" style="background:#4F52E0;" title="Indigo"></div>
+            <div class="color-swatch" data-color="255,255,255" style="background:#FFFFFF;" title="White"></div>
+            <div class="color-swatch" data-color="34,211,238" style="background:#22D3EE;" title="Cyan"></div>
+            <div class="color-swatch" data-color="217,119,6" style="background:#D97706;" title="Amber"></div>
+            <div class="color-swatch" data-color="224,79,95" style="background:#E04F5F;" title="Rose"></div>
+            <div class="color-swatch" data-color="132,204,22" style="background:#84CC16;" title="Lime"></div>
+          </div>
+        </div>
+
         <div class="settings-about">
           <div class="about-brand">Couch<span>Lock</span></div>
           <div class="about-ver">V1.0.0 — NOTHING LEAVES YOUR NETWORK</div>
@@ -1038,75 +1078,93 @@ html, body {
 
   </div>
 
+  <!-- Keyboard Overlay (slides up over any mode) -->
+  <div class="kb-overlay" id="kb-overlay">
+    <input type="text" class="kb-native-input" id="kb-native-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" inputmode="text">
+    <div class="kb-overlay-header">
+      <div class="kb-overlay-preview" id="kb-preview"><span class="kb-cursor"></span></div>
+      <button class="kb-dismiss" id="kb-dismiss"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="kb-fallback" id="kb-fallback">
+      <div class="kb-row" id="kb-grid">
+        <!-- Generated by JS -->
+      </div>
+      <div class="kb-row">
+        <button class="kb-key kb-key-special kb-key-shift" data-action="shift" id="kb-shift">⇧</button>
+        <button class="kb-key kb-key-special kb-key-wide" data-key="Backspace" data-code="Backspace">⌫</button>
+        <button class="kb-key kb-key-special kb-key-space" data-key=" " data-code="Space">space</button>
+        <button class="kb-key kb-key-return" data-key="Enter" data-code="Enter">return</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Bottom Nav -->
   <div class="bottomnav">
-    <button class="nav-btn active" data-mode="trackpad">
-      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3"/></svg>
-      <span class="nav-label">Pad</span>
-    </button>
-    <button class="nav-btn" data-mode="airmouse">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
-      <span class="nav-label">Air</span>
-    </button>
-    <button class="nav-btn" data-mode="media">
-      <svg viewBox="0 0 24 24"><polygon points="8,5 20,12 8,19"/></svg>
-      <span class="nav-label">Media</span>
-    </button>
-    <button class="orb-btn" id="orb"></button>
-    <button class="nav-btn" data-mode="keyboard">
-      <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h1M10 8h1M14 8h1M7 12h10"/></svg>
-      <span class="nav-label">Keys</span>
-    </button>
-    <button class="nav-btn" data-mode="tabs">
-      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
-      <span class="nav-label">Tabs</span>
-    </button>
-    <button class="nav-btn" data-mode="settings">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
-      <span class="nav-label">Set</span>
-    </button>
+    <div class="nav-group">
+      <button class="nav-btn active" data-mode="trackpad">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3"/></svg>
+        <span class="nav-label">Pad</span>
+      </button>
+      <button class="nav-btn" data-mode="airmouse">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
+        <span class="nav-label">Air</span>
+      </button>
+    </div>
+    <div class="orb-wrap">
+      <button class="orb-btn" id="orb"></button>
+    </div>
+    <div class="nav-group nav-group-right">
+      <button class="nav-btn" data-mode="media">
+        <svg viewBox="0 0 24 24"><polygon points="8,5 20,12 8,19"/></svg>
+        <span class="nav-label">Media</span>
+      </button>
+      <button class="nav-btn" data-mode="tabs">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+        <span class="nav-label">Tabs</span>
+      </button>
+    </div>
   </div>
 </div>
 
-<!-- Transport (shared with extension) -->
-<script>
-// Inline transport for PWA context (uses const/let where possible, but transport.js uses var)
-</script>
 <script src="transport.js"></script>
 <script>
 (function () {
   'use strict';
 
   // ── Config ──
-  const MODES = ['trackpad', 'airmouse', 'media', 'keyboard', 'tabs', 'settings'];
-  const PAID_MODES = ['airmouse', 'tabs']; // Modes locked behind paywall
-  const KB_ROWS = [
+  var MODES = ['trackpad', 'airmouse', 'media', 'tabs', 'settings'];
+  var PAID_MODES = ['airmouse', 'tabs'];
+  var KB_ROWS = [
     ['q','w','e','r','t','y','u','i','o','p'],
     ['a','s','d','f','g','h','j','k','l'],
     ['z','x','c','v','b','n','m']
   ];
-  const KB_FREE_LINE_LIMIT = 1;
 
   // ── State ──
-  let isPaid = true;
-  let currentMode = 'trackpad';
-  let isConnected = false;
-  let isPaired = false;
-  let kbText = '';
-  let kbLineCount = 0;
-  let gyroActive = false;
-  let gyroLastAlpha = null;
-  let gyroLastBeta = null;
-  let mediaState = { platform: '', title: '', playing: false, currentTime: 0, duration: 0 };
+  var isPaid = true; // Default paid for testing
+  var currentMode = 'trackpad';
+  var isConnected = false;
+  var isPaired = false;
+  var kbText = '';
+  var gyroActive = false;
+  var gyroLastGamma = null;
+  var gyroLastBeta = null;
+  var mediaState = { platform: '', title: '', playing: false, currentTime: 0, duration: 0, skipIntroAvailable: false };
+  var skipAdAvailable = false;
+  var kbShift = false;
+  var kbOverlayVisible = false;
+  var trackpadHintHidden = false;
+  var cursorColor = '79,82,224';
+  var cursorSize = 16;
 
   // ── DOM ──
-  const $ = function (s) { return document.querySelector(s); };
-  const $$ = function (s) { return document.querySelectorAll(s); };
+  var $ = function (s) { return document.querySelector(s); };
+  var $$ = function (s) { return document.querySelectorAll(s); };
 
-  // ── Parse URL Params (from QR scan) ──
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get('t');
-  const sessionId = params.get('s');
+  // ── Parse URL Params ──
+  var params = new URLSearchParams(window.location.search);
+  var token = params.get('t');
+  var sessionId = params.get('s');
 
   // ── Transport ──
   function connect() {
@@ -1119,7 +1177,6 @@ html, body {
 
     CouchTransport.onStatus(function (status) {
       if (status === 'connected') {
-        // Send hello with token
         CouchTransport.send({ type: 'hello', token: token });
         $('#pairing-status').textContent = 'Authenticating...';
       } else if (status === 'disconnected' || status === 'failed') {
@@ -1141,12 +1198,7 @@ html, body {
         isConnected = true;
         $('#pairing').classList.add('hidden');
         updateConnUI();
-        // Request tab list
         CouchTransport.send({ type: 'tab_list' });
-      }
-
-      if (msg.type === 'pong') {
-        // Latency calc if needed
       }
 
       if (msg.type === 'media_status') {
@@ -1155,17 +1207,27 @@ html, body {
           title: msg.title || '—',
           playing: msg.playing || false,
           currentTime: msg.currentTime || 0,
-          duration: msg.duration || 0
+          duration: msg.duration || 0,
+          skipIntroAvailable: msg.skipIntroAvailable || false
         };
         updateMediaUI();
+      }
+
+      if (msg.type === 'skip_ad_available') {
+        skipAdAvailable = msg.available;
+        updateSkipAdButton();
       }
 
       if (msg.type === 'tab_list_result') {
         renderTabs(msg.tabs || []);
       }
 
-      if (msg.type === 'cmd_result') {
-        // Could show feedback
+      if (msg.type === 'input_focused') {
+        showKeyboardOverlay(msg.value || '');
+      }
+
+      if (msg.type === 'input_blurred') {
+        hideKeyboardOverlay();
       }
     });
 
@@ -1180,8 +1242,8 @@ html, body {
 
   // ── Connection UI ──
   function updateConnUI() {
-    const dot = $('#conn-dot');
-    const text = $('#conn-text');
+    var dot = $('#conn-dot');
+    var text = $('#conn-text');
     if (isPaired) {
       dot.classList.add('on');
       text.textContent = 'Connected';
@@ -1191,30 +1253,23 @@ html, body {
     }
   }
 
-  // ── Tier Toggle ──
+  // ── Tier / Premium ──
   function updateTierUI() {
-    const pill = $('#tier-pill');
-    const label = $('#tier-label');
+    var toggle = $('#setting-tier');
     if (isPaid) {
-      pill.classList.add('paid');
-      label.textContent = 'PAID';
+      toggle.classList.add('on');
     } else {
-      pill.classList.remove('paid');
-      label.textContent = 'FREE';
+      toggle.classList.remove('on');
     }
-    // Update paywall visibility
     PAID_MODES.forEach(function (mode) {
-      const pw = $('#paywall-' + mode);
+      var pw = $('#paywall-' + mode);
       if (pw) {
         if (isPaid) pw.classList.remove('active');
         else pw.classList.add('active');
       }
     });
-    // Keyboard paywall is conditional on line count
-    updateKbPaywall();
-    // Update locked indicators on nav
     $$('.nav-btn').forEach(function (btn) {
-      const mode = btn.getAttribute('data-mode');
+      var mode = btn.getAttribute('data-mode');
       if (PAID_MODES.indexOf(mode) !== -1) {
         if (isPaid) btn.classList.remove('locked');
         else btn.classList.add('locked');
@@ -1222,9 +1277,14 @@ html, body {
     });
   }
 
-  $('#tier-toggle').addEventListener('click', function () {
+  $('#setting-tier').addEventListener('click', function () {
     isPaid = !isPaid;
     updateTierUI();
+  });
+
+  // ── Settings gear button ──
+  $('#btn-settings').addEventListener('click', function () {
+    switchMode('settings');
   });
 
   // ── Mode Switching ──
@@ -1239,18 +1299,9 @@ html, body {
       btn.classList.toggle('active', btn.getAttribute('data-mode') === mode);
     });
 
-    // Gyro management
     if (mode === 'airmouse' && isPaid) startGyro();
     else stopGyro();
 
-    // Native keyboard: focus input to trigger OS keyboard
-    if (mode === 'keyboard') {
-      setTimeout(function () { $('#kb-native-input').focus(); }, 200);
-    } else {
-      $('#kb-native-input').blur();
-    }
-
-    // Request tab list when switching to tabs
     if (mode === 'tabs' && isPaired) {
       send({ type: 'tab_list' });
     }
@@ -1258,45 +1309,59 @@ html, body {
 
   $$('.nav-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      const mode = btn.getAttribute('data-mode');
+      var mode = btn.getAttribute('data-mode');
       if (mode) switchMode(mode);
     });
   });
 
-  // Orb cycles through modes
-  let modeIndex = 0;
-  $('#orb').addEventListener('click', function () {
-    modeIndex = (modeIndex + 1) % MODES.length;
-    switchMode(MODES[modeIndex]);
+  // Orb cycles through non-settings modes
+  var orbModes = ['trackpad', 'airmouse', 'media', 'tabs'];
+  var modeIndex = 0;
+  var orbEl = $('#orb');
+
+  orbEl.addEventListener('touchstart', function () {
+    orbEl.classList.add('active');
+  });
+  orbEl.addEventListener('touchend', function () {
+    orbEl.classList.remove('active');
+    modeIndex = (modeIndex + 1) % orbModes.length;
+    switchMode(orbModes[modeIndex]);
+  });
+  orbEl.addEventListener('click', function () {
+    // Desktop fallback
   });
 
   // ── Trackpad ──
   (function () {
-    const surface = $('#trackpad-surface');
-    let lastX = 0, lastY = 0, touching = false;
-    let scrollMode = false;
-    let touchCount = 0;
+    var surface = $('#trackpad-surface');
+    var lastX = 0, lastY = 0, touching = false;
+    var scrollMode = false;
 
     surface.addEventListener('touchstart', function (e) {
       e.preventDefault();
-      const t = e.touches[0];
+      var t = e.touches[0];
       lastX = t.clientX;
       lastY = t.clientY;
       touching = true;
-      touchCount = e.touches.length;
-      scrollMode = touchCount >= 2;
+      scrollMode = e.touches.length >= 2;
+
+      // Hide hint on first touch
+      if (!trackpadHintHidden) {
+        trackpadHintHidden = true;
+        $('#trackpad-hint').classList.add('hidden');
+      }
     });
 
     surface.addEventListener('touchmove', function (e) {
       e.preventDefault();
       if (!touching) return;
-      const t = e.touches[0];
-      const dx = t.clientX - lastX;
-      const dy = t.clientY - lastY;
+      var t = e.touches[0];
+      var dx = t.clientX - lastX;
+      var dy = t.clientY - lastY;
       lastX = t.clientX;
       lastY = t.clientY;
 
-      const sensitivity = parseFloat($('#setting-trackpad').value) || 1.5;
+      var sensitivity = parseFloat($('#setting-trackpad').value) || 1.5;
 
       if (scrollMode || e.touches.length >= 2) {
         send({ type: 'scroll', dx: 0, dy: Math.round(-dy * 3) });
@@ -1309,11 +1374,10 @@ html, body {
       e.preventDefault();
       touching = false;
       scrollMode = false;
-      // Tap detection (quick touch with no significant movement)
     });
 
-    // Single tap on surface = click
-    let tapTimer = null;
+    // Tap detection
+    var tapTimer = null;
     surface.addEventListener('touchstart', function (e) {
       if (e.touches.length === 1) {
         tapTimer = setTimeout(function () { tapTimer = null; }, 200);
@@ -1329,7 +1393,7 @@ html, body {
 
     $('#btn-left-click').addEventListener('click', function () { send({ type: 'click' }); });
     $('#btn-right-click').addEventListener('click', function () {
-      if (!isPaid) return; // Right click is paid
+      if (!isPaid) return;
       send({ type: 'rightclick' });
     });
   })();
@@ -1338,7 +1402,6 @@ html, body {
   function startGyro() {
     if (gyroActive) return;
 
-    // iOS permission
     if (typeof DeviceOrientationEvent !== 'undefined' &&
         typeof DeviceOrientationEvent.requestPermission === 'function') {
       DeviceOrientationEvent.requestPermission().then(function (state) {
@@ -1351,7 +1414,7 @@ html, body {
 
   function initGyro() {
     gyroActive = true;
-    gyroLastAlpha = null;
+    gyroLastGamma = null;
     gyroLastBeta = null;
     window.addEventListener('deviceorientation', onGyro);
   }
@@ -1363,44 +1426,46 @@ html, body {
 
   function onGyro(e) {
     if (!gyroActive || currentMode !== 'airmouse') return;
-    if (gyroLastAlpha === null) {
-      gyroLastAlpha = e.alpha;
+    if (gyroLastGamma === null) {
+      gyroLastGamma = e.gamma;
       gyroLastBeta = e.beta;
       return;
     }
 
-    let dAlpha = e.alpha - gyroLastAlpha;
-    let dBeta = e.beta - gyroLastBeta;
+    var dGamma = e.gamma - gyroLastGamma;
+    var dBeta = e.beta - gyroLastBeta;
 
-    // Handle alpha wraparound (0-360)
-    if (dAlpha > 180) dAlpha -= 360;
-    if (dAlpha < -180) dAlpha += 360;
+    var sensitivity = parseFloat($('#setting-gyro').value) || 1.5;
+    // Exponential curve for more perceptible range
+    var factor = sensitivity * sensitivity;
 
-    const sensitivity = parseFloat($('#setting-gyro').value) || 1.5;
-    const dx = dAlpha * sensitivity * 2;
-    const dy = dBeta * sensitivity * 2;
+    var invertX = $('#setting-invert-x').classList.contains('on') ? -1 : 1;
+    var invertY = $('#setting-invert-y').classList.contains('on') ? -1 : 1;
 
-    // Apply threshold to filter jitter
-    if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+    // Default: negate both for natural "point at screen" mapping
+    var dx = -dGamma * factor * 1.5 * invertX;
+    var dy = -dBeta * factor * 1.5 * invertY;
+
+    // Scale threshold with sensitivity (lower sens = lower threshold)
+    var threshold = 0.3 / Math.max(sensitivity, 0.5);
+    if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
       send({ type: 'mousemove', dx: dx, dy: dy, sensitivity: 1 });
     }
 
-    gyroLastAlpha = e.alpha;
+    gyroLastGamma = e.gamma;
     gyroLastBeta = e.beta;
   }
 
   function doRecalibrate() {
-    gyroLastAlpha = null;
+    gyroLastGamma = null;
     gyroLastBeta = null;
 
-    // Visual feedback on button
-    const btn = $('#btn-recalibrate');
-    const label = $('#airmouse-label');
+    var btn = $('#btn-recalibrate');
+    var label = $('#airmouse-label');
     btn.textContent = 'Recalibrated';
     btn.classList.add('confirmed');
     label.textContent = 'Recalibrated';
 
-    // Reset after 1.5s
     setTimeout(function () {
       btn.textContent = 'Recalibrate';
       btn.classList.remove('confirmed');
@@ -1410,10 +1475,9 @@ html, body {
 
   $('#btn-recalibrate').addEventListener('click', doRecalibrate);
 
-  // Double-tap to recalibrate
-  let lastTap = 0;
+  var lastTap = 0;
   $('#view-airmouse').addEventListener('touchend', function () {
-    const now = Date.now();
+    var now = Date.now();
     if (now - lastTap < 300) {
       doRecalibrate();
     }
@@ -1422,36 +1486,33 @@ html, body {
 
   // ── Media ──
 
-  // Platform-aware button visibility map
-  // true = show, false = hide
-  const MEDIA_BUTTONS = {
-    netflix:   { skipIntro: true,  nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
-    hbo:       { skipIntro: true,  nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
-    disney:    { skipIntro: true,  nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
-    hulu:      { skipIntro: true,  nextEp: false, fullscreen: true,  volDown: true, volUp: true, mute: true },
-    youtube:   { skipIntro: false, nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
-    universal: { skipIntro: false, nextEp: false, fullscreen: true,  volDown: true, volUp: true, mute: true },
-    unknown:   { skipIntro: false, nextEp: false, fullscreen: true,  volDown: true, volUp: true, mute: true }
+  var MEDIA_BUTTONS = {
+    netflix:   { skipAd: false, skipIntro: true,  nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
+    hbo:       { skipAd: false, skipIntro: true,  nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
+    disney:    { skipAd: false, skipIntro: true,  nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
+    hulu:      { skipAd: false, skipIntro: true,  nextEp: false, fullscreen: true,  volDown: true, volUp: true, mute: true },
+    youtube:   { skipAd: true,  skipIntro: false, nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
+    universal: { skipAd: false, skipIntro: false, nextEp: false, fullscreen: true,  volDown: true, volUp: true, mute: true },
+    unknown:   { skipAd: false, skipIntro: false, nextEp: false, fullscreen: true,  volDown: true, volUp: true, mute: true }
   };
 
-  // Friendly display names per platform
-  const PLATFORM_NAMES = {
+  var PLATFORM_NAMES = {
     netflix: 'Netflix', hbo: 'HBO Max', disney: 'Disney+',
     hulu: 'Hulu', youtube: 'YouTube', universal: 'Video Player', unknown: ''
   };
 
-  function updateMediaActions(platform) {
-    const p = platform || 'unknown';
-    const cfg = MEDIA_BUTTONS[p] || MEDIA_BUTTONS.unknown;
+  function updateMediaActions(p) {
+    p = p || 'unknown';
+    var cfg = MEDIA_BUTTONS[p] || MEDIA_BUTTONS.unknown;
 
-    $('#btn-skip-intro').style.display = cfg.skipIntro ? '' : 'none';
-    $('#btn-next-ep').style.display    = cfg.nextEp    ? '' : 'none';
-    $('#btn-fullscreen').style.display = cfg.fullscreen ? '' : 'none';
-    $('#btn-vol-down').style.display   = cfg.volDown   ? '' : 'none';
-    $('#btn-vol-up').style.display     = cfg.volUp     ? '' : 'none';
-    $('#btn-mute').style.display       = cfg.mute      ? '' : 'none';
+    $('#btn-skip-ad').style.display     = cfg.skipAd     ? '' : 'none';
+    $('#btn-skip-intro').style.display  = cfg.skipIntro  ? '' : 'none';
+    $('#btn-next-ep').style.display     = cfg.nextEp     ? '' : 'none';
+    $('#btn-fullscreen').style.display  = cfg.fullscreen ? '' : 'none';
+    $('#btn-vol-down').style.display    = cfg.volDown    ? '' : 'none';
+    $('#btn-vol-up').style.display      = cfg.volUp      ? '' : 'none';
+    $('#btn-mute').style.display        = cfg.mute       ? '' : 'none';
 
-    // YouTube: rename "Next" to "Next Video"
     if (p === 'youtube') {
       $('#btn-next-ep').textContent = 'Next Vid';
     } else {
@@ -1459,30 +1520,60 @@ html, body {
     }
   }
 
+  function updateSkipAdButton() {
+    var btn = $('#btn-skip-ad');
+    if (skipAdAvailable) {
+      btn.classList.remove('faded');
+      btn.classList.add('highlight');
+    } else {
+      btn.classList.add('faded');
+      btn.classList.remove('highlight');
+    }
+  }
+
   function updateMediaUI() {
-    const pName = PLATFORM_NAMES[mediaState.platform] || '';
+    var pName = PLATFORM_NAMES[mediaState.platform] || '';
     $('#media-platform').textContent = pName ? pName.toUpperCase() : 'NO MEDIA DETECTED';
     $('#media-title').textContent = mediaState.title || '—';
 
-    const pct = mediaState.duration > 0 ? (mediaState.currentTime / mediaState.duration * 100) : 0;
+    var pct = mediaState.duration > 0 ? (mediaState.currentTime / mediaState.duration * 100) : 0;
     $('#media-progress').style.width = pct + '%';
     $('#media-current').textContent = formatTime(mediaState.currentTime);
     $('#media-duration').textContent = formatTime(mediaState.duration);
 
-    // Update visible actions based on platform
+    // Play/Pause icon toggle
+    if (mediaState.playing) {
+      $('#icon-play').style.display = 'none';
+      $('#icon-pause').style.display = '';
+    } else {
+      $('#icon-play').style.display = '';
+      $('#icon-pause').style.display = 'none';
+    }
+
+    // Skip Intro availability
+    var skipBtn = $('#btn-skip-intro');
+    if (mediaState.skipIntroAvailable) {
+      skipBtn.classList.remove('faded');
+      skipBtn.classList.add('highlight');
+    } else {
+      skipBtn.classList.add('faded');
+      skipBtn.classList.remove('highlight');
+    }
+
     updateMediaActions(mediaState.platform);
   }
 
   function formatTime(s) {
     if (!s || isNaN(s)) return '0:00';
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
+    var m = Math.floor(s / 60);
+    var sec = Math.floor(s % 60);
     return m + ':' + (sec < 10 ? '0' : '') + sec;
   }
 
   $('#btn-play-pause').addEventListener('click', function () { send({ type: 'cmd', action: 'playPause' }); });
   $('#btn-seek-back').addEventListener('click', function () { send({ type: 'cmd', action: 'seekBack' }); });
   $('#btn-seek-fwd').addEventListener('click', function () { send({ type: 'cmd', action: 'seekForward' }); });
+  $('#btn-skip-ad').addEventListener('click', function () { send({ type: 'cmd', action: 'skipAd' }); });
   $('#btn-skip-intro').addEventListener('click', function () { send({ type: 'cmd', action: 'skipIntro' }); });
   $('#btn-next-ep').addEventListener('click', function () { send({ type: 'cmd', action: 'nextEpisode' }); });
   $('#btn-vol-down').addEventListener('click', function () { send({ type: 'cmd', action: 'volumeDown' }); });
@@ -1490,105 +1581,110 @@ html, body {
   $('#btn-fullscreen').addEventListener('click', function () { send({ type: 'cmd', action: 'fullscreen' }); });
   $('#btn-mute').addEventListener('click', function () { send({ type: 'cmd', action: 'mute' }); });
 
-  // ── Keyboard ──
-  let kbShift = false;
-  let nativeKbActive = false;
+  // ── Keyboard Overlay ──
 
-  function buildKeyboard() {
-    const grid = $('#kb-grid');
-    KB_ROWS.forEach(function (row) {
-      const rowEl = document.createElement('div');
-      rowEl.className = 'kb-row';
-      row.forEach(function (key) {
-        const btn = document.createElement('button');
-        btn.className = 'kb-key';
-        btn.textContent = key;
-        btn.setAttribute('data-key', key);
-        btn.setAttribute('data-code', 'Key' + key.toUpperCase());
-        rowEl.appendChild(btn);
-      });
-      grid.appendChild(rowEl);
+  var nativeInput = $('#kb-native-input');
+  var lastNativeVal = '';
+
+  function showKeyboardOverlay(initialValue) {
+    kbText = initialValue || '';
+    lastNativeVal = kbText;
+    nativeInput.value = kbText;
+    updateKbPreview();
+    $('#kb-overlay').classList.add('visible');
+    kbOverlayVisible = true;
+    setTimeout(function () { nativeInput.focus(); }, 100);
+  }
+
+  function hideKeyboardOverlay() {
+    $('#kb-overlay').classList.remove('visible');
+    kbOverlayVisible = false;
+    nativeInput.blur();
+  }
+
+  function updateKbPreview() {
+    var preview = $('#kb-preview');
+    var display = kbText || '';
+    // Show last 40 chars
+    if (display.length > 40) display = '…' + display.slice(-40);
+    preview.innerHTML = escapeHTML(display) + '<span class="kb-cursor"></span>';
+  }
+
+  // Dismiss button
+  $('#kb-dismiss').addEventListener('click', hideKeyboardOverlay);
+
+  // Swipe down to dismiss
+  (function () {
+    var startY = 0;
+    var overlay = $('#kb-overlay');
+    overlay.addEventListener('touchstart', function (e) {
+      startY = e.touches[0].clientY;
     });
-  }
+    overlay.addEventListener('touchmove', function (e) {
+      var dy = e.touches[0].clientY - startY;
+      if (dy > 60) {
+        hideKeyboardOverlay();
+      }
+    });
+  })();
 
-  function updateKbPaywall() {
-    const pw = $('#paywall-keyboard');
-    if (isPaid) {
-      pw.classList.remove('active');
-    } else if (kbLineCount >= KB_FREE_LINE_LIMIT) {
-      pw.classList.add('active');
-    } else {
-      pw.classList.remove('active');
-    }
-  }
-
-  // ── Native keyboard support ──
-  const nativeInput = $('#kb-native-input');
-
-  // When native input gets focus, hide fallback keyboard
-  nativeInput.addEventListener('focus', function () {
-    nativeKbActive = true;
-    $('#kb-fallback').style.display = 'none';
-    $('#kb-tap-hint').textContent = 'Native keyboard active';
-  });
-
-  nativeInput.addEventListener('blur', function () {
-    nativeKbActive = false;
-    $('#kb-fallback').style.display = '';
-    $('#kb-tap-hint').textContent = 'Tap to type';
-  });
-
-  // Capture native keyboard input
-  let lastNativeVal = '';
+  // Native keyboard input
   nativeInput.addEventListener('input', function () {
-    const val = nativeInput.value;
+    var val = nativeInput.value;
     if (val.length > lastNativeVal.length) {
-      // Characters added
-      const added = val.slice(lastNativeVal.length);
-      for (let i = 0; i < added.length; i++) {
+      var added = val.slice(lastNativeVal.length);
+      for (var i = 0; i < added.length; i++) {
         send({ type: 'keychar', key: added[i], code: 'Key' + added[i].toUpperCase() });
       }
       kbText += added;
     } else if (val.length < lastNativeVal.length) {
-      // Backspace(s)
-      const count = lastNativeVal.length - val.length;
-      for (let i = 0; i < count; i++) {
+      var count = lastNativeVal.length - val.length;
+      for (var i = 0; i < count; i++) {
         send({ type: 'keychar', key: 'Backspace', code: 'Backspace' });
       }
       kbText = kbText.slice(0, -(count));
     }
     lastNativeVal = val;
-    $('#kb-text').textContent = kbText;
+    updateKbPreview();
   });
 
   nativeInput.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') {
       e.preventDefault();
       send({ type: 'keychar', key: 'Enter', code: 'Enter' });
-      kbText += '\n';
-      kbLineCount++;
-      updateKbPaywall();
-      $('#kb-text').textContent = kbText;
-      nativeInput.value = '';
-      lastNativeVal = '';
+      hideKeyboardOverlay();
     }
   });
 
-  // Focus native input when switching to keyboard mode
-  // (handled in switchMode)
+  // Fallback keyboard
+  function buildKeyboard() {
+    var grid = $('#kb-grid');
+    grid.innerHTML = '';
+    KB_ROWS.forEach(function (row) {
+      var rowEl = document.createElement('div');
+      rowEl.className = 'kb-row';
+      row.forEach(function (key) {
+        var btn = document.createElement('button');
+        btn.className = 'kb-key';
+        btn.textContent = key;
+        btn.setAttribute('data-key', key);
+        btn.setAttribute('data-code', 'Key' + key.toUpperCase());
+        rowEl.appendChild(btn);
+      });
+      grid.parentNode.insertBefore(rowEl, grid.nextSibling);
+    });
+    grid.remove(); // Remove the placeholder div
+  }
 
-  // ── Fallback keyboard key press handler (delegated) ──
+  // Fallback key press handler
   document.addEventListener('click', function (e) {
-    const key = e.target.closest('.kb-key');
+    var key = e.target.closest('.kb-key');
     if (!key) return;
-    if (nativeKbActive) return;
 
-    // Shift toggle
     if (key.getAttribute('data-action') === 'shift') {
       kbShift = !kbShift;
-      key.classList.toggle('confirmed', kbShift);
-      $$('#kb-grid .kb-key').forEach(function (k) {
-        const letter = k.getAttribute('data-key');
+      $$('.kb-fallback .kb-key').forEach(function (k) {
+        var letter = k.getAttribute('data-key');
         if (letter && letter.length === 1) {
           k.textContent = kbShift ? letter.toUpperCase() : letter.toLowerCase();
         }
@@ -1596,37 +1692,32 @@ html, body {
       return;
     }
 
-    let keyVal = key.getAttribute('data-key');
-    const codeVal = key.getAttribute('data-code');
-
+    var keyVal = key.getAttribute('data-key');
+    var codeVal = key.getAttribute('data-code');
     if (!keyVal) return;
 
-    // Apply shift to single chars
     if (kbShift && keyVal.length === 1) {
       keyVal = keyVal.toUpperCase();
       kbShift = false;
-      const shiftBtn = $('#kb-shift');
-      if (shiftBtn) shiftBtn.classList.remove('confirmed');
-      $$('#kb-grid .kb-key').forEach(function (k) {
-        const letter = k.getAttribute('data-key');
+      $$('.kb-fallback .kb-key').forEach(function (k) {
+        var letter = k.getAttribute('data-key');
         if (letter && letter.length === 1) {
           k.textContent = letter.toLowerCase();
         }
       });
     }
 
-    // Track typed text for display
     if (keyVal === 'Backspace') {
       kbText = kbText.slice(0, -1);
     } else if (keyVal === 'Enter') {
-      kbText += '\n';
-      kbLineCount++;
-      updateKbPaywall();
+      send({ type: 'keychar', key: 'Enter', code: 'Enter' });
+      hideKeyboardOverlay();
+      return;
     } else if (keyVal.length === 1) {
       kbText += keyVal;
     }
 
-    $('#kb-text').textContent = kbText;
+    updateKbPreview();
     send({ type: 'keychar', key: keyVal, code: codeVal });
   });
 
@@ -1634,7 +1725,7 @@ html, body {
 
   // ── Tab Switcher ──
   function renderTabs(tabs) {
-    const list = $('#tab-list');
+    var list = $('#tab-list');
     list.innerHTML = '';
 
     if (tabs.length === 0) {
@@ -1643,7 +1734,7 @@ html, body {
     }
 
     tabs.forEach(function (tab) {
-      const el = document.createElement('div');
+      var el = document.createElement('div');
       el.className = 'tab-item' + (tab.active ? ' active-tab' : '');
       el.innerHTML = '<div class="tab-pip"></div><div class="tab-info"><div class="tab-title">' +
         escapeHTML(tab.title || 'Untitled') + '</div><div class="tab-url">' +
@@ -1656,17 +1747,37 @@ html, body {
   }
 
   function escapeHTML(s) {
-    const div = document.createElement('div');
+    var div = document.createElement('div');
     div.textContent = s;
     return div.innerHTML;
   }
 
   // ── Settings Toggles ──
   $$('.setting-toggle').forEach(function (toggle) {
+    if (toggle.id === 'setting-tier') return; // Handled separately
     toggle.addEventListener('click', function () {
       toggle.classList.toggle('on');
     });
   });
+
+  // ── Cursor Settings ──
+  $('#setting-cursor-size').addEventListener('input', function () {
+    cursorSize = parseInt(this.value);
+    sendCursorSettings();
+  });
+
+  $$('.color-swatch').forEach(function (swatch) {
+    swatch.addEventListener('click', function () {
+      $$('.color-swatch').forEach(function (s) { s.classList.remove('active'); });
+      swatch.classList.add('active');
+      cursorColor = swatch.getAttribute('data-color');
+      sendCursorSettings();
+    });
+  });
+
+  function sendCursorSettings() {
+    send({ type: 'cursor_settings', size: cursorSize, color: cursorColor });
+  }
 
   // ── Ping (keepalive) ──
   setInterval(function () {
@@ -1683,7 +1794,6 @@ html, body {
 })();
 </script>
 <script>
-// Service Worker Registration
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(function () {});
 }
