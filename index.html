@@ -1333,10 +1333,50 @@ html, body {
   });
 
   // ── Trackpad ──
+  // Improved: dead zone to filter touch sensor noise, velocity-based
+  // acceleration curve (small = precise, fast = amplified), and
+  // message batching via rAF to avoid flooding the transport.
   (function () {
     var surface = $('#trackpad-surface');
     var lastX = 0, lastY = 0, touching = false;
     var scrollMode = false;
+    var pendingDx = 0, pendingDy = 0, pendingScroll = 0;
+    var rafId = null;
+
+    function flushMove() {
+      rafId = null;
+
+      if (scrollMode) {
+        if (Math.abs(pendingScroll) > 0) {
+          send({ type: 'scroll', dx: 0, dy: Math.round(pendingScroll) });
+          pendingScroll = 0;
+        }
+        return;
+      }
+
+      // Dead zone: ignore sub-1px jitter
+      if (Math.abs(pendingDx) < 0.8 && Math.abs(pendingDy) < 0.8) {
+        pendingDx = 0;
+        pendingDy = 0;
+        return;
+      }
+
+      var sensitivity = parseFloat($('#setting-trackpad').value) || 1.5;
+
+      // Velocity-based acceleration: small movements stay precise,
+      // fast swipes get amplified. Uses a mild power curve.
+      var speed = Math.sqrt(pendingDx * pendingDx + pendingDy * pendingDy);
+      var accel = 1 + Math.min(speed / 15, 1.5); // 1x at rest → 2.5x at fast swipe
+
+      send({
+        type: 'mousemove',
+        dx: pendingDx * accel,
+        dy: pendingDy * accel,
+        sensitivity: sensitivity
+      });
+      pendingDx = 0;
+      pendingDy = 0;
+    }
 
     surface.addEventListener('touchstart', function (e) {
       e.preventDefault();
@@ -1345,6 +1385,9 @@ html, body {
       lastY = t.clientY;
       touching = true;
       scrollMode = e.touches.length >= 2;
+      pendingDx = 0;
+      pendingDy = 0;
+      pendingScroll = 0;
 
       // Hide hint on first touch
       if (!trackpadHintHidden) {
@@ -1362,12 +1405,16 @@ html, body {
       lastX = t.clientX;
       lastY = t.clientY;
 
-      var sensitivity = parseFloat($('#setting-trackpad').value) || 1.5;
-
       if (scrollMode || e.touches.length >= 2) {
-        send({ type: 'scroll', dx: 0, dy: Math.round(-dy * 3) });
+        pendingScroll += -dy * 3;
       } else {
-        send({ type: 'mousemove', dx: dx, dy: dy, sensitivity: sensitivity });
+        pendingDx += dx;
+        pendingDy += dy;
+      }
+
+      // Batch sends to once per frame
+      if (rafId === null) {
+        rafId = requestAnimationFrame(flushMove);
       }
     });
 
@@ -1375,6 +1422,12 @@ html, body {
       e.preventDefault();
       touching = false;
       scrollMode = false;
+      // Flush any remaining movement
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      flushMove();
     });
 
     // Tap detection
