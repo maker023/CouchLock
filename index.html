@@ -83,6 +83,32 @@ html, body {
   background: var(--teal);
   box-shadow: 0 0 6px rgba(var(--teal-rgb),0.5);
 }
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.topbar-back {
+  width: 40px; height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(var(--ui-rgb),0.03);
+  border: 1px solid rgba(var(--ui-rgb),0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.topbar-back:active { opacity: 0.7; }
+.topbar-back svg {
+  width: 18px; height: 18px;
+  stroke: rgba(var(--ui-rgb),0.3);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .topbar-settings {
   width: 44px; height: 44px;
   border: none;
@@ -131,7 +157,7 @@ html, body {
 .bottomnav {
   padding: 6px 12px 10px;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
@@ -206,7 +232,7 @@ html, body {
   flex-shrink: 0;
 }
 .orb-btn {
-  width: 96px; height: 96px;
+  width: 72px; height: 72px;
   border-radius: 50%;
   border: none;
   background: var(--accent);
@@ -360,18 +386,14 @@ html, body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  padding: 8px 16px;
 }
 .trackpad-surface {
-  width: calc(100% - 32px);
-  max-width: 400px;
-  aspect-ratio: 1.6 / 1;
+  flex: 1;
   position: relative;
   background: rgba(var(--ui-rgb),0.04);
   border: 1px solid rgba(var(--ui-rgb),0.08);
   border-radius: 24px;
-  margin: 8px 16px;
   overflow: hidden;
 }
 .trackpad-surface::after {
@@ -397,11 +419,12 @@ html, body {
 .trackpad-buttons {
   display: flex;
   gap: 6px;
-  padding: 0 16px 8px;
+  padding-top: 6px;
+  flex-shrink: 0;
 }
 .trackpad-btn {
   flex: 1;
-  height: 52px;
+  height: 48px;
   border: none;
   border-radius: 24px;
   background: rgba(var(--ui-rgb),0.04);
@@ -424,34 +447,36 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  padding: 20px;
+  gap: 24px;
+  padding: 24px;
 }
 .airmouse-orb {
-  width: 120px; height: 120px;
+  width: 140px; height: 140px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 60px rgba(var(--accent-rgb),0.3);
+  box-shadow: 0 0 80px rgba(var(--accent-rgb),0.3);
   animation: heartbeat-rest 833ms ease infinite;
 }
 .airmouse-label {
   font-family: var(--font-d);
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 800;
-  letter-spacing: -0.5px;
-  color: rgba(var(--ui-rgb),0.6);
+  letter-spacing: -0.8px;
+  color: rgba(var(--ui-rgb),0.7);
   transition: color 200ms var(--ease-mag);
 }
 .airmouse-hint {
   font-family: var(--font-b);
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 500;
   color: rgba(var(--ui-rgb),0.25);
   text-align: center;
   line-height: 1.5;
 }
 .airmouse-recal {
-  padding: 16px 36px;
+  width: 100%;
+  max-width: 280px;
+  padding: 22px 40px;
   border: none;
   border-radius: 999px;
   background: var(--accent);
@@ -459,13 +484,13 @@ html, body {
   font-family: var(--font-d);
   font-size: 15px;
   font-weight: 700;
-  box-shadow: 0 0 32px rgba(var(--accent-rgb),0.35);
+  box-shadow: 0 0 40px rgba(var(--accent-rgb),0.35);
   cursor: pointer;
   transition: opacity 150ms var(--ease-mag), box-shadow 200ms var(--ease-mag);
 }
 .airmouse-recal:active { opacity: 0.85; }
 .airmouse-recal.confirmed {
-  box-shadow: 0 0 48px rgba(var(--accent-rgb),0.5);
+  box-shadow: 0 0 56px rgba(var(--accent-rgb),0.5);
 }
 .airmouse-hint-tip {
   font-family: var(--font-m);
@@ -639,6 +664,23 @@ html, body {
   background: rgba(var(--accent-rgb),0.15);
   border-color: rgba(var(--accent-rgb),0.3);
   color: var(--accent);
+}
+
+/* Media idle state — nothing playing */
+.media.media-idle .media-controls {
+  opacity: 0.3;
+  pointer-events: none;
+}
+.media.media-idle .media-actions {
+  opacity: 0.2;
+  pointer-events: none;
+}
+.media.media-idle .media-progress {
+  opacity: 0.2;
+  pointer-events: none;
+}
+.media.media-idle .media-time {
+  opacity: 0.2;
 }
 
 /* ═══════════════════════════════════════════
@@ -933,31 +975,32 @@ html, body {
 .theme-swatches {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px 10px;
+  gap: 18px 12px;
   width: 100%;
 }
 .theme-swatch {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
   position: relative;
 }
 .theme-swatch-dot {
-  width: 46px; height: 46px;
+  width: 72px; height: 72px;
   border-radius: 50%;
-  border: 2.5px solid transparent;
+  border: 3px solid transparent;
   position: relative;
   overflow: hidden;
-  transition: border-color 200ms var(--ease-mag);
+  transition: border-color 200ms var(--ease-mag), box-shadow 200ms var(--ease-mag);
 }
 .theme-swatch.active .theme-swatch-dot {
-  border-color: rgba(var(--ui-rgb),0.6);
+  border-color: rgba(var(--ui-rgb),0.7);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.35), 0 0 16px rgba(var(--accent-rgb),0.2);
 }
 .theme-swatch-name {
   font-family: var(--font-m);
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 500;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -965,30 +1008,30 @@ html, body {
   transition: color 200ms var(--ease-mag);
 }
 .theme-swatch.active .theme-swatch-name {
-  color: rgba(var(--ui-rgb),0.5);
+  color: rgba(var(--accent-rgb),0.7);
 }
 .theme-swatch-lock {
   position: absolute;
-  top: -2px; right: -2px;
-  width: 16px; height: 16px;
+  top: -4px; right: -4px;
+  width: 22px; height: 22px;
   border-radius: 50%;
-  background: rgba(var(--ui-rgb),0.06);
-  border: 1px solid rgba(var(--ui-rgb),0.1);
+  background: rgba(var(--ui-rgb),0.1);
+  border: 1.5px solid rgba(var(--ui-rgb),0.15);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2;
 }
 .theme-swatch-lock svg {
-  width: 9px; height: 9px;
-  stroke: rgba(var(--ui-rgb),0.3);
+  width: 11px; height: 11px;
+  stroke: rgba(var(--ui-rgb),0.5);
   fill: none;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 .theme-swatch.locked {
-  opacity: 0.4;
+  opacity: 0.5;
 }
 
 /* ── Tab Actions ── */
@@ -1405,9 +1448,14 @@ html, body {
       <div class="conn-dot" id="conn-dot"></div>
       <span id="conn-text">Disconnected</span>
     </div>
-    <button class="topbar-settings" id="btn-settings" aria-label="Settings">
-      <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-    </button>
+    <div class="topbar-right">
+      <button class="topbar-back" id="btn-back" aria-label="Browser Back">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      </button>
+      <button class="topbar-settings" id="btn-settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
   </div>
 
   <!-- Mode Views -->
@@ -1826,6 +1874,11 @@ html, body {
     }
   });
 
+  // ── Browser back button ──
+  $('#btn-back').addEventListener('click', function () {
+    send({ type: 'cmd', action: 'browserBack' });
+  });
+
   // ── Settings gear button ──
   $('#btn-settings').addEventListener('click', function () {
     switchMode('settings');
@@ -2162,6 +2215,18 @@ html, body {
 
   function updateMediaUI() {
     var pName = PLATFORM_NAMES[mediaState.platform] || '';
+    var isIdle = !mediaState.platform || mediaState.platform === 'unknown';
+    var mediaEl = document.querySelector('.media');
+
+    // Toggle idle state
+    if (mediaEl) {
+      if (isIdle) {
+        mediaEl.classList.add('media-idle');
+      } else {
+        mediaEl.classList.remove('media-idle');
+      }
+    }
+
     $('#media-platform').textContent = pName ? pName.toUpperCase() : 'NO MEDIA DETECTED';
     $('#media-title').textContent = mediaState.title || '—';
 
@@ -2543,12 +2608,12 @@ html, body {
       // The dot: full circle showing accent + void tint
       var dot = document.createElement('div');
       dot.className = 'theme-swatch-dot';
-      if (theme.id === 'light') {
-        // Diagonal split: void color (left/top) + accent (right/bottom)
-        dot.style.background = 'linear-gradient(135deg, ' + theme.voidHex + ' 50%, rgb(' + theme.accent + ') 50%)';
-      } else if (theme.id === 'dark') {
-        // Diagonal split: void color (left/top) + accent (right/bottom)
-        dot.style.background = 'linear-gradient(135deg, ' + theme.voidHex + ' 50%, rgb(' + theme.accent + ') 50%)';
+      if (theme.id === 'light' || theme.id === 'dark') {
+        // Diagonal split: use an inner element scaled up so the diagonal line
+        // reaches the edges of the circle cleanly
+        var inner = document.createElement('div');
+        inner.style.cssText = 'position:absolute;inset:-25%;width:150%;height:150%;background:linear-gradient(135deg, ' + theme.voidHex + ' 50%, rgb(' + theme.accent + ') 50%);';
+        dot.appendChild(inner);
       } else {
         // Premium: full accent color
         dot.style.background = 'rgb(' + theme.accent + ')';
@@ -3115,7 +3180,7 @@ html, body {
   buildThemeSwatches();
   applyTheme(currentThemeId);
   updateTierUI();
-  updateMediaActions('unknown');
+  updateMediaUI();
   connect();
 
 })();
