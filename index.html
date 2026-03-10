@@ -1306,6 +1306,11 @@ html, body {
     if (mode === 'tabs' && isPaired) {
       send({ type: 'tab_list' });
     }
+
+    // Entering media tab: request fresh status from active tab
+    if (mode === 'media' && isPaired) {
+      send({ type: 'request_media_status' });
+    }
   }
 
   $$('.nav-btn').forEach(function (btn) {
