@@ -65,12 +65,12 @@ html, body {
 .conn {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-family: var(--font-m);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
   color: rgba(255,255,255,0.15);
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 .conn-dot {
   width: 6px; height: 6px;
@@ -190,11 +190,11 @@ html, body {
   left: 50%;
   transform: translateX(-50%);
   font-family: var(--font-m);
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 500;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.12);
   white-space: nowrap;
 }
 .nav-btn.active .nav-label { color: rgba(var(--accent-rgb),0.5); }
@@ -316,7 +316,7 @@ html, body {
   line-height: 1.5;
 }
 .paywall-btn {
-  padding: 14px 32px;
+  padding: 15px 32px;
   border: none;
   border-radius: 999px;
   background: var(--accent);
@@ -324,9 +324,11 @@ html, body {
   font-family: var(--font-d);
   font-size: 14px;
   font-weight: 700;
-  box-shadow: 0 0 24px rgba(var(--accent-rgb),0.3);
+  box-shadow: 0 0 32px rgba(var(--accent-rgb),0.35);
   cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
 }
+.paywall-btn:active { opacity: 0.85; }
 
 /* ═══════════════════════════════════════════
    TRACKPAD MODE
@@ -339,8 +341,8 @@ html, body {
 .trackpad-surface {
   flex: 1;
   position: relative;
-  background: rgba(255,255,255,0.01);
-  border: 1px solid rgba(255,255,255,0.03);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: 24px;
   margin: 8px 16px;
   overflow: hidden;
@@ -350,7 +352,7 @@ html, body {
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(circle at center, rgba(var(--accent-rgb),0.03) 0%, transparent 70%);
+    radial-gradient(circle at center, rgba(var(--accent-rgb),0.06) 0%, transparent 70%);
   pointer-events: none;
 }
 .trackpad-hint {
@@ -374,15 +376,13 @@ html, body {
   flex: 1;
   height: 48px;
   border: none;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.04);
-  font-family: var(--font-m);
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.12);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  font-family: var(--font-d);
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.4);
   cursor: pointer;
   transition: opacity 150ms var(--ease-mag);
 }
@@ -409,33 +409,51 @@ html, body {
 }
 .airmouse-label {
   font-family: var(--font-d);
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
-  color: rgba(255,255,255,0.4);
+  letter-spacing: -0.3px;
+  color: rgba(255,255,255,0.5);
 }
 .airmouse-hint {
-  font-family: var(--font-m);
-  font-size: 9px;
+  font-family: var(--font-b);
+  font-size: 14px;
   font-weight: 500;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.2);
   text-align: center;
-  line-height: 1.8;
+  line-height: 1.65;
 }
 .airmouse-recal {
-  padding: 8px 20px;
+  padding: 14px 28px;
   border: none;
   border-radius: 999px;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.06);
+  font-family: var(--font-d);
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag), background 150ms var(--ease-mag), border-color 150ms var(--ease-mag), color 150ms var(--ease-mag);
+}
+.airmouse-recal:active { opacity: 0.7; }
+.airmouse-recal.confirmed {
+  background: rgba(var(--accent-rgb),0.15);
+  border-color: rgba(var(--accent-rgb),0.3);
+  color: var(--accent);
+}
+.airmouse-label {
+  transition: opacity 200ms var(--ease-mag);
+}
+.airmouse-hint-tip {
   font-family: var(--font-m);
   font-size: 9px;
   font-weight: 500;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.2);
-  cursor: pointer;
+  color: rgba(255,255,255,0.08);
+  text-align: center;
+  line-height: 1.8;
+  margin-top: 8px;
 }
 
 /* ═══════════════════════════════════════════
@@ -445,43 +463,48 @@ html, body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 16px;
-  gap: 12px;
-  overflow-y: auto;
+  padding: 12px 16px;
+  gap: 0;
 }
 .media-now {
+  flex: 1;
   background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.04);
   border-radius: 24px;
-  padding: 20px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .media-platform {
   font-family: var(--font-m);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
-  letter-spacing: 1.5px;
+  letter-spacing: 3px;
   text-transform: uppercase;
-  color: rgba(var(--accent-rgb),0.4);
-  margin-bottom: 8px;
+  color: rgba(var(--accent-rgb),0.5);
+  margin-bottom: 12px;
 }
 .media-title {
   font-family: var(--font-d);
-  font-size: 17px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.7);
-  margin-bottom: 12px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 20px;
+  line-height: 1.2;
 }
 .media-progress {
-  height: 3px;
+  height: 4px;
   background: rgba(255,255,255,0.06);
-  border-radius: 2px;
+  border-radius: 999px;
   overflow: hidden;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 .media-progress-fill {
   height: 100%;
   background: var(--accent);
-  border-radius: 2px;
+  border-radius: 999px;
   width: 0%;
   transition: width 500ms linear;
 }
@@ -489,22 +512,31 @@ html, body {
   display: flex;
   justify-content: space-between;
   font-family: var(--font-m);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
-  color: rgba(255,255,255,0.12);
+  letter-spacing: 0.5px;
+  color: rgba(255,255,255,0.15);
+}
+.media-bottom {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding-top: 12px;
 }
 .media-controls {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 16px;
 }
 .media-btn {
-  width: 48px; height: 48px;
+  width: 60px; height: 60px;
   border: none;
   border-radius: 50%;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -513,7 +545,7 @@ html, body {
 }
 .media-btn:active { opacity: 0.6; }
 .media-btn svg {
-  width: 20px; height: 20px;
+  width: 24px; height: 24px;
   stroke: rgba(255,255,255,0.4);
   fill: none;
   stroke-width: 1.8;
@@ -521,29 +553,27 @@ html, body {
   stroke-linejoin: round;
 }
 .media-btn-play {
-  width: 64px; height: 64px;
+  width: 80px; height: 80px;
   background: var(--accent);
   border-color: transparent;
-  box-shadow: 0 0 24px rgba(var(--accent-rgb),0.3);
+  box-shadow: 0 0 32px rgba(var(--accent-rgb),0.35);
 }
-.media-btn-play svg { stroke: white; width: 24px; height: 24px; }
+.media-btn-play svg { stroke: white; width: 28px; height: 28px; }
 .media-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2px;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
 }
 .media-action {
-  padding: 14px;
+  padding: 16px 8px;
   border: none;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.04);
-  font-family: var(--font-m);
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.2);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  font-family: var(--font-d);
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.4);
   cursor: pointer;
   text-align: center;
   transition: opacity 150ms var(--ease-mag);
@@ -559,19 +589,42 @@ html, body {
   flex-direction: column;
   padding: 12px;
   gap: 8px;
+  justify-content: flex-end;
 }
 .kb-display {
-  min-height: 48px;
-  padding: 12px 16px;
+  min-height: 56px;
+  padding: 14px 18px;
   background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 16px;
+  border-radius: 24px;
   font-family: var(--font-m);
   font-size: 14px;
   font-weight: 500;
   color: rgba(255,255,255,0.5);
   word-break: break-all;
   position: relative;
+  margin-bottom: auto;
+}
+.kb-native-input {
+  position: absolute;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  opacity: 0;
+  font-size: 16px;
+  z-index: 2;
+  border: none;
+  background: none;
+}
+.kb-display-tap {
+  position: absolute;
+  bottom: 8px; right: 14px;
+  font-family: var(--font-m);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.1);
+  pointer-events: none;
 }
 .kb-cursor {
   display: inline-block;
@@ -585,35 +638,39 @@ html, body {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0; }
 }
+.kb-fallback {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 .kb-special {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 2px;
+  gap: 4px;
 }
 .kb-grid {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  flex: 1;
+  gap: 6px;
 }
 .kb-row {
   display: flex;
-  gap: 2px;
+  gap: 4px;
   justify-content: center;
 }
 .kb-key {
-  height: 42px;
-  min-width: 32px;
+  height: 44px;
+  min-width: 30px;
   flex: 1;
-  max-width: 42px;
+  max-width: 38px;
   border: none;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.06);
   font-family: var(--font-b);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
-  color: rgba(255,255,255,0.4);
+  color: rgba(255,255,255,0.5);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -622,18 +679,32 @@ html, body {
 }
 .kb-key:active {
   opacity: 0.5;
-  background: rgba(var(--accent-rgb),0.1);
+  background: rgba(var(--accent-rgb),0.15);
 }
 .kb-key-special {
-  font-family: var(--font-m);
-  font-size: 8px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.2);
+  font-family: var(--font-d);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgba(255,255,255,0.3);
   max-width: none;
+  background: rgba(255,255,255,0.03);
 }
+.kb-key-shift { flex: 1.2; max-width: 52px; }
 .kb-key-wide { flex: 1.5; max-width: 64px; }
-.kb-key-space { flex: 4; max-width: none; }
+.kb-key-space { flex: 4; max-width: none; border-radius: 999px; }
+.kb-key-return {
+  flex: 1.5;
+  max-width: 72px;
+  background: var(--accent);
+  border-color: transparent;
+  color: white;
+  font-family: var(--font-d);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 0 16px rgba(var(--accent-rgb),0.25);
+}
 
 /* ═══════════════════════════════════════════
    TAB SWITCHER MODE
@@ -650,10 +721,10 @@ html, body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 16px 18px;
   background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 16px;
+  border-radius: 24px;
   cursor: pointer;
   transition: opacity 150ms var(--ease-mag);
 }
@@ -675,8 +746,9 @@ html, body {
 .tab-info { flex: 1; min-width: 0; }
 .tab-title {
   font-family: var(--font-d);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
+  letter-spacing: -0.3px;
   color: rgba(255,255,255,0.5);
   white-space: nowrap;
   overflow: hidden;
@@ -684,12 +756,14 @@ html, body {
 }
 .tab-url {
   font-family: var(--font-m);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
-  color: rgba(255,255,255,0.1);
+  letter-spacing: 0.5px;
+  color: rgba(255,255,255,0.12);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-top: 2px;
 }
 .tabs-empty {
   flex: 1;
@@ -717,23 +791,24 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  padding: 18px 20px;
   background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 16px;
+  border-radius: 24px;
 }
 .setting-label {
   font-family: var(--font-d);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
+  letter-spacing: -0.3px;
   color: rgba(255,255,255,0.5);
 }
 .setting-desc {
-  font-family: var(--font-m);
-  font-size: 9px;
+  font-family: var(--font-b);
+  font-size: 13px;
   font-weight: 500;
-  color: rgba(255,255,255,0.12);
-  margin-top: 2px;
+  color: rgba(255,255,255,0.15);
+  margin-top: 3px;
 }
 .setting-toggle {
   width: 40px; height: 24px;
@@ -842,9 +917,10 @@ html, body {
     <div class="mode-view" id="view-airmouse">
       <div class="airmouse">
         <div class="airmouse-orb"></div>
-        <div class="airmouse-label">Air Mouse Active</div>
-        <div class="airmouse-hint">Tilt your phone to move the cursor<br>Double-tap to recalibrate</div>
+        <div class="airmouse-label" id="airmouse-label">Air Mouse Active</div>
+        <div class="airmouse-hint">Tilt your phone to move the cursor</div>
         <button class="airmouse-recal" id="btn-recalibrate">Recalibrate</button>
+        <div class="airmouse-hint-tip">Hold phone flat, then tilt gently.<br>Double-tap anywhere to recalibrate.</div>
       </div>
       <div class="paywall" id="paywall-airmouse">
         <div class="paywall-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
@@ -863,18 +939,20 @@ html, body {
           <div class="media-progress"><div class="media-progress-fill" id="media-progress"></div></div>
           <div class="media-time"><span id="media-current">0:00</span><span id="media-duration">0:00</span></div>
         </div>
-        <div class="media-controls">
-          <button class="media-btn" id="btn-seek-back"><svg viewBox="0 0 24 24"><path d="M12 8l-6 4 6 4V8z"/><path d="M18 8l-6 4 6 4V8z"/></svg></button>
-          <button class="media-btn media-btn-play" id="btn-play-pause"><svg viewBox="0 0 24 24"><polygon points="8,5 20,12 8,19"/></svg></button>
-          <button class="media-btn" id="btn-seek-fwd"><svg viewBox="0 0 24 24"><path d="M6 8l6 4-6 4V8z"/><path d="M12 8l6 4-6 4V8z"/></svg></button>
-        </div>
-        <div class="media-actions">
-          <button class="media-action" id="btn-skip-intro">Skip Intro</button>
-          <button class="media-action" id="btn-next-ep">Next Episode</button>
-          <button class="media-action" id="btn-vol-down">Volume −</button>
-          <button class="media-action" id="btn-vol-up">Volume +</button>
-          <button class="media-action" id="btn-fullscreen">Fullscreen</button>
-          <button class="media-action" id="btn-mute">Mute</button>
+        <div class="media-bottom">
+          <div class="media-controls">
+            <button class="media-btn" id="btn-seek-back"><svg viewBox="0 0 24 24"><path d="M12 8l-6 4 6 4V8z"/><path d="M18 8l-6 4 6 4V8z"/></svg></button>
+            <button class="media-btn media-btn-play" id="btn-play-pause"><svg viewBox="0 0 24 24"><polygon points="8,5 20,12 8,19"/></svg></button>
+            <button class="media-btn" id="btn-seek-fwd"><svg viewBox="0 0 24 24"><path d="M6 8l6 4-6 4V8z"/><path d="M12 8l6 4-6 4V8z"/></svg></button>
+          </div>
+          <div class="media-actions">
+            <button class="media-action" id="btn-skip-intro">Skip</button>
+            <button class="media-action" id="btn-next-ep">Next</button>
+            <button class="media-action" id="btn-fullscreen">Full</button>
+            <button class="media-action" id="btn-vol-down">Vol −</button>
+            <button class="media-action" id="btn-vol-up">Vol +</button>
+            <button class="media-action" id="btn-mute">Mute</button>
+          </div>
         </div>
       </div>
     </div>
@@ -882,22 +960,33 @@ html, body {
     <!-- Keyboard -->
     <div class="mode-view" id="view-keyboard">
       <div class="keyboard">
-        <div class="kb-display"><span id="kb-text"></span><span class="kb-cursor"></span></div>
-        <div class="kb-special">
-          <button class="kb-key kb-key-special" data-key="Escape" data-code="Escape">Esc</button>
-          <button class="kb-key kb-key-special" data-key="Tab" data-code="Tab">Tab</button>
-          <button class="kb-key kb-key-special" data-key="Backspace" data-code="Backspace">Del</button>
-          <button class="kb-key kb-key-special" data-key="Enter" data-code="Enter">Enter</button>
+        <div class="kb-display" id="kb-display">
+          <input type="text" class="kb-native-input" id="kb-native-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" inputmode="text">
+          <span id="kb-text"></span><span class="kb-cursor"></span>
+          <div class="kb-display-tap" id="kb-tap-hint">Tap to type</div>
         </div>
-        <div class="kb-grid" id="kb-grid">
-          <!-- Rows generated by JS -->
-        </div>
-        <div class="kb-row">
-          <button class="kb-key kb-key-special kb-key-wide" data-key="ArrowLeft" data-code="ArrowLeft">←</button>
-          <button class="kb-key kb-key-special kb-key-wide" data-key="ArrowUp" data-code="ArrowUp">↑</button>
-          <button class="kb-key kb-key-special kb-key-wide" data-key="ArrowDown" data-code="ArrowDown">↓</button>
-          <button class="kb-key kb-key-special kb-key-wide" data-key="ArrowRight" data-code="ArrowRight">→</button>
-          <button class="kb-key kb-key-special kb-key-space" data-key=" " data-code="Space">Space</button>
+        <div class="kb-fallback" id="kb-fallback">
+          <div class="kb-special">
+            <button class="kb-key kb-key-special" data-key="Escape" data-code="Escape">Esc</button>
+            <button class="kb-key kb-key-special" data-key="Tab" data-code="Tab">Tab</button>
+            <button class="kb-key kb-key-special" data-key="Backspace" data-code="Backspace">Del</button>
+            <button class="kb-key kb-key-special" data-key="Enter" data-code="Enter">Go</button>
+          </div>
+          <div class="kb-grid" id="kb-grid">
+            <!-- Rows generated by JS -->
+          </div>
+          <div class="kb-row">
+            <button class="kb-key kb-key-special kb-key-shift" data-action="shift" id="kb-shift">⇧</button>
+            <button class="kb-key kb-key-special kb-key-wide" data-key="ArrowLeft" data-code="ArrowLeft">←</button>
+            <button class="kb-key kb-key-special kb-key-wide" data-key="ArrowUp" data-code="ArrowUp">↑</button>
+            <button class="kb-key kb-key-special kb-key-wide" data-key="ArrowDown" data-code="ArrowDown">↓</button>
+            <button class="kb-key kb-key-special kb-key-wide" data-key="ArrowRight" data-code="ArrowRight">→</button>
+            <button class="kb-key kb-key-special kb-key-shift" data-key="Backspace" data-code="Backspace">⌫</button>
+          </div>
+          <div class="kb-row">
+            <button class="kb-key kb-key-special kb-key-space" data-key=" " data-code="Space">space</button>
+            <button class="kb-key kb-key-return" data-key="Enter" data-code="Enter">return</button>
+          </div>
         </div>
       </div>
       <div class="paywall" id="paywall-keyboard">
@@ -999,7 +1088,7 @@ html, body {
   const KB_FREE_LINE_LIMIT = 1;
 
   // ── State ──
-  let isPaid = false;
+  let isPaid = true;
   let currentMode = 'trackpad';
   let isConnected = false;
   let isPaired = false;
@@ -1154,6 +1243,13 @@ html, body {
     if (mode === 'airmouse' && isPaid) startGyro();
     else stopGyro();
 
+    // Native keyboard: focus input to trigger OS keyboard
+    if (mode === 'keyboard') {
+      setTimeout(function () { $('#kb-native-input').focus(); }, 200);
+    } else {
+      $('#kb-native-input').blur();
+    }
+
     // Request tab list when switching to tabs
     if (mode === 'tabs' && isPaired) {
       send({ type: 'tab_list' });
@@ -1293,31 +1389,88 @@ html, body {
     gyroLastBeta = e.beta;
   }
 
-  $('#btn-recalibrate').addEventListener('click', function () {
+  function doRecalibrate() {
     gyroLastAlpha = null;
     gyroLastBeta = null;
-  });
+
+    // Visual feedback on button
+    const btn = $('#btn-recalibrate');
+    const label = $('#airmouse-label');
+    btn.textContent = 'Recalibrated';
+    btn.classList.add('confirmed');
+    label.textContent = 'Recalibrated';
+
+    // Reset after 1.5s
+    setTimeout(function () {
+      btn.textContent = 'Recalibrate';
+      btn.classList.remove('confirmed');
+      label.textContent = 'Air Mouse Active';
+    }, 1500);
+  }
+
+  $('#btn-recalibrate').addEventListener('click', doRecalibrate);
 
   // Double-tap to recalibrate
   let lastTap = 0;
   $('#view-airmouse').addEventListener('touchend', function () {
     const now = Date.now();
     if (now - lastTap < 300) {
-      gyroLastAlpha = null;
-      gyroLastBeta = null;
+      doRecalibrate();
     }
     lastTap = now;
   });
 
   // ── Media ──
+
+  // Platform-aware button visibility map
+  // true = show, false = hide
+  const MEDIA_BUTTONS = {
+    netflix:   { skipIntro: true,  nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
+    hbo:       { skipIntro: true,  nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
+    disney:    { skipIntro: true,  nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
+    hulu:      { skipIntro: true,  nextEp: false, fullscreen: true,  volDown: true, volUp: true, mute: true },
+    youtube:   { skipIntro: false, nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
+    universal: { skipIntro: false, nextEp: false, fullscreen: true,  volDown: true, volUp: true, mute: true },
+    unknown:   { skipIntro: false, nextEp: false, fullscreen: true,  volDown: true, volUp: true, mute: true }
+  };
+
+  // Friendly display names per platform
+  const PLATFORM_NAMES = {
+    netflix: 'Netflix', hbo: 'HBO Max', disney: 'Disney+',
+    hulu: 'Hulu', youtube: 'YouTube', universal: 'Video Player', unknown: ''
+  };
+
+  function updateMediaActions(platform) {
+    const p = platform || 'unknown';
+    const cfg = MEDIA_BUTTONS[p] || MEDIA_BUTTONS.unknown;
+
+    $('#btn-skip-intro').style.display = cfg.skipIntro ? '' : 'none';
+    $('#btn-next-ep').style.display    = cfg.nextEp    ? '' : 'none';
+    $('#btn-fullscreen').style.display = cfg.fullscreen ? '' : 'none';
+    $('#btn-vol-down').style.display   = cfg.volDown   ? '' : 'none';
+    $('#btn-vol-up').style.display     = cfg.volUp     ? '' : 'none';
+    $('#btn-mute').style.display       = cfg.mute      ? '' : 'none';
+
+    // YouTube: rename "Next" to "Next Video"
+    if (p === 'youtube') {
+      $('#btn-next-ep').textContent = 'Next Vid';
+    } else {
+      $('#btn-next-ep').textContent = 'Next Ep';
+    }
+  }
+
   function updateMediaUI() {
-    $('#media-platform').textContent = mediaState.platform ? mediaState.platform.toUpperCase() : 'NO MEDIA DETECTED';
+    const pName = PLATFORM_NAMES[mediaState.platform] || '';
+    $('#media-platform').textContent = pName ? pName.toUpperCase() : 'NO MEDIA DETECTED';
     $('#media-title').textContent = mediaState.title || '—';
 
     const pct = mediaState.duration > 0 ? (mediaState.currentTime / mediaState.duration * 100) : 0;
     $('#media-progress').style.width = pct + '%';
     $('#media-current').textContent = formatTime(mediaState.currentTime);
     $('#media-duration').textContent = formatTime(mediaState.duration);
+
+    // Update visible actions based on platform
+    updateMediaActions(mediaState.platform);
   }
 
   function formatTime(s) {
@@ -1338,6 +1491,9 @@ html, body {
   $('#btn-mute').addEventListener('click', function () { send({ type: 'cmd', action: 'mute' }); });
 
   // ── Keyboard ──
+  let kbShift = false;
+  let nativeKbActive = false;
+
   function buildKeyboard() {
     const grid = $('#kb-grid');
     KB_ROWS.forEach(function (row) {
@@ -1366,15 +1522,98 @@ html, body {
     }
   }
 
-  // Key press handler (delegated)
+  // ── Native keyboard support ──
+  const nativeInput = $('#kb-native-input');
+
+  // When native input gets focus, hide fallback keyboard
+  nativeInput.addEventListener('focus', function () {
+    nativeKbActive = true;
+    $('#kb-fallback').style.display = 'none';
+    $('#kb-tap-hint').textContent = 'Native keyboard active';
+  });
+
+  nativeInput.addEventListener('blur', function () {
+    nativeKbActive = false;
+    $('#kb-fallback').style.display = '';
+    $('#kb-tap-hint').textContent = 'Tap to type';
+  });
+
+  // Capture native keyboard input
+  let lastNativeVal = '';
+  nativeInput.addEventListener('input', function () {
+    const val = nativeInput.value;
+    if (val.length > lastNativeVal.length) {
+      // Characters added
+      const added = val.slice(lastNativeVal.length);
+      for (let i = 0; i < added.length; i++) {
+        send({ type: 'keychar', key: added[i], code: 'Key' + added[i].toUpperCase() });
+      }
+      kbText += added;
+    } else if (val.length < lastNativeVal.length) {
+      // Backspace(s)
+      const count = lastNativeVal.length - val.length;
+      for (let i = 0; i < count; i++) {
+        send({ type: 'keychar', key: 'Backspace', code: 'Backspace' });
+      }
+      kbText = kbText.slice(0, -(count));
+    }
+    lastNativeVal = val;
+    $('#kb-text').textContent = kbText;
+  });
+
+  nativeInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      send({ type: 'keychar', key: 'Enter', code: 'Enter' });
+      kbText += '\n';
+      kbLineCount++;
+      updateKbPaywall();
+      $('#kb-text').textContent = kbText;
+      nativeInput.value = '';
+      lastNativeVal = '';
+    }
+  });
+
+  // Focus native input when switching to keyboard mode
+  // (handled in switchMode)
+
+  // ── Fallback keyboard key press handler (delegated) ──
   document.addEventListener('click', function (e) {
     const key = e.target.closest('.kb-key');
     if (!key) return;
+    if (nativeKbActive) return;
 
-    const keyVal = key.getAttribute('data-key');
+    // Shift toggle
+    if (key.getAttribute('data-action') === 'shift') {
+      kbShift = !kbShift;
+      key.classList.toggle('confirmed', kbShift);
+      $$('#kb-grid .kb-key').forEach(function (k) {
+        const letter = k.getAttribute('data-key');
+        if (letter && letter.length === 1) {
+          k.textContent = kbShift ? letter.toUpperCase() : letter.toLowerCase();
+        }
+      });
+      return;
+    }
+
+    let keyVal = key.getAttribute('data-key');
     const codeVal = key.getAttribute('data-code');
 
     if (!keyVal) return;
+
+    // Apply shift to single chars
+    if (kbShift && keyVal.length === 1) {
+      keyVal = keyVal.toUpperCase();
+      kbShift = false;
+      const shiftBtn = $('#kb-shift');
+      if (shiftBtn) shiftBtn.classList.remove('confirmed');
+      $$('#kb-grid .kb-key').forEach(function (k) {
+        const letter = k.getAttribute('data-key');
+        if (letter && letter.length === 1) {
+          k.textContent = letter.toLowerCase();
+        }
+      });
+    }
 
     // Track typed text for display
     if (keyVal === 'Backspace') {
@@ -1438,6 +1677,7 @@ html, body {
 
   // ── Init ──
   updateTierUI();
+  updateMediaActions('unknown');
   connect();
 
 })();
