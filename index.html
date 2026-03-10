@@ -1129,6 +1129,259 @@ html, body {
   transition: opacity 200ms var(--ease-mag);
 }
 .trackpad-swipe-hint.visible { opacity: 1; }
+
+/* ═══════════════════════════════════════════
+   TRACKPAD STICKERS
+═══════════════════════════════════════════ */
+
+/* Stickers on the actual trackpad surface */
+.sticker-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.sticker-wrap {
+  position: absolute;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.sticker-wrap img {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+/* Black drop shadow layer — sits behind the sticker */
+.sticker-shadow {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: auto;
+  filter: brightness(0);
+  opacity: 0.25;
+  transform: translateY(2px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ── Sticker Editor Overlay ── */
+.sticker-editor {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--void);
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms var(--ease-mag);
+}
+.sticker-editor.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sticker-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 8px;
+}
+.sticker-editor-title {
+  font-family: var(--font-d);
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(var(--ui-rgb),0.9);
+}
+.sticker-editor-save {
+  background: rgba(var(--accent-rgb),0.15);
+  border: 1px solid rgba(var(--accent-rgb),0.25);
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-family: var(--font-b);
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(var(--accent-rgb),1);
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.sticker-editor-save:active { opacity: 0.6; }
+
+/* Preview trackpad inside editor */
+.sticker-preview-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  min-height: 0;
+}
+.sticker-preview {
+  width: calc(100% - 32px);
+  max-width: 400px;
+  aspect-ratio: 1.6 / 1;
+  position: relative;
+  background: rgba(var(--ui-rgb),0.04);
+  border: 1px solid rgba(var(--ui-rgb),0.08);
+  border-radius: 24px;
+  overflow: hidden;
+}
+.sticker-preview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at center, rgba(var(--accent-rgb),0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Editor sticker (draggable, selectable) */
+.sticker-editor-item {
+  position: absolute;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  touch-action: none;
+}
+.sticker-editor-item:active { cursor: grabbing; }
+.sticker-editor-item img {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+.sticker-editor-item .sticker-shadow {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  filter: brightness(0);
+  opacity: 0.25;
+  transform: translateY(2px);
+  z-index: -1;
+  pointer-events: none;
+}
+.sticker-editor-item.selected {
+  outline: 2px solid rgba(var(--accent-rgb),0.6);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+/* Resize handle on selected sticker */
+.sticker-resize-handle {
+  position: absolute;
+  bottom: -6px; right: -6px;
+  width: 16px; height: 16px;
+  background: var(--accent);
+  border-radius: 50%;
+  border: 2px solid var(--void);
+  cursor: nwse-resize;
+  touch-action: none;
+  display: none;
+  z-index: 5;
+}
+.sticker-editor-item.selected .sticker-resize-handle { display: block; }
+
+/* Bottom panel: gallery + controls */
+.sticker-editor-panel {
+  background: rgba(var(--ui-rgb),0.02);
+  border-top: 1px solid rgba(var(--ui-rgb),0.06);
+  padding: 16px;
+}
+
+.sticker-panel-label {
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(var(--accent-rgb),0.4);
+  margin-bottom: 10px;
+}
+
+/* Sticker gallery */
+.sticker-gallery {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.sticker-gallery-item {
+  width: 64px; height: 64px;
+  flex-shrink: 0;
+  background: rgba(var(--ui-rgb),0.04);
+  border: 1px solid rgba(var(--ui-rgb),0.06);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag), border-color 150ms var(--ease-mag);
+}
+.sticker-gallery-item:active { opacity: 0.6; }
+.sticker-gallery-item img {
+  width: 48px; height: 48px;
+  object-fit: contain;
+  pointer-events: none;
+}
+.sticker-gallery-item.disabled {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+/* Controls row for selected sticker */
+.sticker-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(var(--ui-rgb),0.04);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms var(--ease-mag);
+}
+.sticker-controls.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.sticker-ctrl-btn {
+  height: 36px;
+  padding: 0 14px;
+  background: rgba(var(--ui-rgb),0.04);
+  border: 1px solid rgba(var(--ui-rgb),0.06);
+  border-radius: 999px;
+  font-family: var(--font-b);
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.5);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: opacity 150ms var(--ease-mag);
+}
+.sticker-ctrl-btn:active { opacity: 0.6; }
+.sticker-ctrl-btn svg {
+  width: 14px; height: 14px;
+  stroke: rgba(var(--ui-rgb),0.4);
+  stroke-width: 1.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sticker-ctrl-btn.danger {
+  color: rgba(224,79,95,0.7);
+}
+.sticker-ctrl-btn.danger svg {
+  stroke: rgba(224,79,95,0.6);
+}
+.sticker-count {
+  font-family: var(--font-m);
+  font-size: 10px;
+  color: rgba(var(--ui-rgb),0.2);
+  margin-left: auto;
+}
 </style>
 </head>
 <body>
@@ -1164,6 +1417,7 @@ html, body {
     <div class="mode-view active" id="view-trackpad">
       <div class="trackpad">
         <div class="trackpad-surface" id="trackpad-surface">
+          <div class="sticker-layer" id="sticker-layer"><!-- Stickers rendered by JS --></div>
           <div class="trackpad-hint" id="trackpad-hint">Slide to move cursor</div>
           <div class="trackpad-swipe-hint" id="trackpad-swipe-hint"></div>
         </div>
@@ -1278,6 +1532,15 @@ html, body {
           <input type="range" class="setting-slider" id="setting-cursor-size" min="12" max="32" step="2" value="16">
         </div>
 
+        <div class="setting-section-label">Customize</div>
+        <div class="setting-row">
+          <div><div class="setting-label">Trackpad Stickers</div><div class="setting-desc">Make it like your laptop</div></div>
+          <button class="sticker-ctrl-btn" id="btn-open-sticker-editor">
+            <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Edit
+          </button>
+        </div>
+
         <div class="setting-section-label">Theme</div>
         <div class="setting-row theme-row">
           <div class="theme-swatches" id="theme-swatches">
@@ -1292,6 +1555,40 @@ html, body {
       </div>
     </div>
 
+  </div>
+
+  <!-- Sticker Editor Overlay -->
+  <div class="sticker-editor" id="sticker-editor">
+    <div class="sticker-editor-header">
+      <div class="sticker-editor-title">Trackpad Stickers</div>
+      <button class="sticker-editor-save" id="sticker-save">Save</button>
+    </div>
+    <div class="sticker-preview-wrap">
+      <div class="sticker-preview" id="sticker-preview">
+        <!-- Editor stickers rendered by JS -->
+      </div>
+    </div>
+    <div class="sticker-editor-panel">
+      <div class="sticker-panel-label">Sticker Pack</div>
+      <div class="sticker-gallery" id="sticker-gallery">
+        <!-- Generated by JS -->
+      </div>
+      <div class="sticker-controls" id="sticker-controls">
+        <button class="sticker-ctrl-btn" id="sticker-bring-front">
+          <svg viewBox="0 0 24 24"><path d="M5 12l7-7 7 7"/></svg>
+          Front
+        </button>
+        <button class="sticker-ctrl-btn" id="sticker-send-back">
+          <svg viewBox="0 0 24 24"><path d="M19 12l-7 7-7-7"/></svg>
+          Back
+        </button>
+        <button class="sticker-ctrl-btn danger" id="sticker-remove">
+          <svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+          Remove
+        </button>
+        <div class="sticker-count" id="sticker-count">0 / 3</div>
+      </div>
+    </div>
   </div>
 
   <!-- Keyboard Overlay (slides up over any mode) -->
@@ -2428,7 +2725,385 @@ html, body {
     }
   }, 10000);
 
+  // ═══════════════════════════════════════════
+  //  TRACKPAD STICKERS
+  // ═══════════════════════════════════════════
+
+  var STICKER_GALLERY = [
+    { id: 'smile', src: 'stickers/smile.png', name: 'Smile Cat' },
+    { id: 'brownie', src: 'stickers/brownie.png', name: 'Brownie' },
+    { id: 'croissant', src: 'stickers/croissant.png', name: 'Croissant' }
+  ];
+
+  var MAX_STICKERS = 3;
+  // Each placed sticker: { id, src, x (%), y (%), width (% of container), zIndex }
+  var placedStickers = [];
+  var stickerIdCounter = 0;
+  var selectedStickerId = null;
+
+  // Load saved stickers from localStorage
+  function loadStickers() {
+    try {
+      var saved = localStorage.getItem('couchlock-stickers');
+      if (saved) {
+        placedStickers = JSON.parse(saved);
+        // Restore counter to avoid ID collisions
+        for (var i = 0; i < placedStickers.length; i++) {
+          if (placedStickers[i].id >= stickerIdCounter) {
+            stickerIdCounter = placedStickers[i].id + 1;
+          }
+        }
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  function saveStickers() {
+    try {
+      localStorage.setItem('couchlock-stickers', JSON.stringify(placedStickers));
+    } catch (e) { /* ignore */ }
+  }
+
+  // Render stickers on the actual trackpad surface (non-interactive)
+  function renderTrackpadStickers() {
+    var layer = $('#sticker-layer');
+    layer.innerHTML = '';
+    for (var i = 0; i < placedStickers.length; i++) {
+      var s = placedStickers[i];
+      var wrap = document.createElement('div');
+      wrap.className = 'sticker-wrap';
+      wrap.style.left = s.x + '%';
+      wrap.style.top = s.y + '%';
+      wrap.style.width = s.width + '%';
+      wrap.style.zIndex = s.zIndex;
+
+      // Shadow layer (black duplicate behind)
+      var shadow = document.createElement('img');
+      shadow.className = 'sticker-shadow';
+      shadow.src = s.src;
+      shadow.alt = '';
+      shadow.draggable = false;
+      wrap.appendChild(shadow);
+
+      // Actual sticker image
+      var img = document.createElement('img');
+      img.src = s.src;
+      img.alt = '';
+      img.draggable = false;
+      img.style.position = 'relative';
+      img.style.zIndex = '1';
+      wrap.appendChild(img);
+
+      layer.appendChild(wrap);
+    }
+  }
+
+  // Render stickers inside the editor preview (interactive)
+  function renderEditorStickers() {
+    var preview = $('#sticker-preview');
+    // Remove old sticker items but keep the ::after pseudo
+    var old = preview.querySelectorAll('.sticker-editor-item');
+    for (var i = 0; i < old.length; i++) {
+      old[i].parentNode.removeChild(old[i]);
+    }
+
+    for (var j = 0; j < placedStickers.length; j++) {
+      var s = placedStickers[j];
+      var el = document.createElement('div');
+      el.className = 'sticker-editor-item';
+      if (s.id === selectedStickerId) el.classList.add('selected');
+      el.setAttribute('data-sticker-id', s.id);
+      el.style.left = s.x + '%';
+      el.style.top = s.y + '%';
+      el.style.width = s.width + '%';
+      el.style.zIndex = s.zIndex;
+
+      // Shadow
+      var shadow = document.createElement('img');
+      shadow.className = 'sticker-shadow';
+      shadow.src = s.src;
+      shadow.alt = '';
+      shadow.draggable = false;
+      el.appendChild(shadow);
+
+      // Image
+      var img = document.createElement('img');
+      img.src = s.src;
+      img.alt = '';
+      img.draggable = false;
+      img.style.position = 'relative';
+      img.style.zIndex = '1';
+      el.appendChild(img);
+
+      // Resize handle
+      var handle = document.createElement('div');
+      handle.className = 'sticker-resize-handle';
+      el.appendChild(handle);
+
+      preview.appendChild(el);
+    }
+
+    updateStickerControls();
+    updateGalleryState();
+  }
+
+  function updateStickerControls() {
+    var controls = $('#sticker-controls');
+    var countEl = $('#sticker-count');
+    countEl.textContent = placedStickers.length + ' / ' + MAX_STICKERS;
+
+    if (selectedStickerId !== null) {
+      controls.classList.add('active');
+    } else {
+      controls.classList.remove('active');
+    }
+  }
+
+  function updateGalleryState() {
+    var items = document.querySelectorAll('.sticker-gallery-item');
+    var atLimit = placedStickers.length >= MAX_STICKERS;
+    for (var i = 0; i < items.length; i++) {
+      if (atLimit) {
+        items[i].classList.add('disabled');
+      } else {
+        items[i].classList.remove('disabled');
+      }
+    }
+  }
+
+  function getStickerById(id) {
+    for (var i = 0; i < placedStickers.length; i++) {
+      if (placedStickers[i].id === id) return placedStickers[i];
+    }
+    return null;
+  }
+
+  function getMaxZIndex() {
+    var max = 0;
+    for (var i = 0; i < placedStickers.length; i++) {
+      if (placedStickers[i].zIndex > max) max = placedStickers[i].zIndex;
+    }
+    return max;
+  }
+
+  function getMinZIndex() {
+    if (placedStickers.length === 0) return 1;
+    var min = placedStickers[0].zIndex;
+    for (var i = 1; i < placedStickers.length; i++) {
+      if (placedStickers[i].zIndex < min) min = placedStickers[i].zIndex;
+    }
+    return min;
+  }
+
+  // Build the gallery inside the editor
+  function buildStickerGallery() {
+    var gallery = $('#sticker-gallery');
+    gallery.innerHTML = '';
+    for (var i = 0; i < STICKER_GALLERY.length; i++) {
+      var g = STICKER_GALLERY[i];
+      var item = document.createElement('div');
+      item.className = 'sticker-gallery-item';
+      item.setAttribute('data-src', g.src);
+
+      var img = document.createElement('img');
+      img.src = g.src;
+      img.alt = g.name;
+      img.draggable = false;
+      item.appendChild(img);
+
+      item.addEventListener('click', (function (src) {
+        return function () {
+          if (placedStickers.length >= MAX_STICKERS) return;
+          var newSticker = {
+            id: stickerIdCounter++,
+            src: src,
+            x: 30 + Math.random() * 20,
+            y: 20 + Math.random() * 30,
+            width: 25,
+            zIndex: getMaxZIndex() + 1
+          };
+          placedStickers.push(newSticker);
+          selectedStickerId = newSticker.id;
+          renderEditorStickers();
+        };
+      })(g.src));
+
+      gallery.appendChild(item);
+    }
+  }
+
+  // ── Editor drag & resize via touch ──
+  (function () {
+    var preview = null;
+    var dragging = null;
+    var resizing = null;
+    var startTouchX = 0;
+    var startTouchY = 0;
+    var startLeft = 0;
+    var startTop = 0;
+    var startWidth = 0;
+
+    function getPreview() {
+      if (!preview) preview = $('#sticker-preview');
+      return preview;
+    }
+
+    function pxToPercent(px, dimension) {
+      var rect = getPreview().getBoundingClientRect();
+      if (dimension === 'x') return (px / rect.width) * 100;
+      if (dimension === 'y') return (px / rect.height) * 100;
+      return 0;
+    }
+
+    function onTouchStart(e) {
+      var target = e.target;
+      var previewEl = getPreview();
+
+      // Check if touching a resize handle
+      if (target.classList.contains('sticker-resize-handle')) {
+        e.preventDefault();
+        var stickerEl = target.parentNode;
+        var sid = parseInt(stickerEl.getAttribute('data-sticker-id'), 10);
+        var sticker = getStickerById(sid);
+        if (!sticker) return;
+
+        resizing = sticker;
+        var t = e.touches[0];
+        startTouchX = t.clientX;
+        startTouchY = t.clientY;
+        startWidth = sticker.width;
+        return;
+      }
+
+      // Check if touching a sticker
+      var stickerEl = target.closest('.sticker-editor-item');
+      if (stickerEl) {
+        e.preventDefault();
+        var sid = parseInt(stickerEl.getAttribute('data-sticker-id'), 10);
+        selectedStickerId = sid;
+        renderEditorStickers();
+
+        var sticker = getStickerById(sid);
+        if (!sticker) return;
+
+        dragging = sticker;
+        var t = e.touches[0];
+        startTouchX = t.clientX;
+        startTouchY = t.clientY;
+        startLeft = sticker.x;
+        startTop = sticker.y;
+        return;
+      }
+
+      // Tapped empty area — deselect
+      if (target === previewEl || target.parentNode === previewEl) {
+        selectedStickerId = null;
+        renderEditorStickers();
+      }
+    }
+
+    function onTouchMove(e) {
+      if (!dragging && !resizing) return;
+      e.preventDefault();
+      var t = e.touches[0];
+      var dx = t.clientX - startTouchX;
+      var dy = t.clientY - startTouchY;
+
+      if (dragging) {
+        var newX = startLeft + pxToPercent(dx, 'x');
+        var newY = startTop + pxToPercent(dy, 'y');
+        // Clamp within bounds (allow some overflow for partial off-edge)
+        dragging.x = Math.max(-10, Math.min(90, newX));
+        dragging.y = Math.max(-10, Math.min(90, newY));
+        renderEditorStickers();
+      }
+
+      if (resizing) {
+        var newWidth = startWidth + pxToPercent(dx, 'x');
+        // Clamp: min 10%, max 60%
+        resizing.width = Math.max(10, Math.min(60, newWidth));
+        renderEditorStickers();
+      }
+    }
+
+    function onTouchEnd() {
+      dragging = null;
+      resizing = null;
+    }
+
+    // Attach after editor opens — use event delegation on the preview
+    document.addEventListener('touchstart', function (e) {
+      if (!$('#sticker-editor').classList.contains('open')) return;
+      var previewEl = getPreview();
+      if (previewEl.contains(e.target)) {
+        onTouchStart(e);
+      }
+    }, { passive: false });
+
+    document.addEventListener('touchmove', function (e) {
+      if (dragging || resizing) onTouchMove(e);
+    }, { passive: false });
+
+    document.addEventListener('touchend', function () {
+      onTouchEnd();
+    });
+  })();
+
+  // ── Editor button handlers ──
+
+  // Open editor
+  $('#btn-open-sticker-editor').addEventListener('click', function () {
+    buildStickerGallery();
+    selectedStickerId = null;
+    renderEditorStickers();
+    $('#sticker-editor').classList.add('open');
+  });
+
+  // Save & close
+  $('#sticker-save').addEventListener('click', function () {
+    saveStickers();
+    renderTrackpadStickers();
+    $('#sticker-editor').classList.remove('open');
+    showToast('Stickers saved');
+  });
+
+  // Bring to front
+  $('#sticker-bring-front').addEventListener('click', function () {
+    if (selectedStickerId === null) return;
+    var s = getStickerById(selectedStickerId);
+    if (s) {
+      s.zIndex = getMaxZIndex() + 1;
+      renderEditorStickers();
+    }
+  });
+
+  // Send to back
+  $('#sticker-send-back').addEventListener('click', function () {
+    if (selectedStickerId === null) return;
+    var s = getStickerById(selectedStickerId);
+    if (s) {
+      s.zIndex = getMinZIndex() - 1;
+      renderEditorStickers();
+    }
+  });
+
+  // Remove sticker
+  $('#sticker-remove').addEventListener('click', function () {
+    if (selectedStickerId === null) return;
+    for (var i = 0; i < placedStickers.length; i++) {
+      if (placedStickers[i].id === selectedStickerId) {
+        placedStickers.splice(i, 1);
+        break;
+      }
+    }
+    selectedStickerId = null;
+    renderEditorStickers();
+  });
+
   // ── Init ──
+
+  // Load stickers and render on trackpad
+  loadStickers();
+  renderTrackpadStickers();
 
   // Restore saved theme before first paint
   var savedTheme = null;
