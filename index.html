@@ -14,10 +14,12 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --void: #0A0B10;
+  --void-rgb: 10,11,16;
   --ink: #0D0F1C;
   --accent: #4F52E0;
   --accent-rgb: 79,82,224;
   --accent-light: #6366F1;
+  --ui-rgb: 255,255,255;
   --teal: #16A37F;
   --teal-rgb: 22,163,127;
   --amber: #D97706;
@@ -35,7 +37,7 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: var(--void);
-  color: white;
+  color: rgba(var(--ui-rgb),0.9);
   font-family: var(--font-b);
   -webkit-font-smoothing: antialiased;
   -webkit-user-select: none;
@@ -69,13 +71,13 @@ html, body {
   font-family: var(--font-m);
   font-size: 10px;
   font-weight: 500;
-  color: rgba(255,255,255,0.15);
+  color: rgba(var(--ui-rgb),0.15);
   letter-spacing: 1px;
 }
 .conn-dot {
   width: 6px; height: 6px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.1);
+  background: rgba(var(--ui-rgb),0.1);
 }
 .conn-dot.on {
   background: var(--teal);
@@ -85,8 +87,8 @@ html, body {
   width: 40px; height: 40px;
   border: none;
   border-radius: 50%;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(var(--ui-rgb),0.03);
+  border: 1px solid rgba(var(--ui-rgb),0.06);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,7 +98,7 @@ html, body {
 .topbar-settings:active { opacity: 0.7; }
 .topbar-settings svg {
   width: 18px; height: 18px;
-  stroke: rgba(255,255,255,0.3);
+  stroke: rgba(var(--ui-rgb),0.3);
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
@@ -146,8 +148,8 @@ html, body {
   height: auto;
   border: none;
   border-radius: 4px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(var(--ui-rgb),0.03);
+  border: 1px solid rgba(var(--ui-rgb),0.06);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -168,12 +170,12 @@ html, body {
   top: -2px; right: -2px;
   width: 10px; height: 10px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(var(--ui-rgb),0.08);
+  border: 1px solid rgba(var(--ui-rgb),0.1);
 }
 .nav-btn svg {
   width: 20px; height: 20px;
-  stroke: rgba(255,255,255,0.3);
+  stroke: rgba(var(--ui-rgb),0.3);
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
@@ -185,7 +187,7 @@ html, body {
   font-weight: 500;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.12);
+  color: rgba(var(--ui-rgb),0.12);
 }
 .nav-btn.active .nav-label { color: rgba(var(--accent-rgb),0.5); }
 
@@ -256,14 +258,14 @@ html, body {
   font-size: 64px;
   font-weight: 800;
   letter-spacing: -2px;
-  color: rgba(255,255,255,0.9);
+  color: rgba(var(--ui-rgb),0.9);
   line-height: 1;
 }
 .pairing-title span { color: var(--accent); }
 .pairing-sub {
   font-size: 22px;
   font-weight: 400;
-  color: rgba(255,255,255,0.25);
+  color: rgba(var(--ui-rgb),0.25);
   line-height: 1.2;
   max-width: 320px;
 }
@@ -281,7 +283,7 @@ html, body {
 .paywall {
   position: absolute;
   inset: 0;
-  background: rgba(10,11,16,0.85);
+  background: rgba(var(--void-rgb),0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   display: flex;
@@ -320,12 +322,12 @@ html, body {
   font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.5px;
-  color: rgba(255,255,255,0.9);
+  color: rgba(var(--ui-rgb),0.9);
 }
 .paywall-sub {
   font-size: 15px;
   font-weight: 500;
-  color: rgba(255,255,255,0.25);
+  color: rgba(var(--ui-rgb),0.25);
   text-align: center;
   padding: 0 32px;
   line-height: 1.5;
@@ -356,8 +358,8 @@ html, body {
 .trackpad-surface {
   flex: 1;
   position: relative;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(var(--ui-rgb),0.04);
+  border: 1px solid rgba(var(--ui-rgb),0.08);
   border-radius: 24px;
   margin: 8px 16px;
   overflow: hidden;
@@ -377,7 +379,7 @@ html, body {
   font-family: var(--font-b);
   font-size: 14px;
   font-weight: 500;
-  color: rgba(255,255,255,0.15);
+  color: rgba(var(--ui-rgb),0.15);
   pointer-events: none;
   transition: opacity 300ms var(--ease-mag);
 }
@@ -392,12 +394,12 @@ html, body {
   height: 52px;
   border: none;
   border-radius: 999px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(var(--ui-rgb),0.04);
+  border: 1px solid rgba(var(--ui-rgb),0.06);
   font-family: var(--font-d);
   font-size: 14px;
   font-weight: 700;
-  color: rgba(255,255,255,0.4);
+  color: rgba(var(--ui-rgb),0.4);
   cursor: pointer;
   transition: opacity 150ms var(--ease-mag);
 }
@@ -427,14 +429,14 @@ html, body {
   font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.5px;
-  color: rgba(255,255,255,0.6);
+  color: rgba(var(--ui-rgb),0.6);
   transition: color 200ms var(--ease-mag);
 }
 .airmouse-hint {
   font-family: var(--font-b);
   font-size: 16px;
   font-weight: 500;
-  color: rgba(255,255,255,0.25);
+  color: rgba(var(--ui-rgb),0.25);
   text-align: center;
   line-height: 1.5;
 }
@@ -461,7 +463,7 @@ html, body {
   font-weight: 500;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.1);
+  color: rgba(var(--ui-rgb),0.1);
   text-align: center;
   line-height: 1.8;
 }
@@ -478,8 +480,8 @@ html, body {
 }
 .media-now {
   flex: 1;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.04);
+  background: rgba(var(--ui-rgb),0.02);
+  border: 1px solid rgba(var(--ui-rgb),0.04);
   border-radius: 24px;
   padding: 24px;
   display: flex;
@@ -500,13 +502,13 @@ html, body {
   font-size: 24px;
   font-weight: 800;
   letter-spacing: -0.6px;
-  color: rgba(255,255,255,0.8);
+  color: rgba(var(--ui-rgb),0.8);
   margin-bottom: 20px;
   line-height: 1.2;
 }
 .media-progress {
   height: 4px;
-  background: rgba(255,255,255,0.06);
+  background: rgba(var(--ui-rgb),0.06);
   border-radius: 999px;
   overflow: hidden;
   margin-bottom: 8px;
@@ -525,7 +527,7 @@ html, body {
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.5px;
-  color: rgba(255,255,255,0.15);
+  color: rgba(var(--ui-rgb),0.15);
 }
 .media-bottom {
   flex: 1;
@@ -545,8 +547,8 @@ html, body {
   width: 60px; height: 60px;
   border: none;
   border-radius: 50%;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(var(--ui-rgb),0.04);
+  border: 1px solid rgba(var(--ui-rgb),0.08);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -556,7 +558,7 @@ html, body {
 .media-btn:active { opacity: 0.6; }
 .media-btn svg {
   width: 24px; height: 24px;
-  stroke: rgba(255,255,255,0.4);
+  stroke: rgba(var(--ui-rgb),0.4);
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
@@ -578,12 +580,12 @@ html, body {
   padding: 16px 8px;
   border: none;
   border-radius: 999px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(var(--ui-rgb),0.04);
+  border: 1px solid rgba(var(--ui-rgb),0.06);
   font-family: var(--font-d);
   font-size: 13px;
   font-weight: 700;
-  color: rgba(255,255,255,0.4);
+  color: rgba(var(--ui-rgb),0.4);
   cursor: pointer;
   text-align: center;
   transition: opacity 150ms var(--ease-mag), background 200ms var(--ease-mag), color 200ms var(--ease-mag);
@@ -606,7 +608,7 @@ html, body {
   position: absolute;
   left: 0; right: 0; bottom: 0;
   background: var(--void);
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid rgba(var(--ui-rgb),0.06);
   padding: 12px 12px 16px;
   z-index: 45;
   transform: translateY(100%);
@@ -627,7 +629,7 @@ html, body {
   font-family: var(--font-m);
   font-size: 14px;
   font-weight: 500;
-  color: rgba(255,255,255,0.5);
+  color: rgba(var(--ui-rgb),0.5);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -648,8 +650,8 @@ html, body {
   width: 36px; height: 36px;
   border: none;
   border-radius: 50%;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(var(--ui-rgb),0.04);
+  border: 1px solid rgba(var(--ui-rgb),0.06);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -657,7 +659,7 @@ html, body {
 }
 .kb-dismiss svg {
   width: 16px; height: 16px;
-  stroke: rgba(255,255,255,0.3);
+  stroke: rgba(var(--ui-rgb),0.3);
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
@@ -687,12 +689,12 @@ html, body {
   max-width: 38px;
   border: none;
   border-radius: 12px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(var(--ui-rgb),0.05);
+  border: 1px solid rgba(var(--ui-rgb),0.06);
   font-family: var(--font-b);
   font-size: 16px;
   font-weight: 500;
-  color: rgba(255,255,255,0.5);
+  color: rgba(var(--ui-rgb),0.5);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -707,9 +709,9 @@ html, body {
   font-family: var(--font-d);
   font-size: 12px;
   font-weight: 700;
-  color: rgba(255,255,255,0.3);
+  color: rgba(var(--ui-rgb),0.3);
   max-width: none;
-  background: rgba(255,255,255,0.03);
+  background: rgba(var(--ui-rgb),0.03);
 }
 .kb-key-shift { flex: 1.2; max-width: 52px; }
 .kb-key-wide { flex: 1.5; max-width: 64px; }
@@ -742,8 +744,8 @@ html, body {
   align-items: center;
   gap: 12px;
   padding: 18px 20px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.04);
+  background: rgba(var(--ui-rgb),0.02);
+  border: 1px solid rgba(var(--ui-rgb),0.04);
   border-radius: 24px;
   cursor: pointer;
   transition: opacity 150ms var(--ease-mag);
@@ -756,7 +758,7 @@ html, body {
 .tab-pip {
   width: 6px; height: 6px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.06);
+  background: rgba(var(--ui-rgb),0.06);
   flex-shrink: 0;
 }
 .tab-item.active-tab .tab-pip {
@@ -769,7 +771,7 @@ html, body {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.3px;
-  color: rgba(255,255,255,0.5);
+  color: rgba(var(--ui-rgb),0.5);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -779,7 +781,7 @@ html, body {
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.5px;
-  color: rgba(255,255,255,0.12);
+  color: rgba(var(--ui-rgb),0.12);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -792,7 +794,7 @@ html, body {
   justify-content: center;
   font-family: var(--font-b);
   font-size: 14px;
-  color: rgba(255,255,255,0.12);
+  color: rgba(var(--ui-rgb),0.12);
 }
 
 /* ═══════════════════════════════════════════
@@ -820,8 +822,8 @@ html, body {
   align-items: center;
   justify-content: space-between;
   padding: 20px 22px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.04);
+  background: rgba(var(--ui-rgb),0.02);
+  border: 1px solid rgba(var(--ui-rgb),0.04);
   border-radius: 24px;
   min-height: 68px;
 }
@@ -830,20 +832,20 @@ html, body {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.3px;
-  color: rgba(255,255,255,0.5);
+  color: rgba(var(--ui-rgb),0.5);
 }
 .setting-desc {
   font-family: var(--font-b);
   font-size: 13px;
   font-weight: 500;
-  color: rgba(255,255,255,0.15);
+  color: rgba(var(--ui-rgb),0.15);
   margin-top: 3px;
 }
 .setting-toggle {
   width: 44px; height: 26px;
   border-radius: 999px;
   border: none;
-  background: rgba(255,255,255,0.08);
+  background: rgba(var(--ui-rgb),0.08);
   position: relative;
   cursor: pointer;
   flex-shrink: 0;
@@ -853,7 +855,7 @@ html, body {
   position: absolute;
   width: 20px; height: 20px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.3);
+  background: rgba(var(--ui-rgb),0.3);
   top: 3px; left: 3px;
   transition: transform 200ms var(--ease-mag), background 200ms var(--ease-mag);
 }
@@ -869,7 +871,7 @@ html, body {
   height: 4px;
   -webkit-appearance: none;
   appearance: none;
-  background: rgba(255,255,255,0.06);
+  background: rgba(var(--ui-rgb),0.06);
   border-radius: 2px;
   outline: none;
 }
@@ -880,19 +882,122 @@ html, body {
   background: var(--accent);
   cursor: pointer;
 }
-.color-swatches {
-  display: flex;
-  gap: 8px;
+/* ── Theme Swatches ── */
+.theme-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 16px 18px;
 }
-.color-swatch {
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  border: 2px solid transparent;
+.theme-swatches {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px 8px;
+  width: 100%;
+}
+.theme-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
+  position: relative;
+}
+.theme-swatch-dot {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  position: relative;
   transition: border-color 150ms var(--ease-mag);
 }
-.color-swatch.active {
-  border-color: white;
+.theme-swatch.active .theme-swatch-dot {
+  border-color: rgba(var(--ui-rgb),0.6);
+}
+.theme-swatch-name {
+  font-family: var(--font-m);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(var(--ui-rgb),0.2);
+  transition: color 150ms var(--ease-mag);
+}
+.theme-swatch.active .theme-swatch-name {
+  color: rgba(var(--ui-rgb),0.5);
+}
+.theme-swatch-lock {
+  position: absolute;
+  top: -2px; right: -2px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: rgba(var(--ui-rgb),0.06);
+  border: 1px solid rgba(var(--ui-rgb),0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.theme-swatch-lock svg {
+  width: 9px; height: 9px;
+  stroke: rgba(var(--ui-rgb),0.3);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.theme-swatch.locked {
+  opacity: 0.4;
+}
+
+/* ── Tab Actions ── */
+.tab-reload {
+  width: 36px; height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(var(--ui-rgb),0.04);
+  border: 1px solid rgba(var(--ui-rgb),0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 150ms var(--ease-mag);
+}
+.tab-reload:active { opacity: 0.5; }
+.tab-reload svg {
+  width: 14px; height: 14px;
+  stroke: rgba(var(--ui-rgb),0.25);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tab-new {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px 20px;
+  background: rgba(var(--accent-rgb),0.06);
+  border: 1px dashed rgba(var(--accent-rgb),0.15);
+  border-radius: 24px;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.tab-new:active { opacity: 0.7; }
+.tab-new svg {
+  width: 18px; height: 18px;
+  stroke: var(--accent);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tab-new span {
+  font-family: var(--font-d);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: rgba(var(--accent-rgb),0.5);
 }
 .settings-about {
   margin-top: 12px;
@@ -903,7 +1008,7 @@ html, body {
   font-family: var(--font-d);
   font-size: 18px;
   font-weight: 800;
-  color: rgba(255,255,255,0.3);
+  color: rgba(var(--ui-rgb),0.3);
   margin-bottom: 4px;
 }
 .about-brand span { color: rgba(var(--accent-rgb),0.4); }
@@ -911,7 +1016,7 @@ html, body {
   font-family: var(--font-m);
   font-size: 9px;
   font-weight: 500;
-  color: rgba(255,255,255,0.08);
+  color: rgba(var(--ui-rgb),0.08);
   letter-spacing: 1px;
 }
 </style>
@@ -1058,15 +1163,11 @@ html, body {
           <div><div class="setting-label">Cursor size</div><div class="setting-desc">Size on laptop screen</div></div>
           <input type="range" class="setting-slider" id="setting-cursor-size" min="12" max="32" step="2" value="16">
         </div>
-        <div class="setting-row">
-          <div><div class="setting-label">Cursor color</div></div>
-          <div class="color-swatches" id="cursor-colors">
-            <div class="color-swatch active" data-color="79,82,224" style="background:#4F52E0;" title="Indigo"></div>
-            <div class="color-swatch" data-color="255,255,255" style="background:#FFFFFF;" title="White"></div>
-            <div class="color-swatch" data-color="34,211,238" style="background:#22D3EE;" title="Cyan"></div>
-            <div class="color-swatch" data-color="217,119,6" style="background:#D97706;" title="Amber"></div>
-            <div class="color-swatch" data-color="224,79,95" style="background:#E04F5F;" title="Rose"></div>
-            <div class="color-swatch" data-color="132,204,22" style="background:#84CC16;" title="Lime"></div>
+
+        <div class="setting-section-label">Theme</div>
+        <div class="setting-row theme-row">
+          <div class="theme-swatches" id="theme-swatches">
+            <!-- Generated by JS -->
           </div>
         </div>
 
@@ -1155,8 +1256,22 @@ html, body {
   var kbShift = false;
   var kbOverlayVisible = false;
   var trackpadHintHidden = false;
-  var cursorColor = '79,82,224';
   var cursorSize = 16;
+  var currentThemeId = 'dark';
+  var kbMode = 'input'; // 'input' = remote field, 'search' = new tab search
+
+  // ── Theme Definitions ──
+  // 2 free (Dark + Light, both brand indigo), 6 premium with tinted surfaces
+  var THEMES = [
+    { id: 'dark',     name: 'Dark',     accent: '79,82,224',   voidHex: '#0A0B10', inkHex: '#0D0F1C', voidRgb: '10,11,16',    ui: '255,255,255', free: true },
+    { id: 'light',    name: 'Light',    accent: '79,82,224',   voidHex: '#F5F4F0', inkHex: '#ECEAE5', voidRgb: '245,244,240', ui: '0,0,0',       free: true },
+    { id: 'arctic',   name: 'Arctic',   accent: '34,211,238',  voidHex: '#0B1319', inkHex: '#0E1724', voidRgb: '11,19,25',    ui: '255,255,255', free: false },
+    { id: 'ember',    name: 'Ember',    accent: '217,119,6',   voidHex: '#120F10', inkHex: '#15131B', voidRgb: '18,15,16',    ui: '255,255,255', free: false },
+    { id: 'rose',     name: 'Rose',     accent: '224,79,95',   voidHex: '#130E13', inkHex: '#15121F', voidRgb: '19,14,19',    ui: '255,255,255', free: false },
+    { id: 'mint',     name: 'Mint',     accent: '52,211,153',  voidHex: '#0C1315', inkHex: '#0F1721', voidRgb: '12,19,21',    ui: '255,255,255', free: false },
+    { id: 'lavender', name: 'Lavender', accent: '167,139,250', voidHex: '#101019', inkHex: '#131425', voidRgb: '16,16,25',    ui: '255,255,255', free: false },
+    { id: 'solar',    name: 'Solar',    accent: '249,115,22',  voidHex: '#140F10', inkHex: '#16131C', voidRgb: '20,15,16',    ui: '255,255,255', free: false }
+  ];
 
   // ── DOM ──
   var $ = function (s) { return document.querySelector(s); };
@@ -1281,6 +1396,14 @@ html, body {
   $('#setting-tier').addEventListener('click', function () {
     isPaid = !isPaid;
     updateTierUI();
+    updateThemeSwatchUI();
+    // If current theme is premium and user toggled to free, revert to dark
+    if (!isPaid) {
+      var theme = getThemeById(currentThemeId);
+      if (theme && !theme.free) {
+        applyTheme('dark');
+      }
+    }
   });
 
   // ── Settings gear button ──
@@ -1658,6 +1781,7 @@ html, body {
   var lastNativeVal = '';
 
   function showKeyboardOverlay(initialValue) {
+    kbMode = 'input';
     kbText = initialValue || '';
     lastNativeVal = kbText;
     nativeInput.value = kbText;
@@ -1670,15 +1794,21 @@ html, body {
   function hideKeyboardOverlay() {
     $('#kb-overlay').classList.remove('visible');
     kbOverlayVisible = false;
+    kbMode = 'input';
     nativeInput.blur();
   }
 
   function updateKbPreview() {
     var preview = $('#kb-preview');
     var display = kbText || '';
-    // Show last 40 chars
     if (display.length > 40) display = '…' + display.slice(-40);
-    preview.innerHTML = escapeHTML(display) + '<span class="kb-cursor"></span>';
+
+    var prefix = '';
+    if (kbMode === 'search' && display.length === 0) {
+      prefix = '<span style="opacity:0.3">Search or enter URL</span>';
+    }
+
+    preview.innerHTML = prefix + escapeHTML(display) + '<span class="kb-cursor"></span>';
   }
 
   // Dismiss button
@@ -1702,6 +1832,16 @@ html, body {
   // Native keyboard input
   nativeInput.addEventListener('input', function () {
     var val = nativeInput.value;
+
+    if (kbMode === 'search') {
+      // Search mode: just accumulate text locally, don't send keystrokes
+      kbText = val;
+      lastNativeVal = val;
+      updateKbPreview();
+      return;
+    }
+
+    // Input mode: relay each keystroke to extension
     if (val.length > lastNativeVal.length) {
       var added = val.slice(lastNativeVal.length);
       for (var i = 0; i < added.length; i++) {
@@ -1722,6 +1862,16 @@ html, body {
   nativeInput.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') {
       e.preventDefault();
+
+      if (kbMode === 'search' && kbText.length > 0) {
+        // Navigate the new tab to the search query
+        send({ type: 'tab_navigate', query: kbText });
+        hideKeyboardOverlay();
+        // Refresh tab list after navigation
+        setTimeout(function () { send({ type: 'tab_list' }); }, 500);
+        return;
+      }
+
       send({ type: 'keychar', key: 'Enter', code: 'Enter' });
       hideKeyboardOverlay();
     }
@@ -1781,6 +1931,12 @@ html, body {
     if (keyVal === 'Backspace') {
       kbText = kbText.slice(0, -1);
     } else if (keyVal === 'Enter') {
+      if (kbMode === 'search' && kbText.length > 0) {
+        send({ type: 'tab_navigate', query: kbText });
+        hideKeyboardOverlay();
+        setTimeout(function () { send({ type: 'tab_list' }); }, 500);
+        return;
+      }
       send({ type: 'keychar', key: 'Enter', code: 'Enter' });
       hideKeyboardOverlay();
       return;
@@ -1789,7 +1945,10 @@ html, body {
     }
 
     updateKbPreview();
-    send({ type: 'keychar', key: keyVal, code: codeVal });
+    // In search mode, don't relay individual keystrokes
+    if (kbMode !== 'search') {
+      send({ type: 'keychar', key: keyVal, code: codeVal });
+    }
   });
 
   buildKeyboard();
@@ -1801,24 +1960,52 @@ html, body {
 
     if (tabs.length === 0) {
       list.innerHTML = '<div class="tabs-empty">No tabs found</div>';
-      return;
+    } else {
+      tabs.forEach(function (tab) {
+        var el = document.createElement('div');
+        el.className = 'tab-item' + (tab.active ? ' active-tab' : '');
+        el.innerHTML = '<div class="tab-pip"></div><div class="tab-info"><div class="tab-title">' +
+          escapeHTML(tab.title || 'Untitled') + '</div><div class="tab-url">' +
+          escapeHTML(tab.url || '') + '</div></div>';
+
+        // Reload button
+        var reloadBtn = document.createElement('button');
+        reloadBtn.className = 'tab-reload';
+        reloadBtn.setAttribute('aria-label', 'Reload tab');
+        reloadBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>';
+        reloadBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          send({ type: 'tab_reload', tabId: tab.id });
+        });
+        el.appendChild(reloadBtn);
+
+        el.addEventListener('click', function () {
+          send({ type: 'tab_switch', tabId: tab.id });
+          setTimeout(function () {
+            send({ type: 'tab_list' });
+          }, 300);
+        });
+        list.appendChild(el);
+      });
     }
 
-    tabs.forEach(function (tab) {
-      var el = document.createElement('div');
-      el.className = 'tab-item' + (tab.active ? ' active-tab' : '');
-      el.innerHTML = '<div class="tab-pip"></div><div class="tab-info"><div class="tab-title">' +
-        escapeHTML(tab.title || 'Untitled') + '</div><div class="tab-url">' +
-        escapeHTML(tab.url || '') + '</div></div>';
-      el.addEventListener('click', function () {
-        send({ type: 'tab_switch', tabId: tab.id });
-        // Re-fetch tab list after a short delay so the active indicator updates
-        setTimeout(function () {
-          send({ type: 'tab_list' });
-        }, 300);
-      });
-      list.appendChild(el);
+    // "New Tab +" button at the bottom
+    var newTabEl = document.createElement('div');
+    newTabEl.className = 'tab-new';
+    newTabEl.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>New Tab</span>';
+    newTabEl.addEventListener('click', function () {
+      send({ type: 'tab_new' });
+      // Show keyboard overlay in search mode so user can type a URL/query
+      kbMode = 'search';
+      kbText = '';
+      lastNativeVal = '';
+      nativeInput.value = '';
+      updateKbPreview();
+      $('#kb-overlay').classList.add('visible');
+      kbOverlayVisible = true;
+      setTimeout(function () { nativeInput.focus(); }, 100);
     });
+    list.appendChild(newTabEl);
   }
 
   function escapeHTML(s) {
@@ -1841,41 +2028,115 @@ html, body {
     sendCursorSettings();
   });
 
+  function sendCursorSettings() {
+    var theme = getThemeById(currentThemeId);
+    var color = theme ? theme.accent : '79,82,224';
+    send({ type: 'cursor_settings', size: cursorSize, color: color });
+  }
+
+  // ── Theme System ──
+
   function rgbToHex(r, g, b) {
     return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
   }
 
-  function applyThemeColor(rgbStr) {
-    var parts = rgbStr.split(',');
+  function getThemeById(id) {
+    for (var i = 0; i < THEMES.length; i++) {
+      if (THEMES[i].id === id) return THEMES[i];
+    }
+    return THEMES[0];
+  }
+
+  function applyTheme(themeId) {
+    var theme = getThemeById(themeId);
+    if (!theme) return;
+    currentThemeId = themeId;
+
+    var parts = theme.accent.split(',');
     var r = parseInt(parts[0], 10);
     var g = parseInt(parts[1], 10);
     var b = parseInt(parts[2], 10);
-    var hex = rgbToHex(r, g, b);
+    var accentHex = rgbToHex(r, g, b);
 
-    // Lighter variant: shift each channel 20% toward 255
+    // Lighter accent: shift each channel 20% toward 255
     var lr = Math.round(r + (255 - r) * 0.2);
     var lg = Math.round(g + (255 - g) * 0.2);
     var lb = Math.round(b + (255 - b) * 0.2);
-    var hexLight = rgbToHex(lr, lg, lb);
+    var accentLight = rgbToHex(lr, lg, lb);
 
     var root = document.documentElement;
-    root.style.setProperty('--accent', hex);
-    root.style.setProperty('--accent-rgb', rgbStr);
-    root.style.setProperty('--accent-light', hexLight);
+    root.style.setProperty('--void', theme.voidHex);
+    root.style.setProperty('--void-rgb', theme.voidRgb);
+    root.style.setProperty('--ink', theme.inkHex);
+    root.style.setProperty('--accent', accentHex);
+    root.style.setProperty('--accent-rgb', theme.accent);
+    root.style.setProperty('--accent-light', accentLight);
+    root.style.setProperty('--ui-rgb', theme.ui);
+
+    // Update meta theme-color for mobile browser chrome
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme.voidHex);
+
+    // Send cursor color to extension
+    sendCursorSettings();
+
+    // Persist selection
+    try { localStorage.setItem('couchlock-theme', themeId); } catch (e) { /* ignore */ }
+
+    // Update swatch active states
+    updateThemeSwatchUI();
   }
 
-  $$('.color-swatch').forEach(function (swatch) {
-    swatch.addEventListener('click', function () {
-      $$('.color-swatch').forEach(function (s) { s.classList.remove('active'); });
-      swatch.classList.add('active');
-      cursorColor = swatch.getAttribute('data-color');
-      applyThemeColor(cursorColor);
-      sendCursorSettings();
-    });
-  });
+  function buildThemeSwatches() {
+    var container = $('#theme-swatches');
+    container.innerHTML = '';
 
-  function sendCursorSettings() {
-    send({ type: 'cursor_settings', size: cursorSize, color: cursorColor });
+    THEMES.forEach(function (theme) {
+      var swatch = document.createElement('div');
+      swatch.className = 'theme-swatch' + (theme.id === currentThemeId ? ' active' : '');
+      swatch.setAttribute('data-theme', theme.id);
+
+      // The dot: accent fill with an inset ring showing the void/bg color
+      var dot = document.createElement('div');
+      dot.className = 'theme-swatch-dot';
+      dot.style.background = 'rgb(' + theme.accent + ')';
+      dot.style.boxShadow = 'inset 0 0 0 5px ' + theme.voidHex;
+
+      var name = document.createElement('span');
+      name.className = 'theme-swatch-name';
+      name.textContent = theme.name;
+
+      swatch.appendChild(dot);
+      swatch.appendChild(name);
+
+      // Premium lock indicator
+      if (!theme.free) {
+        var lock = document.createElement('div');
+        lock.className = 'theme-swatch-lock';
+        lock.innerHTML = '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>';
+        dot.appendChild(lock);
+      }
+
+      swatch.addEventListener('click', function () {
+        if (!theme.free && !isPaid) return;
+        applyTheme(theme.id);
+      });
+
+      container.appendChild(swatch);
+    });
+  }
+
+  function updateThemeSwatchUI() {
+    $$('.theme-swatch').forEach(function (swatch) {
+      var id = swatch.getAttribute('data-theme');
+      var theme = getThemeById(id);
+      swatch.classList.toggle('active', id === currentThemeId);
+
+      // Show/hide lock based on premium status
+      if (theme && !theme.free) {
+        swatch.classList.toggle('locked', !isPaid);
+      }
+    });
   }
 
   // ── Ping (keepalive) ──
@@ -1886,6 +2147,16 @@ html, body {
   }, 10000);
 
   // ── Init ──
+
+  // Restore saved theme before first paint
+  var savedTheme = null;
+  try { savedTheme = localStorage.getItem('couchlock-theme'); } catch (e) { /* ignore */ }
+  if (savedTheme && getThemeById(savedTheme)) {
+    currentThemeId = savedTheme;
+  }
+
+  buildThemeSwatches();
+  applyTheme(currentThemeId);
   updateTierUI();
   updateMediaActions('unknown');
   connect();
