@@ -142,7 +142,8 @@ html, body {
 .nav-btn {
   flex: 1;
   max-width: 72px;
-  height: 52px;
+  aspect-ratio: 1;
+  height: auto;
   border: none;
   border-radius: 4px;
   background: rgba(255,255,255,0.03);
@@ -1741,6 +1742,10 @@ html, body {
         escapeHTML(tab.url || '') + '</div></div>';
       el.addEventListener('click', function () {
         send({ type: 'tab_switch', tabId: tab.id });
+        // Re-fetch tab list after a short delay so the active indicator updates
+        setTimeout(function () {
+          send({ type: 'tab_list' });
+        }, 300);
       });
       list.appendChild(el);
     });
