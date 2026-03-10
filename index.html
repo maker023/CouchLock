@@ -63,13 +63,19 @@ html, body {
   justify-content: space-between;
   padding: 14px 20px;
   flex-shrink: 0;
+  position: relative;
 }
 .conn {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   font-family: var(--font-m);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 500;
   color: rgba(var(--ui-rgb),0.15);
   letter-spacing: 1px;
@@ -82,32 +88,6 @@ html, body {
 .conn-dot.on {
   background: var(--teal);
   box-shadow: 0 0 6px rgba(var(--teal-rgb),0.5);
-}
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.topbar-back {
-  width: 40px; height: 40px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(var(--ui-rgb),0.03);
-  border: 1px solid rgba(var(--ui-rgb),0.06);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: opacity 150ms var(--ease-mag);
-}
-.topbar-back:active { opacity: 0.7; }
-.topbar-back svg {
-  width: 18px; height: 18px;
-  stroke: rgba(var(--ui-rgb),0.3);
-  fill: none;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 .topbar-settings {
   width: 44px; height: 44px;
@@ -396,6 +376,16 @@ html, body {
   border-radius: 24px;
   overflow: hidden;
 }
+.trackpad-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(var(--ui-rgb),0.15) 1px, transparent 1px);
+  background-size: 16px 16px;
+  pointer-events: none;
+  z-index: 0;
+}
 .trackpad-surface::after {
   content: '';
   position: absolute;
@@ -403,6 +393,7 @@ html, body {
   background-image:
     radial-gradient(circle at center, rgba(var(--accent-rgb),0.06) 0%, transparent 70%);
   pointer-events: none;
+  z-index: 0;
 }
 .trackpad-hint {
   position: absolute;
@@ -411,9 +402,15 @@ html, body {
   font-family: var(--font-b);
   font-size: 14px;
   font-weight: 500;
-  color: rgba(var(--ui-rgb),0.15);
+  color: rgba(var(--ui-rgb),0.2);
   pointer-events: none;
   transition: opacity 300ms var(--ease-mag);
+  z-index: 5;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(var(--void-rgb),0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 .trackpad-hint.hidden { opacity: 0; }
 .trackpad-buttons {
@@ -426,7 +423,7 @@ html, body {
   flex: 1;
   height: 48px;
   border: none;
-  border-radius: 24px;
+  border-radius: 12px;
   background: rgba(var(--ui-rgb),0.04);
   border: 1px solid rgba(var(--ui-rgb),0.06);
   font-family: var(--font-d);
@@ -437,6 +434,41 @@ html, body {
   transition: opacity 150ms var(--ease-mag);
 }
 .trackpad-btn:active { opacity: 0.6; }
+
+/* Trackpad browser nav (back/forward) */
+.trackpad-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-bottom: 4px;
+}
+.trackpad-nav-btn {
+  width: 40px; height: 36px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(var(--ui-rgb),0.03);
+  border: 1px solid rgba(var(--ui-rgb),0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.trackpad-nav-btn:active { opacity: 0.6; }
+.trackpad-nav-btn.disabled {
+  opacity: 0.15;
+  pointer-events: none;
+}
+.trackpad-nav-btn svg {
+  width: 16px; height: 16px;
+  stroke: rgba(var(--ui-rgb),0.3);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
 /* ═══════════════════════════════════════════
    AIR MOUSE MODE
@@ -459,11 +491,16 @@ html, body {
 }
 .airmouse-label {
   font-family: var(--font-d);
-  font-size: 28px;
+  font-size: 64px;
   font-weight: 800;
-  letter-spacing: -0.8px;
-  color: rgba(var(--ui-rgb),0.7);
+  letter-spacing: -2px;
+  color: rgba(var(--ui-rgb),0.9);
+  text-align: center;
+  line-height: 1;
   transition: color 200ms var(--ease-mag);
+}
+.airmouse-label span {
+  color: var(--accent);
 }
 .airmouse-hint {
   font-family: var(--font-b);
@@ -1106,18 +1143,29 @@ html, body {
   letter-spacing: 1px;
 }
 
-/* ── Theme Transition ── */
+/* ── Theme Transition — Cross-fade overlay + surface transitions ── */
+.theme-fade-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 600ms cubic-bezier(0.45, 0.05, 0.55, 0.95);
+}
+.theme-fade-overlay.active {
+  opacity: 1;
+}
 .app.theme-transitioning,
 .app.theme-transitioning *,
 .app.theme-transitioning *::before,
 .app.theme-transitioning *::after {
   transition:
-    background-color 850ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 850ms cubic-bezier(0.22, 1, 0.36, 1),
-    color 850ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 850ms cubic-bezier(0.22, 1, 0.36, 1),
-    fill 850ms cubic-bezier(0.22, 1, 0.36, 1),
-    stroke 850ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+    background-color 500ms cubic-bezier(0.45, 0.05, 0.55, 0.95),
+    border-color 500ms cubic-bezier(0.45, 0.05, 0.55, 0.95),
+    color 400ms cubic-bezier(0.45, 0.05, 0.55, 0.95),
+    box-shadow 500ms cubic-bezier(0.45, 0.05, 0.55, 0.95),
+    fill 400ms cubic-bezier(0.45, 0.05, 0.55, 0.95),
+    stroke 400ms cubic-bezier(0.45, 0.05, 0.55, 0.95) !important;
 }
 
 /* ── Toast Notifications ── */
@@ -1429,6 +1477,7 @@ html, body {
 </head>
 <body>
 
+<div class="theme-fade-overlay" id="theme-fade-overlay"></div>
 <div class="app" id="app">
 
   <!-- Toast Notifications -->
@@ -1448,14 +1497,9 @@ html, body {
       <div class="conn-dot" id="conn-dot"></div>
       <span id="conn-text">Disconnected</span>
     </div>
-    <div class="topbar-right">
-      <button class="topbar-back" id="btn-back" aria-label="Browser Back">
-        <svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
-      </button>
-      <button class="topbar-settings" id="btn-settings" aria-label="Settings">
-        <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-      </button>
-    </div>
+    <button class="topbar-settings" id="btn-settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
   </div>
 
   <!-- Mode Views -->
@@ -1464,6 +1508,14 @@ html, body {
     <!-- Trackpad -->
     <div class="mode-view active" id="view-trackpad">
       <div class="trackpad">
+        <div class="trackpad-nav">
+          <button class="trackpad-nav-btn disabled" id="btn-back" aria-label="Browser Back">
+            <svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+          </button>
+          <button class="trackpad-nav-btn disabled" id="btn-forward" aria-label="Browser Forward">
+            <svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+          </button>
+        </div>
         <div class="trackpad-surface" id="trackpad-surface">
           <div class="sticker-layer" id="sticker-layer"><!-- Stickers rendered by JS --></div>
           <div class="trackpad-hint" id="trackpad-hint">Slide to move cursor</div>
@@ -1480,7 +1532,7 @@ html, body {
     <div class="mode-view" id="view-airmouse">
       <div class="airmouse">
         <div class="airmouse-orb"></div>
-        <div class="airmouse-label" id="airmouse-label">Air Mouse Active</div>
+        <div class="airmouse-label" id="airmouse-label">Air<br>Mouse<br><span>Active</span></div>
         <div class="airmouse-hint">Tilt your phone to move the cursor</div>
         <button class="airmouse-recal" id="btn-recalibrate">Recalibrate</button>
         <div class="airmouse-hint-tip">Hold phone flat, then tilt gently.<br>Double-tap anywhere to recalibrate.</div>
@@ -1783,6 +1835,13 @@ html, body {
         $('#pairing').classList.add('hidden');
         updateConnUI();
         CouchTransport.send({ type: 'tab_list' });
+
+        // Sync theme and stickers to extension on connect
+        var theme = getThemeById(currentThemeId);
+        if (theme) sendThemeToExtension(theme);
+        if (placedStickers.length > 0) {
+          send({ type: 'sticker_update', stickers: placedStickers });
+        }
       }
 
       if (msg.type === 'media_status') {
@@ -1835,6 +1894,7 @@ html, body {
       dot.classList.remove('on');
       text.textContent = 'Disconnected';
     }
+    updateNavButtons();
   }
 
   // ── Tier / Premium ──
@@ -1874,10 +1934,25 @@ html, body {
     }
   });
 
-  // ── Browser back button ──
+  // ── Browser back/forward ──
   $('#btn-back').addEventListener('click', function () {
     send({ type: 'cmd', action: 'browserBack' });
   });
+  $('#btn-forward').addEventListener('click', function () {
+    send({ type: 'cmd', action: 'browserForward' });
+  });
+
+  function updateNavButtons() {
+    var back = $('#btn-back');
+    var fwd = $('#btn-forward');
+    if (isPaired) {
+      back.classList.remove('disabled');
+      fwd.classList.remove('disabled');
+    } else {
+      back.classList.add('disabled');
+      fwd.classList.add('disabled');
+    }
+  }
 
   // ── Settings gear button ──
   $('#btn-settings').addEventListener('click', function () {
@@ -2550,6 +2625,8 @@ html, body {
   function applyTheme(themeId) {
     var theme = getThemeById(themeId);
     if (!theme) return;
+
+    var isFirstLoad = currentThemeId === themeId && !document.documentElement.style.getPropertyValue('--void');
     currentThemeId = themeId;
 
     var parts = theme.accent.split(',');
@@ -2564,36 +2641,75 @@ html, body {
     var lb = Math.round(b + (255 - b) * 0.2);
     var accentLight = rgbToHex(lr, lg, lb);
 
-    // Enable smooth transition class before applying vars
     var app = $('#app');
-    app.classList.add('theme-transitioning');
-
+    var overlay = $('#theme-fade-overlay');
     var root = document.documentElement;
-    root.style.setProperty('--void', theme.voidHex);
-    root.style.setProperty('--void-rgb', theme.voidRgb);
-    root.style.setProperty('--ink', theme.inkHex);
-    root.style.setProperty('--accent', accentHex);
-    root.style.setProperty('--accent-rgb', theme.accent);
-    root.style.setProperty('--accent-light', accentLight);
-    root.style.setProperty('--ui-rgb', theme.ui);
 
-    // Remove transition class after animation completes
-    setTimeout(function () {
-      app.classList.remove('theme-transitioning');
-    }, 900);
+    if (isFirstLoad) {
+      // First load: apply instantly, no animation
+      root.style.setProperty('--void', theme.voidHex);
+      root.style.setProperty('--void-rgb', theme.voidRgb);
+      root.style.setProperty('--ink', theme.inkHex);
+      root.style.setProperty('--accent', accentHex);
+      root.style.setProperty('--accent-rgb', theme.accent);
+      root.style.setProperty('--accent-light', accentLight);
+      root.style.setProperty('--ui-rgb', theme.ui);
+    } else {
+      // Cross-fade: capture old void color, show overlay, swap theme, dissolve
+      var oldVoid = getComputedStyle(root).getPropertyValue('--void').trim() || '#0A0B10';
+      overlay.style.background = oldVoid;
+      overlay.classList.add('active');
+
+      // Enable per-element transitions
+      app.classList.add('theme-transitioning');
+
+      // Apply new theme after a single frame so overlay is visible first
+      requestAnimationFrame(function () {
+        root.style.setProperty('--void', theme.voidHex);
+        root.style.setProperty('--void-rgb', theme.voidRgb);
+        root.style.setProperty('--ink', theme.inkHex);
+        root.style.setProperty('--accent', accentHex);
+        root.style.setProperty('--accent-rgb', theme.accent);
+        root.style.setProperty('--accent-light', accentLight);
+        root.style.setProperty('--ui-rgb', theme.ui);
+
+        // Begin dissolving the overlay
+        requestAnimationFrame(function () {
+          overlay.classList.remove('active');
+        });
+      });
+
+      // Cleanup after transition
+      setTimeout(function () {
+        app.classList.remove('theme-transitioning');
+      }, 650);
+    }
 
     // Update meta theme-color for mobile browser chrome
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', theme.voidHex);
 
-    // Send cursor color to extension
+    // Send cursor + theme to extension
     sendCursorSettings();
+    sendThemeToExtension(theme);
 
     // Persist selection
     try { localStorage.setItem('couchlock-theme', themeId); } catch (e) { /* ignore */ }
 
     // Update swatch active states
     updateThemeSwatchUI();
+  }
+
+  // Send theme data to extension for popup sync
+  function sendThemeToExtension(theme) {
+    send({ type: 'theme_update', theme: {
+      id: theme.id,
+      voidHex: theme.voidHex,
+      voidRgb: theme.voidRgb,
+      inkHex: theme.inkHex,
+      accent: theme.accent,
+      ui: theme.ui
+    }});
   }
 
   function buildThemeSwatches() {
@@ -2826,6 +2942,8 @@ html, body {
     try {
       localStorage.setItem('couchlock-stickers', JSON.stringify(placedStickers));
     } catch (e) { /* ignore */ }
+    // Sync stickers to extension
+    send({ type: 'sticker_update', stickers: placedStickers });
   }
 
   // Render stickers on the actual trackpad surface (non-interactive)
