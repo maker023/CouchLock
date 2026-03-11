@@ -66,14 +66,9 @@ html, body {
   position: relative;
 }
 .conn {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%,-50%);
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   font-family: var(--font-m);
   font-size: 9px;
   font-weight: 500;
@@ -89,8 +84,43 @@ html, body {
   background: var(--teal);
   box-shadow: 0 0 6px rgba(var(--teal-rgb),0.5);
 }
+/* Topbar 3-column layout */
+.topbar-nav {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.topbar-nav-btn {
+  width: 42px; height: 42px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(var(--ui-rgb),0.03);
+  border: 1px solid rgba(var(--ui-rgb),0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.topbar-nav-btn:active { opacity: 0.6; }
+.topbar-nav-btn.disabled {
+  opacity: 0.15;
+  pointer-events: none;
+}
+.topbar-nav-btn svg {
+  width: 18px; height: 18px;
+  stroke: rgba(var(--ui-rgb),0.3);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .topbar-settings {
-  width: 44px; height: 44px;
+  width: 42px; height: 42px;
   border: none;
   border-radius: 50%;
   background: rgba(var(--ui-rgb),0.03);
@@ -135,7 +165,7 @@ html, body {
 
 /* ── Bottom Nav ── */
 .bottomnav {
-  padding: 6px 12px 10px;
+  padding: 10px 12px 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -203,16 +233,16 @@ html, body {
 }
 .nav-item.active .nav-label { color: rgba(var(--accent-rgb),0.5); }
 
-/* Orb */
+/* Orb (Settings) */
 .orb-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 12px;
+  padding: 0 8px;
   flex-shrink: 0;
 }
 .orb-btn {
-  width: 72px; height: 72px;
+  width: 56px; height: 56px;
   border-radius: 50%;
   border: none;
   background: var(--accent);
@@ -221,6 +251,14 @@ html, body {
   flex-shrink: 0;
   animation: heartbeat-rest 833ms ease infinite;
   transition: animation 300ms;
+}
+.orb-btn svg {
+  width: 22px; height: 22px;
+  stroke: white;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .orb-btn.active {
   animation: heartbeat-active 462ms ease infinite;
@@ -366,7 +404,7 @@ html, body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 8px 16px;
+  padding: 10px 16px;
 }
 .trackpad-surface {
   flex: 1;
@@ -397,8 +435,10 @@ html, body {
 }
 .trackpad-hint {
   position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%,-50%);
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-family: var(--font-b);
   font-size: 14px;
   font-weight: 500;
@@ -406,22 +446,21 @@ html, body {
   pointer-events: none;
   transition: opacity 300ms var(--ease-mag);
   z-index: 5;
-  padding: 10px 20px;
-  border-radius: 999px;
   background: rgba(var(--void-rgb),0.7);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+  border-radius: 24px;
 }
 .trackpad-hint.hidden { opacity: 0; }
 .trackpad-buttons {
   display: flex;
   gap: 6px;
-  padding-top: 6px;
+  padding-top: 10px;
   flex-shrink: 0;
 }
 .trackpad-btn {
   flex: 1;
-  height: 48px;
+  height: 56px;
   border: none;
   border-radius: 12px;
   background: rgba(var(--ui-rgb),0.04);
@@ -435,40 +474,6 @@ html, body {
 }
 .trackpad-btn:active { opacity: 0.6; }
 
-/* Trackpad browser nav (back/forward) */
-.trackpad-nav {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  flex-shrink: 0;
-  padding-bottom: 4px;
-}
-.trackpad-nav-btn {
-  width: 40px; height: 36px;
-  border: none;
-  border-radius: 12px;
-  background: rgba(var(--ui-rgb),0.03);
-  border: 1px solid rgba(var(--ui-rgb),0.06);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: opacity 150ms var(--ease-mag);
-}
-.trackpad-nav-btn:active { opacity: 0.6; }
-.trackpad-nav-btn.disabled {
-  opacity: 0.15;
-  pointer-events: none;
-}
-.trackpad-nav-btn svg {
-  width: 16px; height: 16px;
-  stroke: rgba(var(--ui-rgb),0.3);
-  fill: none;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
 
 /* ═══════════════════════════════════════════
    AIR MOUSE MODE
@@ -859,15 +864,12 @@ html, body {
   overflow-y: auto;
 }
 .tab-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 18px 20px;
   background: rgba(var(--ui-rgb),0.02);
   border: 1px solid rgba(var(--ui-rgb),0.04);
   border-radius: 24px;
   cursor: pointer;
   transition: opacity 150ms var(--ease-mag);
+  padding: 18px 20px;
 }
 .tab-item:active { opacity: 0.7; }
 .tab-item.active-tab {
@@ -916,6 +918,57 @@ html, body {
   color: rgba(var(--ui-rgb),0.12);
 }
 
+/* Tab swipe-to-close */
+.tab-item {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+.tab-item-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  transition: transform 200ms var(--ease-mag);
+}
+.tab-item.swiping .tab-item-content {
+  transition: none;
+}
+.tab-close-reveal {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  opacity: 0;
+  transition: opacity 200ms var(--ease-mag);
+}
+.tab-item.swiped .tab-close-reveal { opacity: 1; }
+.tab-close-btn {
+  height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 999px;
+  font-family: var(--font-d);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.tab-close-btn:active { opacity: 0.7; }
+.tab-close-confirm {
+  background: rgba(224,79,95,0.15);
+  border: 1px solid rgba(224,79,95,0.25);
+  color: rgba(224,79,95,0.8);
+}
+.tab-close-cancel {
+  background: rgba(var(--ui-rgb),0.04);
+  border: 1px solid rgba(var(--ui-rgb),0.08);
+  color: rgba(var(--ui-rgb),0.35);
+}
+
 /* ═══════════════════════════════════════════
    SETTINGS MODE
 ═══════════════════════════════════════════ */
@@ -935,7 +988,9 @@ html, body {
   text-transform: uppercase;
   color: rgba(var(--accent-rgb),0.4);
   padding: 8px 4px 4px;
+  margin-top: 30px;
 }
+.setting-section-label:first-child { margin-top: 0; }
 .setting-row {
   display: flex;
   align-items: center;
@@ -1011,8 +1066,8 @@ html, body {
 }
 .theme-swatches {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 18px 12px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 18px 10px;
   width: 100%;
 }
 .theme-swatch {
@@ -1024,7 +1079,7 @@ html, body {
   position: relative;
 }
 .theme-swatch-dot {
-  width: 72px; height: 72px;
+  width: 100%; aspect-ratio: 1;
   border-radius: 50%;
   border: 3px solid transparent;
   position: relative;
@@ -1285,6 +1340,24 @@ html, body {
   font-weight: 700;
   color: rgba(var(--ui-rgb),0.9);
 }
+.sticker-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sticker-editor-cancel {
+  background: rgba(var(--ui-rgb),0.04);
+  border: 1px solid rgba(var(--ui-rgb),0.08);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-family: var(--font-b);
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.35);
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.sticker-editor-cancel:active { opacity: 0.6; }
 .sticker-editor-save {
   background: rgba(var(--accent-rgb),0.15);
   border: 1px solid rgba(var(--accent-rgb),0.25);
@@ -1497,6 +1570,14 @@ html, body {
       <div class="conn-dot" id="conn-dot"></div>
       <span id="conn-text">Disconnected</span>
     </div>
+    <div class="topbar-nav">
+      <button class="topbar-nav-btn disabled" id="btn-back" aria-label="Browser Back">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      </button>
+      <button class="topbar-nav-btn disabled" id="btn-forward" aria-label="Browser Forward">
+        <svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
     <button class="topbar-settings" id="btn-settings" aria-label="Settings">
       <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
@@ -1508,14 +1589,6 @@ html, body {
     <!-- Trackpad -->
     <div class="mode-view active" id="view-trackpad">
       <div class="trackpad">
-        <div class="trackpad-nav">
-          <button class="trackpad-nav-btn disabled" id="btn-back" aria-label="Browser Back">
-            <svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
-          </button>
-          <button class="trackpad-nav-btn disabled" id="btn-forward" aria-label="Browser Forward">
-            <svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-          </button>
-        </div>
         <div class="trackpad-surface" id="trackpad-surface">
           <div class="sticker-layer" id="sticker-layer"><!-- Stickers rendered by JS --></div>
           <div class="trackpad-hint" id="trackpad-hint">Slide to move cursor</div>
@@ -1602,6 +1675,13 @@ html, body {
           <button class="setting-toggle on" id="setting-auto-reconnect"></button>
         </div>
 
+        <div class="setting-section-label">Theme</div>
+        <div class="setting-row theme-row">
+          <div class="theme-swatches" id="theme-swatches">
+            <!-- Generated by JS -->
+          </div>
+        </div>
+
         <div class="setting-section-label">Trackpad</div>
         <div class="setting-row">
           <div><div class="setting-label">Sensitivity</div><div class="setting-desc">Cursor movement speed</div></div>
@@ -1641,13 +1721,6 @@ html, body {
           </button>
         </div>
 
-        <div class="setting-section-label">Theme</div>
-        <div class="setting-row theme-row">
-          <div class="theme-swatches" id="theme-swatches">
-            <!-- Generated by JS -->
-          </div>
-        </div>
-
         <div class="settings-about">
           <div class="about-brand">Couch<span>Lock</span></div>
           <div class="about-ver">V1.0.0 — NOTHING LEAVES YOUR NETWORK</div>
@@ -1661,7 +1734,10 @@ html, body {
   <div class="sticker-editor" id="sticker-editor">
     <div class="sticker-editor-header">
       <div class="sticker-editor-title">Trackpad Stickers</div>
-      <button class="sticker-editor-save" id="sticker-save">Save</button>
+      <div class="sticker-editor-actions">
+        <button class="sticker-editor-cancel" id="sticker-cancel">Cancel</button>
+        <button class="sticker-editor-save" id="sticker-save">Save</button>
+      </div>
     </div>
     <div class="sticker-preview-wrap">
       <div class="sticker-preview" id="sticker-preview">
@@ -1728,7 +1804,7 @@ html, body {
       </div>
     </div>
     <div class="orb-wrap">
-      <button class="orb-btn" id="orb"></button>
+      <button class="orb-btn" id="orb"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
     </div>
     <div class="nav-group nav-group-right">
       <div class="nav-item" data-mode="media">
@@ -1779,18 +1855,21 @@ html, body {
   var cursorSize = 16;
   var currentThemeId = 'dark';
   var kbMode = 'input'; // 'input' = remote field, 'search' = new tab search
+  var kbFocusTimer = null;
 
   // ── Theme Definitions ──
-  // 2 free (Dark + Light, both brand indigo), 6 premium with tinted surfaces
+  // 2 free (Dark + Light), 8 premium — mix of dark accents, light brutalist, and arctic pair
   var THEMES = [
-    { id: 'dark',     name: 'Dark',     accent: '79,82,224',   voidHex: '#0A0B10', inkHex: '#0D0F1C', voidRgb: '10,11,16',    ui: '255,255,255', free: true },
-    { id: 'light',    name: 'Light',    accent: '79,82,224',   voidHex: '#F5F4F0', inkHex: '#ECEAE5', voidRgb: '245,244,240', ui: '0,0,0',       free: true },
-    { id: 'arctic',   name: 'Arctic',   accent: '34,211,238',  voidHex: '#0B1319', inkHex: '#0E1724', voidRgb: '11,19,25',    ui: '255,255,255', free: false },
-    { id: 'ember',    name: 'Ember',    accent: '217,119,6',   voidHex: '#120F10', inkHex: '#15131B', voidRgb: '18,15,16',    ui: '255,255,255', free: false },
-    { id: 'rose',     name: 'Rose',     accent: '224,79,95',   voidHex: '#130E13', inkHex: '#15121F', voidRgb: '19,14,19',    ui: '255,255,255', free: false },
-    { id: 'mint',     name: 'Mint',     accent: '52,211,153',  voidHex: '#0C1315', inkHex: '#0F1721', voidRgb: '12,19,21',    ui: '255,255,255', free: false },
-    { id: 'lavender', name: 'Lavender', accent: '167,139,250', voidHex: '#101019', inkHex: '#131425', voidRgb: '16,16,25',    ui: '255,255,255', free: false },
-    { id: 'solar',    name: 'Solar',    accent: '249,115,22',  voidHex: '#140F10', inkHex: '#16131C', voidRgb: '20,15,16',    ui: '255,255,255', free: false }
+    { id: 'dark',         name: 'Dark',         accent: '79,82,224',   voidHex: '#0A0B10', inkHex: '#0D0F1C', voidRgb: '10,11,16',    ui: '255,255,255', free: true },
+    { id: 'light',        name: 'Light',        accent: '79,82,224',   voidHex: '#F5F4F0', inkHex: '#ECEAE5', voidRgb: '245,244,240', ui: '0,0,0',       free: true },
+    { id: 'arctic-dark',  name: 'Arctic',       accent: '34,211,238',  voidHex: '#0B1319', inkHex: '#0E1724', voidRgb: '11,19,25',    ui: '255,255,255', free: false },
+    { id: 'arctic-light', name: 'Arctic Lt',    accent: '34,211,238',  voidHex: '#E8F4F8', inkHex: '#D9EDF3', voidRgb: '232,244,248', ui: '0,0,0',       free: false },
+    { id: 'mint',         name: 'Mint',         accent: '52,211,153',  voidHex: '#E6F7F0', inkHex: '#D4F0E4', voidRgb: '230,247,240', ui: '0,0,0',       free: false },
+    { id: 'butter',       name: 'Butter',       accent: '202,170,42',  voidHex: '#F5F0D0', inkHex: '#EDE8C2', voidRgb: '245,240,208', ui: '24,24,24',    free: false },
+    { id: 'rose',         name: 'Rose',         accent: '224,79,95',   voidHex: '#130E13', inkHex: '#15121F', voidRgb: '19,14,19',    ui: '255,255,255', free: false },
+    { id: 'ember',        name: 'Ember',        accent: '217,119,6',   voidHex: '#120F10', inkHex: '#15131B', voidRgb: '18,15,16',    ui: '255,255,255', free: false },
+    { id: 'kraft',        name: 'Kraft',        accent: '139,109,72',  voidHex: '#C9B594', inkHex: '#BDA882', voidRgb: '201,181,148', ui: '24,24,24',    free: false },
+    { id: 'forest',       name: 'Forest',       accent: '27,107,82',   voidHex: '#1B6B52', inkHex: '#165E48', voidRgb: '27,107,82',   ui: '240,230,208', free: false }
   ];
 
   // ── DOM ──
@@ -1866,10 +1945,16 @@ html, body {
       }
 
       if (msg.type === 'input_focused') {
-        showKeyboardOverlay(msg.value || '');
+        // Debounce: wait 300ms before showing keyboard to avoid rapid focus/blur cycles
+        // that happen during page loads when sites auto-focus then blur inputs
+        clearTimeout(kbFocusTimer);
+        kbFocusTimer = setTimeout(function () {
+          showKeyboardOverlay(msg.value || '');
+        }, 300);
       }
 
       if (msg.type === 'input_blurred') {
+        clearTimeout(kbFocusTimer);
         hideKeyboardOverlay();
       }
     });
@@ -1994,9 +2079,7 @@ html, body {
     });
   });
 
-  // Orb cycles through non-settings modes
-  var orbModes = ['trackpad', 'airmouse', 'media', 'tabs'];
-  var modeIndex = 0;
+  // Orb opens settings
   var orbEl = $('#orb');
 
   orbEl.addEventListener('touchstart', function () {
@@ -2004,11 +2087,10 @@ html, body {
   });
   orbEl.addEventListener('touchend', function () {
     orbEl.classList.remove('active');
-    modeIndex = (modeIndex + 1) % orbModes.length;
-    switchMode(orbModes[modeIndex]);
+    switchMode('settings');
   });
   orbEl.addEventListener('click', function () {
-    // Desktop fallback
+    switchMode('settings');
   });
 
   // ── Trackpad ──
@@ -2221,12 +2303,12 @@ html, body {
     var label = $('#airmouse-label');
     btn.textContent = 'Recalibrated';
     btn.classList.add('confirmed');
-    label.textContent = 'Recalibrated';
+    label.innerHTML = 'Recalibrated';
 
     setTimeout(function () {
       btn.textContent = 'Recalibrate';
       btn.classList.remove('confirmed');
-      label.textContent = 'Air Mouse Active';
+      label.innerHTML = 'Air<br>Mouse<br><span>Active</span>';
     }, 1500);
   }
 
@@ -2539,7 +2621,11 @@ html, body {
       tabs.forEach(function (tab) {
         var el = document.createElement('div');
         el.className = 'tab-item' + (tab.active ? ' active-tab' : '');
-        el.innerHTML = '<div class="tab-pip"></div><div class="tab-info"><div class="tab-title">' +
+
+        // Swipeable content wrapper
+        var content = document.createElement('div');
+        content.className = 'tab-item-content';
+        content.innerHTML = '<div class="tab-pip"></div><div class="tab-info"><div class="tab-title">' +
           escapeHTML(tab.title || 'Untitled') + '</div><div class="tab-url">' +
           escapeHTML(tab.url || '') + '</div></div>';
 
@@ -2552,9 +2638,88 @@ html, body {
           e.stopPropagation();
           send({ type: 'tab_reload', tabId: tab.id });
         });
-        el.appendChild(reloadBtn);
+        content.appendChild(reloadBtn);
+        el.appendChild(content);
+
+        // Close reveal (shown behind swipe)
+        var reveal = document.createElement('div');
+        reveal.className = 'tab-close-reveal';
+        var closeBtn = document.createElement('button');
+        closeBtn.className = 'tab-close-btn tab-close-confirm';
+        closeBtn.textContent = 'Close';
+        closeBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          send({ type: 'tab_close', tabId: tab.id });
+          el.style.opacity = '0';
+          el.style.maxHeight = '0';
+          el.style.overflow = 'hidden';
+          el.style.transition = 'opacity 200ms, max-height 200ms';
+          setTimeout(function () { send({ type: 'tab_list' }); }, 300);
+        });
+        var cancelBtn = document.createElement('button');
+        cancelBtn.className = 'tab-close-btn tab-close-cancel';
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          el.classList.remove('swiped');
+          content.style.transform = '';
+        });
+        reveal.appendChild(closeBtn);
+        reveal.appendChild(cancelBtn);
+        el.appendChild(reveal);
+
+        // Swipe gesture
+        (function (item, contentEl) {
+          var startX = 0;
+          var startY = 0;
+          var swiping = false;
+          var dx = 0;
+
+          contentEl.addEventListener('touchstart', function (e) {
+            if (item.classList.contains('swiped')) return;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            swiping = false;
+            dx = 0;
+          });
+
+          contentEl.addEventListener('touchmove', function (e) {
+            if (item.classList.contains('swiped')) return;
+            var cx = e.touches[0].clientX;
+            var cy = e.touches[0].clientY;
+            dx = cx - startX;
+            var dy = cy - startY;
+
+            // Only swipe left; ignore right and vertical scrolls
+            if (!swiping && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) && dx < 0) {
+              swiping = true;
+              item.classList.add('swiping');
+            }
+
+            if (swiping) {
+              e.preventDefault();
+              var offset = Math.min(0, dx);
+              contentEl.style.transform = 'translateX(' + offset + 'px)';
+            }
+          }, { passive: false });
+
+          contentEl.addEventListener('touchend', function () {
+            if (item.classList.contains('swiped')) return;
+            item.classList.remove('swiping');
+
+            if (swiping && dx < -80) {
+              // Threshold met — reveal close buttons
+              contentEl.style.transform = 'translateX(-120px)';
+              item.classList.add('swiped');
+            } else {
+              contentEl.style.transform = '';
+            }
+            swiping = false;
+          });
+        })(el, content);
 
         el.addEventListener('click', function () {
+          if (el.classList.contains('swiped')) return;
           send({ type: 'tab_switch', tabId: tab.id });
           setTimeout(function () {
             send({ type: 'tab_list' });
@@ -2721,19 +2886,12 @@ html, body {
       swatch.className = 'theme-swatch' + (theme.id === currentThemeId ? ' active' : '');
       swatch.setAttribute('data-theme', theme.id);
 
-      // The dot: full circle showing accent + void tint
+      // The dot: diagonal split showing void + accent for all themes
       var dot = document.createElement('div');
       dot.className = 'theme-swatch-dot';
-      if (theme.id === 'light' || theme.id === 'dark') {
-        // Diagonal split: use an inner element scaled up so the diagonal line
-        // reaches the edges of the circle cleanly
-        var inner = document.createElement('div');
-        inner.style.cssText = 'position:absolute;inset:-25%;width:150%;height:150%;background:linear-gradient(135deg, ' + theme.voidHex + ' 50%, rgb(' + theme.accent + ') 50%);';
-        dot.appendChild(inner);
-      } else {
-        // Premium: full accent color
-        dot.style.background = 'rgb(' + theme.accent + ')';
-      }
+      var inner = document.createElement('div');
+      inner.style.cssText = 'position:absolute;inset:-25%;width:150%;height:150%;background:linear-gradient(135deg, ' + theme.voidHex + ' 50%, rgb(' + theme.accent + ') 50%);';
+      dot.appendChild(inner);
 
       var name = document.createElement('span');
       name.className = 'theme-swatch-name';
@@ -3233,8 +3391,13 @@ html, body {
 
   // ── Editor button handlers ──
 
+  // Snapshot of stickers before editing (for cancel/discard)
+  var stickersSnapshot = null;
+
   // Open editor
   $('#btn-open-sticker-editor').addEventListener('click', function () {
+    // Save snapshot for cancel
+    stickersSnapshot = JSON.stringify(placedStickers);
     buildStickerGallery();
     selectedStickerId = null;
     renderEditorStickers();
@@ -3243,10 +3406,23 @@ html, body {
 
   // Save & close
   $('#sticker-save').addEventListener('click', function () {
+    stickersSnapshot = null;
     saveStickers();
     renderTrackpadStickers();
     $('#sticker-editor').classList.remove('open');
     showToast('Stickers saved');
+  });
+
+  // Cancel — discard changes if any
+  $('#sticker-cancel').addEventListener('click', function () {
+    var currentState = JSON.stringify(placedStickers);
+    if (stickersSnapshot && currentState !== stickersSnapshot) {
+      if (!confirm('Discard sticker changes?')) return;
+      placedStickers = JSON.parse(stickersSnapshot);
+    }
+    stickersSnapshot = null;
+    selectedStickerId = null;
+    $('#sticker-editor').classList.remove('open');
   });
 
   // Bring to front
