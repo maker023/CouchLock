@@ -98,7 +98,7 @@ html, body {
   pointer-events: auto;
 }
 .topbar-nav-btn {
-  width: 42px; height: 42px;
+  width: 54px; height: 54px;
   border: none;
   border-radius: 8px;
   background: rgba(var(--ui-rgb),0.03);
@@ -182,6 +182,20 @@ html, body {
   border-color: rgba(var(--accent-rgb),0.25);
 }
 .nav-btn.active svg { stroke: var(--accent); }
+.nav-btn[data-mode="settings"] {
+  background: rgba(var(--ui-rgb),0.1);
+  border-color: rgba(var(--ui-rgb),0.1);
+}
+.nav-btn[data-mode="settings"] svg {
+  stroke: var(--void);
+}
+.nav-btn[data-mode="settings"].active {
+  background: rgba(var(--accent-rgb),0.3);
+  border-color: rgba(var(--accent-rgb),0.3);
+}
+.nav-btn[data-mode="settings"].active svg {
+  stroke: var(--void);
+}
 .nav-btn.locked::after {
   content: '';
   position: absolute;
@@ -801,6 +815,7 @@ html, body {
   overflow-y: auto;
 }
 .tab-item {
+  height: 54px;
   background: rgba(var(--ui-rgb),0.02);
   border: 1px solid rgba(var(--ui-rgb),0.04);
   border-radius: 24px;
@@ -862,7 +877,8 @@ html, body {
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 16px 20px;
+  height: 54px;
+  padding: 0 20px;
   transition: transform 200ms var(--ease-mag);
 }
 .tab-item.swiping .tab-item-content {
@@ -1088,7 +1104,8 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 16px 20px;
+  height: 54px;
+  padding: 0 20px;
   background: rgba(var(--accent-rgb),0.06);
   border: 1px dashed rgba(var(--accent-rgb),0.15);
   border-radius: 24px;
@@ -1131,6 +1148,38 @@ html, body {
   color: rgba(var(--ui-rgb),0.08);
   letter-spacing: 1px;
 }
+
+/* ── Emo Theme — Checkerboard grid + skull decorations ── */
+.app.theme-emo .trackpad-surface::before {
+  background-image:
+    linear-gradient(45deg, rgba(148,0,211,0.08) 25%, transparent 25%, transparent 75%, rgba(148,0,211,0.08) 75%),
+    linear-gradient(45deg, rgba(148,0,211,0.08) 25%, transparent 25%, transparent 75%, rgba(148,0,211,0.08) 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+}
+.emo-skulls {
+  display: none;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+.app.theme-emo .emo-skulls { display: block; }
+.emo-skull {
+  position: absolute;
+  opacity: 0.06;
+}
+.emo-skull svg {
+  width: 100%;
+  height: 100%;
+  fill: rgba(148,0,211,0.8);
+  stroke: none;
+}
+.emo-skull-1 { width: 48px; height: 48px; top: 12%; left: 8%; transform: rotate(-15deg); }
+.emo-skull-2 { width: 36px; height: 36px; top: 65%; right: 10%; transform: rotate(12deg); }
+.emo-skull-3 { width: 28px; height: 28px; bottom: 15%; left: 25%; transform: rotate(-8deg); }
+.emo-skull-4 { width: 40px; height: 40px; top: 30%; right: 22%; transform: rotate(20deg); }
 
 /* ── Theme Transition — Cross-fade overlay + surface transitions ── */
 .theme-fade-overlay {
@@ -1557,6 +1606,12 @@ html, body {
       <div class="trackpad">
         <div class="trackpad-surface" id="trackpad-surface">
           <div class="sticker-layer" id="sticker-layer"><!-- Stickers rendered by JS --></div>
+          <div class="emo-skulls">
+            <div class="emo-skull emo-skull-1"><svg viewBox="0 0 64 64"><path d="M32 4C18.7 4 8 14.7 8 28c0 9.3 5.3 17.3 13 21.3V56c0 2.2 1.8 4 4 4h2v-6h2v6h6v-6h2v6h2c2.2 0 4-1.8 4-4v-6.7c7.7-4 13-12 13-21.3C56 14.7 45.3 4 32 4zm-8 30a4 4 0 110-8 4 4 0 010 8zm16 0a4 4 0 110-8 4 4 0 010 8zm-2 8H26l2-4h8l2 4z"/></svg></div>
+            <div class="emo-skull emo-skull-2"><svg viewBox="0 0 64 64"><path d="M32 4C18.7 4 8 14.7 8 28c0 9.3 5.3 17.3 13 21.3V56c0 2.2 1.8 4 4 4h2v-6h2v6h6v-6h2v6h2c2.2 0 4-1.8 4-4v-6.7c7.7-4 13-12 13-21.3C56 14.7 45.3 4 32 4zm-8 30a4 4 0 110-8 4 4 0 010 8zm16 0a4 4 0 110-8 4 4 0 010 8zm-2 8H26l2-4h8l2 4z"/></svg></div>
+            <div class="emo-skull emo-skull-3"><svg viewBox="0 0 64 64"><path d="M32 4C18.7 4 8 14.7 8 28c0 9.3 5.3 17.3 13 21.3V56c0 2.2 1.8 4 4 4h2v-6h2v6h6v-6h2v6h2c2.2 0 4-1.8 4-4v-6.7c7.7-4 13-12 13-21.3C56 14.7 45.3 4 32 4zm-8 30a4 4 0 110-8 4 4 0 010 8zm16 0a4 4 0 110-8 4 4 0 010 8zm-2 8H26l2-4h8l2 4z"/></svg></div>
+            <div class="emo-skull emo-skull-4"><svg viewBox="0 0 64 64"><path d="M32 4C18.7 4 8 14.7 8 28c0 9.3 5.3 17.3 13 21.3V56c0 2.2 1.8 4 4 4h2v-6h2v6h6v-6h2v6h2c2.2 0 4-1.8 4-4v-6.7c7.7-4 13-12 13-21.3C56 14.7 45.3 4 32 4zm-8 30a4 4 0 110-8 4 4 0 010 8zm16 0a4 4 0 110-8 4 4 0 010 8zm-2 8H26l2-4h8l2 4z"/></svg></div>
+          </div>
           <div class="trackpad-hint" id="trackpad-hint">Slide to move cursor</div>
           <div class="trackpad-swipe-hint" id="trackpad-swipe-hint"></div>
         </div>
@@ -1833,14 +1888,16 @@ html, body {
   var THEMES = [
     { id: 'dark',         name: 'Dark',         accent: '79,82,224',   voidHex: '#0A0B10', inkHex: '#0D0F1C', voidRgb: '10,11,16',    ui: '255,255,255', free: true },
     { id: 'light',        name: 'Light',        accent: '79,82,224',   voidHex: '#F5F4F0', inkHex: '#ECEAE5', voidRgb: '245,244,240', ui: '0,0,0',       free: true },
-    { id: 'arctic-dark',  name: 'Arctic',       accent: '34,211,238',  voidHex: '#0B1319', inkHex: '#0E1724', voidRgb: '11,19,25',    ui: '255,255,255', free: false },
-    { id: 'arctic-light', name: 'Arctic Lt',    accent: '34,211,238',  voidHex: '#E8F4F8', inkHex: '#D9EDF3', voidRgb: '232,244,248', ui: '0,0,0',       free: false },
-    { id: 'mint',         name: 'Mint',         accent: '52,211,153',  voidHex: '#E6F7F0', inkHex: '#D4F0E4', voidRgb: '230,247,240', ui: '0,0,0',       free: false },
-    { id: 'butter',       name: 'Butter',       accent: '202,170,42',  voidHex: '#F5F0D0', inkHex: '#EDE8C2', voidRgb: '245,240,208', ui: '24,24,24',    free: false },
-    { id: 'rose',         name: 'Rose',         accent: '224,79,95',   voidHex: '#130E13', inkHex: '#15121F', voidRgb: '19,14,19',    ui: '255,255,255', free: false },
-    { id: 'ember',        name: 'Ember',        accent: '217,119,6',   voidHex: '#120F10', inkHex: '#15131B', voidRgb: '18,15,16',    ui: '255,255,255', free: false },
-    { id: 'kraft',        name: 'Kraft',        accent: '139,109,72',  voidHex: '#C9B594', inkHex: '#BDA882', voidRgb: '201,181,148', ui: '24,24,24',    free: false },
-    { id: 'forest',       name: 'Forest',       accent: '27,107,82',   voidHex: '#1B6B52', inkHex: '#165E48', voidRgb: '27,107,82',   ui: '240,230,208', free: false }
+    { id: 'arctic',       name: 'Arctic',       accent: '56,189,248',  voidHex: '#080F17', inkHex: '#0C1520', voidRgb: '8,15,23',     ui: '255,255,255', free: false },
+    { id: 'stone',        name: 'Stone',        accent: '161,161,170', voidHex: '#F0EFEC', inkHex: '#E4E3DF', voidRgb: '240,239,236', ui: '28,25,23',    free: false },
+    { id: 'matcha',       name: 'Matcha',       accent: '74,222,128',  voidHex: '#0A120E', inkHex: '#0E1713', voidRgb: '10,18,14',    ui: '255,255,255', free: false },
+    { id: 'sand',         name: 'Sand',         accent: '168,139,97',  voidHex: '#F2EDE4', inkHex: '#E6E0D5', voidRgb: '242,237,228', ui: '35,30,25',    free: false },
+    { id: 'rose',         name: 'Rosé',         accent: '244,114,182', voidHex: '#10090E', inkHex: '#150D14', voidRgb: '16,9,14',     ui: '255,255,255', free: false },
+    { id: 'ember',        name: 'Ember',        accent: '251,146,60',  voidHex: '#100C08', inkHex: '#16110C', voidRgb: '16,12,8',     ui: '255,255,255', free: false },
+    { id: 'kraft',        name: 'Kraft',        accent: '120,90,55',   voidHex: '#D4C4A8', inkHex: '#C7B797', voidRgb: '212,196,168', ui: '30,25,18',    free: false },
+    { id: 'forest',       name: 'Forest',       accent: '34,197,94',   voidHex: '#0B100D', inkHex: '#0F1611', voidRgb: '11,16,13',    ui: '255,255,255', free: false },
+    { id: 'rgb',          name: 'RGB',          accent: '0,255,120',   voidHex: '#050508', inkHex: '#0A0A10', voidRgb: '5,5,8',       ui: '255,255,255', free: false, rgb: true },
+    { id: 'emo',          name: 'Emo',          accent: '148,0,211',   voidHex: '#08060A', inkHex: '#0D0A12', voidRgb: '8,6,10',     ui: '255,255,255', free: false, emo: true }
   ];
 
   // ── DOM ──
@@ -2822,6 +2879,20 @@ html, body {
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', theme.voidHex);
 
+    // Toggle RGB cycling
+    if (theme.rgb) {
+      startRgbCycle();
+    } else {
+      stopRgbCycle();
+    }
+
+    // Toggle Emo theme class (checkerboard grid + skulls)
+    if (theme.emo) {
+      app.classList.add('theme-emo');
+    } else {
+      app.classList.remove('theme-emo');
+    }
+
     // Send cursor + theme to extension
     sendCursorSettings();
     sendThemeToExtension(theme);
@@ -2831,6 +2902,37 @@ html, body {
 
     // Update swatch active states
     updateThemeSwatchUI();
+  }
+
+  // ── RGB Theme — JS-driven accent cycling ──
+  var rgbCycleTimer = null;
+  var RGB_COLORS = [
+    { hex: '#00FF78', rgb: '0,255,120',   light: '#33FF96' },
+    { hex: '#00D4FF', rgb: '0,212,255',   light: '#33DDFF' },
+    { hex: '#7B61FF', rgb: '123,97,255',  light: '#9B85FF' },
+    { hex: '#FF3CAC', rgb: '255,60,172',  light: '#FF66C0' },
+    { hex: '#FF6B2B', rgb: '255,107,43',  light: '#FF8A57' },
+    { hex: '#FAFF00', rgb: '250,255,0',   light: '#FBFF33' }
+  ];
+  var rgbIndex = 0;
+
+  function startRgbCycle() {
+    if (rgbCycleTimer) return;
+    var root = document.documentElement;
+    rgbCycleTimer = setInterval(function () {
+      rgbIndex = (rgbIndex + 1) % RGB_COLORS.length;
+      var c = RGB_COLORS[rgbIndex];
+      root.style.setProperty('--accent', c.hex);
+      root.style.setProperty('--accent-rgb', c.rgb);
+      root.style.setProperty('--accent-light', c.light);
+    }, 1400);
+  }
+
+  function stopRgbCycle() {
+    if (rgbCycleTimer) {
+      clearInterval(rgbCycleTimer);
+      rgbCycleTimer = null;
+    }
   }
 
   // Send theme data to extension for popup sync
@@ -2854,11 +2956,15 @@ html, body {
       swatch.className = 'theme-swatch' + (theme.id === currentThemeId ? ' active' : '');
       swatch.setAttribute('data-theme', theme.id);
 
-      // The dot: diagonal split showing void + accent for all themes
+      // The dot: diagonal split showing void + accent (or rainbow for RGB)
       var dot = document.createElement('div');
       dot.className = 'theme-swatch-dot';
       var inner = document.createElement('div');
-      inner.style.cssText = 'position:absolute;inset:-25%;width:150%;height:150%;background:linear-gradient(135deg, ' + theme.voidHex + ' 50%, rgb(' + theme.accent + ') 50%);';
+      if (theme.rgb) {
+        inner.style.cssText = 'position:absolute;inset:-25%;width:150%;height:150%;background:conic-gradient(from 0deg, #00FF78, #00D4FF, #7B61FF, #FF3CAC, #FF6B2B, #FAFF00, #00FF78);';
+      } else {
+        inner.style.cssText = 'position:absolute;inset:-25%;width:150%;height:150%;background:linear-gradient(135deg, ' + theme.voidHex + ' 50%, rgb(' + theme.accent + ') 50%);';
+      }
       dot.appendChild(inner);
 
       var name = document.createElement('span');
