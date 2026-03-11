@@ -818,7 +818,7 @@ html, body {
   overflow-y: auto;
 }
 .tab-item {
-  min-height: 54px;
+  min-height: 64px;
   flex-shrink: 0;
   background: rgba(var(--ui-rgb),0.02);
   border: 1px solid rgba(var(--ui-rgb),0.04);
@@ -881,7 +881,7 @@ html, body {
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 54px;
+  min-height: 64px;
   padding: 0 20px;
   transition: transform 200ms var(--ease-mag);
 }
@@ -1108,7 +1108,7 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 54px;
+  min-height: 64px;
   flex-shrink: 0;
   padding: 0 20px;
   background: rgba(var(--accent-rgb),0.06);
@@ -1132,6 +1132,34 @@ html, body {
   font-weight: 700;
   letter-spacing: -0.3px;
   color: rgba(var(--accent-rgb),0.5);
+}
+.btn-close-session {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 48px;
+  margin-top: 24px;
+  background: rgba(224,79,95,0.08);
+  border: 1px solid rgba(224,79,95,0.15);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+  font-family: var(--font-d);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: rgba(224,79,95,0.7);
+}
+.btn-close-session:active { opacity: 0.7; }
+.btn-close-session svg {
+  width: 16px; height: 16px;
+  stroke: rgba(224,79,95,0.7);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .settings-about {
   margin-top: 12px;
@@ -1752,6 +1780,11 @@ html, body {
           <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:rgba(var(--accent-rgb),0.5);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </div>
 
+        <button class="btn-close-session" id="btn-close-session">
+          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          End Session
+        </button>
+
         <div class="settings-about">
           <div class="about-brand">Couch<span>Lock</span></div>
           <div class="about-ver">V1.0.0 — NOTHING LEAVES YOUR NETWORK</div>
@@ -1982,6 +2015,10 @@ html, body {
         renderTabs(msg.tabs || []);
       }
 
+      if (msg.type === 'session_closed') {
+        resetToParingScreen();
+      }
+
       if (msg.type === 'input_focused') {
         // Debounce: wait 300ms before showing keyboard to avoid rapid focus/blur cycles
         // that happen during page loads when sites auto-focus then blur inputs
@@ -2061,6 +2098,23 @@ html, body {
   $('#btn-guide').addEventListener('click', function () {
     window.open('success.html', '_blank');
   });
+
+  // ── Close Session button ──
+  $('#btn-close-session').addEventListener('click', function () {
+    if (!isPaired) return;
+    send({ type: 'session_close' });
+    resetToParingScreen();
+  });
+
+  function resetToParingScreen() {
+    isPaired = false;
+    isConnected = false;
+    CouchTransport.disconnect();
+    updateConnUI();
+    $('#pairing').classList.remove('hidden');
+    $('#pairing-status').textContent = 'Session ended';
+    showToast('Session closed');
+  }
 
   // ── Browser back/forward ──
   $('#btn-back').addEventListener('click', function () {
@@ -2713,6 +2767,7 @@ html, body {
           var startX = 0;
           var startY = 0;
           var swiping = false;
+          var didSwipe = false;
           var dx = 0;
 
           contentEl.addEventListener('touchstart', function (e) {
@@ -2720,6 +2775,7 @@ html, body {
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
             swiping = false;
+            didSwipe = false;
             dx = 0;
           });
 
@@ -2751,20 +2807,20 @@ html, body {
               // Threshold met — reveal close buttons
               contentEl.style.transform = 'translateX(-120px)';
               item.classList.add('swiped');
+              didSwipe = true;
             } else {
               contentEl.style.transform = '';
+              didSwipe = swiping;
             }
             swiping = false;
           });
-        })(el, content);
 
-        el.addEventListener('click', function () {
-          if (el.classList.contains('swiped')) return;
-          send({ type: 'tab_switch', tabId: tab.id });
-          setTimeout(function () {
-            send({ type: 'tab_list' });
-          }, 300);
-        });
+          // Prevent click from firing after swipe gesture
+          item.addEventListener('click', function () {
+            if (didSwipe || item.classList.contains('swiped')) return;
+            send({ type: 'tab_switch', tabId: tab.id });
+          });
+        })(el, content);
         list.appendChild(el);
       });
     }
