@@ -60,7 +60,6 @@ html, body {
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 14px 20px;
   flex-shrink: 0;
   position: relative;
@@ -97,7 +96,7 @@ html, body {
 .topbar-nav-btn {
   width: 42px; height: 42px;
   border: none;
-  border-radius: 50%;
+  border-radius: 4px;
   background: rgba(var(--ui-rgb),0.03);
   border: 1px solid rgba(var(--ui-rgb),0.06);
   display: flex;
@@ -113,27 +112,6 @@ html, body {
 }
 .topbar-nav-btn svg {
   width: 18px; height: 18px;
-  stroke: rgba(var(--ui-rgb),0.3);
-  fill: none;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.topbar-settings {
-  width: 42px; height: 42px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(var(--ui-rgb),0.03);
-  border: 1px solid rgba(var(--ui-rgb),0.06);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: opacity 150ms var(--ease-mag);
-}
-.topbar-settings:active { opacity: 0.7; }
-.topbar-settings svg {
-  width: 20px; height: 20px;
   stroke: rgba(var(--ui-rgb),0.3);
   fill: none;
   stroke-width: 1.8;
@@ -167,23 +145,17 @@ html, body {
 .bottomnav {
   padding: 10px 12px 10px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  gap: 6px;
   flex-shrink: 0;
 }
-.nav-group {
-  display: flex;
-  flex: 1;
-  gap: 6px;
-}
-.nav-group-right { justify-content: flex-end; }
 .nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 5px;
   flex: 1;
-  max-width: 72px;
 }
 .nav-btn {
   width: 100%;
@@ -232,37 +204,6 @@ html, body {
   color: rgba(var(--ui-rgb),0.12);
 }
 .nav-item.active .nav-label { color: rgba(var(--accent-rgb),0.5); }
-
-/* Orb (Settings) */
-.orb-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 8px;
-  flex-shrink: 0;
-}
-.orb-btn {
-  width: 56px; height: 56px;
-  border-radius: 50%;
-  border: none;
-  background: var(--accent);
-  box-shadow: 0 0 24px rgba(var(--accent-rgb),0.15);
-  cursor: pointer;
-  flex-shrink: 0;
-  animation: heartbeat-rest 833ms ease infinite;
-  transition: animation 300ms;
-}
-.orb-btn svg {
-  width: 22px; height: 22px;
-  stroke: white;
-  fill: none;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.orb-btn.active {
-  animation: heartbeat-active 462ms ease infinite;
-}
 @keyframes heartbeat-rest {
   0%   { box-shadow: 0 0 24px rgba(var(--accent-rgb),0.15); }
   12%  { box-shadow: 0 0 40px rgba(var(--accent-rgb),0.45); }
@@ -270,14 +211,6 @@ html, body {
   28%  { box-shadow: 0 0 36px rgba(var(--accent-rgb),0.35); }
   45%  { box-shadow: 0 0 24px rgba(var(--accent-rgb),0.15); }
   100% { box-shadow: 0 0 20px rgba(var(--accent-rgb),0.1); }
-}
-@keyframes heartbeat-active {
-  0%   { box-shadow: 0 0 30px rgba(var(--accent-rgb),0.25); }
-  12%  { box-shadow: 0 0 56px rgba(var(--accent-rgb),0.7); }
-  18%  { box-shadow: 0 0 40px rgba(var(--accent-rgb),0.45); }
-  28%  { box-shadow: 0 0 48px rgba(var(--accent-rgb),0.55); }
-  45%  { box-shadow: 0 0 30px rgba(var(--accent-rgb),0.25); }
-  100% { box-shadow: 0 0 26px rgba(var(--accent-rgb),0.2); }
 }
 
 /* ═══════════════════════════════════════════
@@ -411,7 +344,7 @@ html, body {
   position: relative;
   background: rgba(var(--ui-rgb),0.04);
   border: 1px solid rgba(var(--ui-rgb),0.08);
-  border-radius: 24px;
+  border-radius: 12px;
   overflow: hidden;
 }
 .trackpad-surface::before {
@@ -449,7 +382,7 @@ html, body {
   background: rgba(var(--void-rgb),0.7);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  border-radius: 24px;
+  border-radius: 12px;
 }
 .trackpad-hint.hidden { opacity: 0; }
 .trackpad-buttons {
@@ -462,7 +395,7 @@ html, body {
   flex: 1;
   height: 56px;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   background: rgba(var(--ui-rgb),0.04);
   border: 1px solid rgba(var(--ui-rgb),0.06);
   font-family: var(--font-d);
@@ -868,8 +801,10 @@ html, body {
   border: 1px solid rgba(var(--ui-rgb),0.04);
   border-radius: 24px;
   cursor: pointer;
-  transition: opacity 150ms var(--ease-mag);
+  transition: opacity 150ms var(--ease-mag), max-height 200ms var(--ease-mag);
   padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
 }
 .tab-item:active { opacity: 0.7; }
 .tab-item.active-tab {
@@ -919,11 +854,6 @@ html, body {
 }
 
 /* Tab swipe-to-close */
-.tab-item {
-  position: relative;
-  overflow: hidden;
-  touch-action: pan-y;
-}
 .tab-item-content {
   display: flex;
   align-items: center;
@@ -1376,19 +1306,17 @@ html, body {
 .sticker-preview-wrap {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   padding: 12px 16px;
   min-height: 0;
 }
 .sticker-preview {
-  width: calc(100% - 32px);
-  max-width: 400px;
-  aspect-ratio: 1.6 / 1;
+  width: 100%;
   position: relative;
   background: rgba(var(--ui-rgb),0.04);
   border: 1px solid rgba(var(--ui-rgb),0.08);
-  border-radius: 24px;
+  border-radius: 12px;
   overflow: hidden;
 }
 .sticker-preview::after {
@@ -1578,9 +1506,6 @@ html, body {
         <svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
       </button>
     </div>
-    <button class="topbar-settings" id="btn-settings" aria-label="Settings">
-      <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-    </button>
   </div>
 
   <!-- Mode Views -->
@@ -1789,36 +1714,35 @@ html, body {
 
   <!-- Bottom Nav -->
   <div class="bottomnav">
-    <div class="nav-group">
-      <div class="nav-item active" data-mode="trackpad">
-        <button class="nav-btn active" data-mode="trackpad">
-          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3"/></svg>
-        </button>
-        <span class="nav-label">Pad</span>
-      </div>
-      <div class="nav-item" data-mode="airmouse">
-        <button class="nav-btn" data-mode="airmouse">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
-        </button>
-        <span class="nav-label">Air</span>
-      </div>
+    <div class="nav-item active" data-mode="trackpad">
+      <button class="nav-btn active" data-mode="trackpad">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <span class="nav-label">Pad</span>
     </div>
-    <div class="orb-wrap">
-      <button class="orb-btn" id="orb"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
+    <div class="nav-item" data-mode="airmouse">
+      <button class="nav-btn" data-mode="airmouse">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <span class="nav-label">Air</span>
     </div>
-    <div class="nav-group nav-group-right">
-      <div class="nav-item" data-mode="media">
-        <button class="nav-btn" data-mode="media">
-          <svg viewBox="0 0 24 24"><polygon points="8,5 20,12 8,19"/></svg>
-        </button>
-        <span class="nav-label">Media</span>
-      </div>
-      <div class="nav-item" data-mode="tabs">
-        <button class="nav-btn" data-mode="tabs">
-          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
-        </button>
-        <span class="nav-label">Tabs</span>
-      </div>
+    <div class="nav-item" data-mode="settings">
+      <button class="nav-btn" data-mode="settings">
+        <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <span class="nav-label">Settings</span>
+    </div>
+    <div class="nav-item" data-mode="media">
+      <button class="nav-btn" data-mode="media">
+        <svg viewBox="0 0 24 24"><polygon points="8,5 20,12 8,19"/></svg>
+      </button>
+      <span class="nav-label">Media</span>
+    </div>
+    <div class="nav-item" data-mode="tabs">
+      <button class="nav-btn" data-mode="tabs">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+      </button>
+      <span class="nav-label">Tabs</span>
     </div>
   </div>
 </div>
@@ -2039,11 +1963,6 @@ html, body {
     }
   }
 
-  // ── Settings gear button ──
-  $('#btn-settings').addEventListener('click', function () {
-    switchMode('settings');
-  });
-
   // ── Mode Switching ──
   function switchMode(mode) {
     if (MODES.indexOf(mode) === -1) return;
@@ -2079,19 +1998,6 @@ html, body {
     });
   });
 
-  // Orb opens settings
-  var orbEl = $('#orb');
-
-  orbEl.addEventListener('touchstart', function () {
-    orbEl.classList.add('active');
-  });
-  orbEl.addEventListener('touchend', function () {
-    orbEl.classList.remove('active');
-    switchMode('settings');
-  });
-  orbEl.addEventListener('click', function () {
-    switchMode('settings');
-  });
 
   // ── Trackpad ──
   // Improved: dead zone to filter touch sensor noise, velocity-based
@@ -2200,7 +2106,7 @@ html, body {
         var hintEl = $('#trackpad-hint');
         hintEl.textContent = 'Tap to wake';
         hintEl.classList.remove('hidden');
-      }, 5000);
+      }, 15000);
     });
 
     // Tap detection (single tap = click, double tap = double-click)
