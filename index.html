@@ -9,7 +9,7 @@
 <title>CouchLock</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=DM+Sans:wght@400;500;600&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -31,7 +31,7 @@
   --rose-rgb: 224,79,95;
   --font-d: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-b: 'DM Sans', system-ui, sans-serif;
-  --font-m: 'DM Mono', monospace;
+  --font-m: 'Century Gothic', 'Open Sans', sans-serif;
   --ease-mag: cubic-bezier(0.22, 1, 0.36, 1);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -107,8 +107,7 @@ html, body {
   aspect-ratio: 1;
   border: none;
   border-radius: 4px;
-  background: rgba(var(--ui-rgb),0.03);
-  border: 1px solid rgba(var(--ui-rgb),0.06);
+  background: var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -174,7 +173,7 @@ html, body {
   height: auto;
   border: none;
   border-radius: 8px;
-  background: rgba(var(--ui-rgb),0.03);
+  background: var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -369,8 +368,8 @@ html, body {
 .trackpad-surface {
   flex: 1;
   position: relative;
-  background: rgba(var(--ui-rgb),0.04);
-  border: 1px solid rgba(var(--ui-rgb),0.08);
+  background: var(--ink);
+  border: none;
   border-radius: 12px;
   overflow: hidden;
 }
@@ -423,14 +422,13 @@ html, body {
   height: 56px;
   border: none;
   border-radius: 8px;
-  background: rgba(var(--ui-rgb),0.04);
-  border: 1px solid rgba(var(--ui-rgb),0.06);
+  background: var(--ink);
   font-family: var(--font-m);
   font-size: 10px;
   font-weight: 100;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: rgba(var(--ui-rgb),0.4);
+  color: rgba(var(--ui-rgb),0.7);
   cursor: pointer;
   transition: opacity 150ms var(--ease-mag);
 }
@@ -519,8 +517,8 @@ html, body {
 }
 .media-now {
   flex: 1;
-  background: rgba(var(--ui-rgb),0.02);
-  border: 1px solid rgba(var(--ui-rgb),0.04);
+  background: var(--ink);
+  border: none;
   border-radius: 8px;
   padding: 24px;
   display: flex;
@@ -557,7 +555,7 @@ html, body {
 .media-progress-track {
   width: 100%;
   height: 4px;
-  background: rgba(var(--ui-rgb),0.06);
+  background: var(--ink);
   border-radius: 999px;
   position: relative;
   overflow: hidden;
@@ -616,8 +614,7 @@ html, body {
   width: 60px; height: 60px;
   border: none;
   border-radius: 50%;
-  background: rgba(var(--ui-rgb),0.04);
-  border: 1px solid rgba(var(--ui-rgb),0.08);
+  background: var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -649,12 +646,11 @@ html, body {
   padding: 16px 8px;
   border: none;
   border-radius: 999px;
-  background: rgba(var(--ui-rgb),0.04);
-  border: 1px solid rgba(var(--ui-rgb),0.06);
+  background: var(--ink);
   font-family: var(--font-d);
   font-size: 13px;
   font-weight: 700;
-  color: rgba(var(--ui-rgb),0.4);
+  color: rgba(var(--ui-rgb),0.7);
   cursor: pointer;
   text-align: center;
   transition: opacity 150ms var(--ease-mag), background 200ms var(--ease-mag), color 200ms var(--ease-mag);
@@ -736,8 +732,7 @@ html, body {
   width: 36px; height: 36px;
   border: none;
   border-radius: 50%;
-  background: rgba(var(--ui-rgb),0.04);
-  border: 1px solid rgba(var(--ui-rgb),0.06);
+  background: var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -775,8 +770,7 @@ html, body {
   max-width: 38px;
   border: none;
   border-radius: 12px;
-  background: rgba(var(--ui-rgb),0.05);
-  border: 1px solid rgba(var(--ui-rgb),0.06);
+  background: var(--ink);
   font-family: var(--font-b);
   font-size: 16px;
   font-weight: 500;
@@ -797,7 +791,7 @@ html, body {
   font-weight: 700;
   color: rgba(var(--ui-rgb),0.3);
   max-width: none;
-  background: rgba(var(--ui-rgb),0.03);
+  background: var(--ink);
 }
 .kb-key-shift { flex: 1.2; max-width: 52px; }
 .kb-key-wide { flex: 1.5; max-width: 64px; }
@@ -828,8 +822,8 @@ html, body {
 .tab-item {
   min-height: 64px;
   flex-shrink: 0;
-  background: rgba(var(--ui-rgb),0.02);
-  border: 1px solid rgba(var(--ui-rgb),0.04);
+  background: var(--ink);
+  border: none;
   border-radius: 24px;
   cursor: pointer;
   transition: opacity 150ms var(--ease-mag), max-height 200ms var(--ease-mag);
@@ -838,14 +832,14 @@ html, body {
 }
 .tab-item:active { opacity: 0.7; }
 .tab-item.active-tab {
-  background: rgba(var(--accent-rgb),0.06);
-  border-color: rgba(var(--accent-rgb),0.1);
+  background: rgba(var(--accent-rgb),0.15);
+  border: none;
 }
 .tab-close {
   width: 28px; height: 28px;
   border: none;
   border-radius: 50%;
-  background: rgba(var(--ui-rgb),0.04);
+  background: var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -933,22 +927,22 @@ html, body {
   align-items: center;
   justify-content: space-between;
   padding: 20px 22px;
-  background: rgba(var(--ui-rgb),0.02);
-  border: 1px solid rgba(var(--ui-rgb),0.04);
+  background: var(--ink);
+  border: none;
   border-radius: 8px;
   min-height: 68px;
 }
 .setting-label {
   font-family: var(--font-d);
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.3px;
   color: rgba(var(--ui-rgb),0.5);
 }
 .setting-desc {
   font-family: var(--font-b);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 400;
   color: rgba(var(--ui-rgb),0.15);
   margin-top: 3px;
 }
@@ -956,7 +950,7 @@ html, body {
   width: 44px; height: 26px;
   border-radius: 999px;
   border: none;
-  background: rgba(var(--ui-rgb),0.08);
+  background: var(--ink);
   position: relative;
   cursor: pointer;
   flex-shrink: 0;
@@ -982,7 +976,7 @@ html, body {
   height: 4px;
   -webkit-appearance: none;
   appearance: none;
-  background: rgba(var(--ui-rgb),0.06);
+  background: var(--ink);
   border-radius: 2px;
   outline: none;
 }
@@ -1018,15 +1012,10 @@ html, body {
 }
 .theme-swatch-dot {
   width: 100%; aspect-ratio: 1;
-  border-radius: 50%;
-  border: 3px solid transparent;
+  border-radius: 10px;
+  border: none;
   position: relative;
   overflow: hidden;
-  transition: border-color 200ms var(--ease-mag), box-shadow 200ms var(--ease-mag);
-}
-.theme-swatch.active .theme-swatch-dot {
-  border-color: rgba(var(--ui-rgb),0.7);
-  box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.35), 0 0 16px rgba(var(--accent-rgb),0.2);
 }
 .theme-swatch-name {
   font-family: var(--font-m);
@@ -1038,7 +1027,7 @@ html, body {
   transition: color 200ms var(--ease-mag);
 }
 .theme-swatch.active .theme-swatch-name {
-  color: rgba(var(--accent-rgb),0.7);
+  color: rgba(var(--ui-rgb),0.9);
 }
 .theme-swatch-lock {
   position: absolute;
@@ -1064,13 +1053,40 @@ html, body {
   opacity: 0.5;
 }
 
+/* ── Wireframe Mode ── */
+.wireframe-mode body { background: #000; }
+.wireframe-mode .app { background: transparent; }
+.wireframe-mode .topbar { background: transparent; border-bottom: 1px solid #C8F400; }
+.wireframe-mode .conn-dot { background: #C8F400; }
+.wireframe-mode .topbar-nav-btn { background: transparent; border: 1px solid #C8F400; }
+.wireframe-mode .nav-btn { background: transparent; border: 1px solid #C8F400; opacity: 0.4; }
+.wireframe-mode .nav-btn.active { opacity: 1; }
+.wireframe-mode .nav-btn svg { stroke: #C8F400; }
+.wireframe-mode .trackpad-surface { background: transparent; border: 1px solid #C8F400; }
+.wireframe-mode .trackpad-surface::before { background-image: none; }
+.wireframe-mode .trackpad-surface::after { background-image: none; }
+.wireframe-mode .trackpad-btn { background: transparent; border: 1px solid #C8F400; color: #C8F400; }
+.wireframe-mode .trackpad-hint { color: #C8F400; opacity: 0.5; }
+.wireframe-mode .media-now { background: transparent; border: 1px solid #C8F400; }
+.wireframe-mode .media-btn { background: transparent; border: 1px solid #C8F400; }
+.wireframe-mode .media-btn svg { stroke: #C8F400; }
+.wireframe-mode .media-btn-play { background: transparent; }
+.wireframe-mode .media-btn-play svg { stroke: #C8F400; }
+.wireframe-mode .media-action { background: transparent; border: 1px solid #C8F400; color: #C8F400; }
+.wireframe-mode .media-action.highlight { background: #C8F400; color: #000; }
+.wireframe-mode .media-progress-track { background: transparent; border: 1px solid #C8F400; }
+.wireframe-mode .media-progress-fill { background: #C8F400; }
+.wireframe-mode .setting-row { background: transparent; border: 1px solid #C8F400; }
+.wireframe-mode .setting-toggle { background: transparent; border: 1px solid #C8F400; }
+.wireframe-mode .setting-toggle.on::after { background: #C8F400; opacity: 1; }
+.wireframe-mode .theme-swatch-dot { box-shadow: 0 0 0 1px #C8F400; }
+
 /* ── Tab Actions ── */
 .tab-reload {
   width: 36px; height: 36px;
   border: none;
   border-radius: 50%;
-  background: rgba(var(--ui-rgb),0.04);
-  border: 1px solid rgba(var(--ui-rgb),0.06);
+  background: var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1314,8 +1330,8 @@ html, body {
   gap: 8px;
 }
 .sticker-editor-cancel {
-  background: rgba(var(--ui-rgb),0.04);
-  border: 1px solid rgba(var(--ui-rgb),0.08);
+  background: var(--ink);
+  border: none;
   border-radius: 999px;
   padding: 8px 16px;
   font-family: var(--font-b);
@@ -1352,8 +1368,8 @@ html, body {
 .sticker-preview {
   width: 100%;
   position: relative;
-  background: rgba(var(--ui-rgb),0.04);
-  border: 1px solid rgba(var(--ui-rgb),0.08);
+  background: var(--ink);
+  border: none;
   border-radius: 12px;
   overflow: hidden;
 }
@@ -1414,8 +1430,8 @@ html, body {
 
 /* Bottom panel: gallery + controls */
 .sticker-editor-panel {
-  background: rgba(var(--ui-rgb),0.02);
-  border-top: 1px solid rgba(var(--ui-rgb),0.06);
+  background: var(--ink);
+  border-top: none;
   padding: 16px;
 }
 
@@ -1474,8 +1490,8 @@ html, body {
 .sticker-gallery-item {
   width: 64px; height: 64px;
   flex-shrink: 0;
-  background: rgba(var(--ui-rgb),0.04);
-  border: 1px solid rgba(var(--ui-rgb),0.06);
+  background: var(--ink);
+  border: none;
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -1510,14 +1526,14 @@ html, body {
   pointer-events: auto;
 }
 .sticker-ctrl-btn {
-  height: 36px;
-  padding: 0 14px;
-  background: rgba(var(--ui-rgb),0.04);
-  border: 1px solid rgba(var(--ui-rgb),0.06);
+  height: 46px;
+  padding: 0 24px;
+  background: var(--ink);
+  border: none;
   border-radius: 999px;
   font-family: var(--font-b);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 400;
   color: rgba(var(--ui-rgb),0.5);
   cursor: pointer;
   display: flex;
@@ -1869,6 +1885,7 @@ html, body {
   var trackpadIdleTimer = null;
   var cursorSize = 16;
   var currentThemeId = 'dark';
+  var invertedState = {};
   var kbMode = 'input'; // 'input' = remote field, 'search' = new tab search
   var kbFocusTimer = null;
 
@@ -2775,6 +2792,11 @@ html, body {
     return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
   }
 
+  function hexToRgbStr(hex) {
+    var h = hex.replace('#', '');
+    return parseInt(h.substring(0, 2), 16) + ',' + parseInt(h.substring(2, 4), 16) + ',' + parseInt(h.substring(4, 6), 16);
+  }
+
   function getThemeById(id) {
     for (var i = 0; i < THEMES.length; i++) {
       if (THEMES[i].id === id) return THEMES[i];
@@ -2788,6 +2810,12 @@ html, body {
 
     var isFirstLoad = currentThemeId === themeId && !document.documentElement.style.getPropertyValue('--void');
     currentThemeId = themeId;
+
+    // Resolve inversion: swap void ↔ ink when inverted
+    var inv = invertedState[themeId];
+    var voidHex = inv ? theme.inkHex : theme.voidHex;
+    var inkHex = inv ? theme.voidHex : theme.inkHex;
+    var voidRgb = inv ? hexToRgbStr(theme.inkHex) : theme.voidRgb;
 
     var parts = theme.accent.split(',');
     var r = parseInt(parts[0], 10);
@@ -2805,17 +2833,22 @@ html, body {
     var overlay = $('#theme-fade-overlay');
     var root = document.documentElement;
 
-    if (isFirstLoad) {
-      // First load: apply instantly, no animation
-      root.style.setProperty('--void', theme.voidHex);
-      root.style.setProperty('--void-rgb', theme.voidRgb);
-      root.style.setProperty('--ink', theme.inkHex);
+    // Wireframe mode toggle
+    if (themeId === 'wireframe') {
+      root.classList.add('wireframe-mode');
+    } else {
+      root.classList.remove('wireframe-mode');
+    }
+
+    function setVars() {
+      root.style.setProperty('--void', voidHex);
+      root.style.setProperty('--void-rgb', voidRgb);
+      root.style.setProperty('--ink', inkHex);
       root.style.setProperty('--accent', accentHex);
       root.style.setProperty('--accent-rgb', theme.accent);
       root.style.setProperty('--accent-light', accentLight);
       root.style.setProperty('--ui-rgb', theme.ui);
 
-      // Set primary color for settings button
       var pH = theme.primaryHex.replace('#', '');
       var pR = parseInt(pH.substring(0, 2), 16);
       var pG = parseInt(pH.substring(2, 4), 16);
@@ -2824,42 +2857,23 @@ html, body {
       root.style.setProperty('--primary', theme.primaryHex);
       root.style.setProperty('--primary-rgb', pR + ',' + pG + ',' + pB);
       root.style.setProperty('--primary-on', pLum > 0.5 ? '0,0,0' : '255,255,255');
+    }
+
+    if (isFirstLoad) {
+      setVars();
     } else {
-      // Cross-fade: capture old void color, show overlay, swap theme, dissolve
       var oldVoid = getComputedStyle(root).getPropertyValue('--void').trim() || '#0A0B10';
       overlay.style.background = oldVoid;
       overlay.classList.add('active');
-
-      // Enable per-element transitions
       app.classList.add('theme-transitioning');
 
-      // Apply new theme after a single frame so overlay is visible first
       requestAnimationFrame(function () {
-        root.style.setProperty('--void', theme.voidHex);
-        root.style.setProperty('--void-rgb', theme.voidRgb);
-        root.style.setProperty('--ink', theme.inkHex);
-        root.style.setProperty('--accent', accentHex);
-        root.style.setProperty('--accent-rgb', theme.accent);
-        root.style.setProperty('--accent-light', accentLight);
-        root.style.setProperty('--ui-rgb', theme.ui);
-
-        // Set primary color for settings button
-        var pH = theme.primaryHex.replace('#', '');
-        var pR = parseInt(pH.substring(0, 2), 16);
-        var pG = parseInt(pH.substring(2, 4), 16);
-        var pB = parseInt(pH.substring(4, 6), 16);
-        var pLum = (0.299 * pR + 0.587 * pG + 0.114 * pB) / 255;
-        root.style.setProperty('--primary', theme.primaryHex);
-        root.style.setProperty('--primary-rgb', pR + ',' + pG + ',' + pB);
-        root.style.setProperty('--primary-on', pLum > 0.5 ? '0,0,0' : '255,255,255');
-
-        // Begin dissolving the overlay
+        setVars();
         requestAnimationFrame(function () {
           overlay.classList.remove('active');
         });
       });
 
-      // Cleanup after transition
       setTimeout(function () {
         app.classList.remove('theme-transitioning');
       }, 650);
@@ -2867,14 +2881,17 @@ html, body {
 
     // Update meta theme-color for mobile browser chrome
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', theme.voidHex);
+    if (meta) meta.setAttribute('content', voidHex);
 
     // Send cursor + theme to extension
     sendCursorSettings();
     sendThemeToExtension(theme);
 
-    // Persist selection
-    try { localStorage.setItem('couchlock-theme', themeId); } catch (e) { /* ignore */ }
+    // Persist selection + inversion state
+    try {
+      localStorage.setItem('couchlock-theme', themeId);
+      localStorage.setItem('couchlock-theme-inverted', JSON.stringify(invertedState));
+    } catch (e) { /* ignore */ }
 
     // Update swatch active states
     updateThemeSwatchUI();
@@ -2925,6 +2942,13 @@ html, body {
 
       swatch.addEventListener('click', function () {
         if (!theme.free && !isPaid) return;
+        // Re-click active theme: toggle color inversion (swap void ↔ ink)
+        if (theme.id === currentThemeId && theme.voidHex !== theme.inkHex) {
+          invertedState[theme.id] = !invertedState[theme.id];
+        } else if (theme.id !== currentThemeId) {
+          // Switching to a new theme resets its inversion
+          invertedState[theme.id] = false;
+        }
         applyTheme(theme.id);
       });
 
@@ -2937,6 +2961,17 @@ html, body {
       var id = swatch.getAttribute('data-theme');
       var theme = getThemeById(id);
       swatch.classList.toggle('active', id === currentThemeId);
+
+      // Update swatch dot to reflect inversion state
+      if (theme) {
+        var inv = invertedState[id];
+        var dotInner = swatch.querySelector('.theme-swatch-dot > div');
+        if (dotInner) {
+          var c1 = inv ? theme.inkHex : theme.voidHex;
+          var c2 = inv ? theme.voidHex : theme.inkHex;
+          dotInner.style.background = 'linear-gradient(135deg, ' + c1 + ' 50%, ' + c2 + ' 50%)';
+        }
+      }
 
       // Show/hide lock based on premium status
       if (theme && !theme.free) {
@@ -3550,7 +3585,11 @@ html, body {
 
   // Restore saved theme before first paint
   var savedTheme = null;
-  try { savedTheme = localStorage.getItem('couchlock-theme'); } catch (e) { /* ignore */ }
+  try {
+    savedTheme = localStorage.getItem('couchlock-theme');
+    var savedInverted = localStorage.getItem('couchlock-theme-inverted');
+    if (savedInverted) invertedState = JSON.parse(savedInverted);
+  } catch (e) { /* ignore */ }
   if (savedTheme && getThemeById(savedTheme)) {
     currentThemeId = savedTheme;
   }
