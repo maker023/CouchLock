@@ -833,15 +833,29 @@ html, body {
   background: rgba(var(--accent-rgb),0.06);
   border-color: rgba(var(--accent-rgb),0.1);
 }
-.tab-pip {
-  width: 6px; height: 6px;
+.tab-close {
+  width: 28px; height: 28px;
+  border: none;
   border-radius: 50%;
-  background: rgba(var(--ui-rgb),0.06);
+  background: rgba(var(--ui-rgb),0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
   flex-shrink: 0;
+  transition: opacity 150ms var(--ease-mag);
 }
-.tab-item.active-tab .tab-pip {
-  background: var(--accent);
-  box-shadow: 0 0 8px rgba(var(--accent-rgb),0.4);
+.tab-close:active { opacity: 0.5; }
+.tab-close svg {
+  width: 14px; height: 14px;
+  stroke: rgba(var(--ui-rgb),0.2);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tab-item.active-tab .tab-close svg {
+  stroke: rgba(var(--accent-rgb),0.4);
 }
 .tab-info { flex: 1; min-width: 0; }
 .tab-title {
@@ -875,52 +889,13 @@ html, body {
   color: rgba(var(--ui-rgb),0.12);
 }
 
-/* Tab swipe-to-close */
 .tab-item-content {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
   min-height: 64px;
-  padding: 0 20px;
-  transition: transform 200ms var(--ease-mag);
-}
-.tab-item.swiping .tab-item-content {
-  transition: none;
-}
-.tab-close-reveal {
-  position: absolute;
-  right: 0; top: 0; bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 16px;
-  opacity: 0;
-  transition: opacity 200ms var(--ease-mag);
-}
-.tab-item.swiped .tab-close-reveal { opacity: 1; }
-.tab-close-btn {
-  height: 36px;
-  padding: 0 16px;
-  border: none;
-  border-radius: 999px;
-  font-family: var(--font-d);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 150ms var(--ease-mag);
-}
-.tab-close-btn:active { opacity: 0.7; }
-.tab-close-confirm {
-  background: rgba(224,79,95,0.15);
-  border: 1px solid rgba(224,79,95,0.25);
-  color: rgba(224,79,95,0.8);
-}
-.tab-close-cancel {
-  background: rgba(var(--ui-rgb),0.04);
-  border: 1px solid rgba(var(--ui-rgb),0.08);
-  color: rgba(var(--ui-rgb),0.35);
+  padding: 0 16px 0 20px;
 }
 
 /* ═══════════════════════════════════════════
@@ -1139,7 +1114,7 @@ html, body {
   justify-content: center;
   gap: 8px;
   width: 100%;
-  height: 48px;
+  min-height: 64px;
   margin-top: 24px;
   background: rgba(224,79,95,0.08);
   border: 1px solid rgba(224,79,95,0.15);
@@ -2716,12 +2691,30 @@ html, body {
         var el = document.createElement('div');
         el.className = 'tab-item' + (tab.active ? ' active-tab' : '');
 
-        // Swipeable content wrapper
         var content = document.createElement('div');
         content.className = 'tab-item-content';
-        content.innerHTML = '<div class="tab-pip"></div><div class="tab-info"><div class="tab-title">' +
-          escapeHTML(tab.title || 'Untitled') + '</div><div class="tab-url">' +
-          escapeHTML(tab.url || '') + '</div></div>';
+
+        // Close button (left of title)
+        var closeBtn = document.createElement('button');
+        closeBtn.className = 'tab-close';
+        closeBtn.setAttribute('aria-label', 'Close tab');
+        closeBtn.innerHTML = '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+        closeBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          send({ type: 'tab_close', tabId: tab.id });
+          el.style.opacity = '0';
+          el.style.maxHeight = '0';
+          el.style.overflow = 'hidden';
+          el.style.transition = 'opacity 200ms, max-height 200ms';
+        });
+        content.appendChild(closeBtn);
+
+        // Tab info
+        var info = document.createElement('div');
+        info.className = 'tab-info';
+        info.innerHTML = '<div class="tab-title">' + escapeHTML(tab.title || 'Untitled') +
+          '</div><div class="tab-url">' + escapeHTML(tab.url || '') + '</div>';
+        content.appendChild(info);
 
         // Reload button
         var reloadBtn = document.createElement('button');
@@ -2735,92 +2728,9 @@ html, body {
         content.appendChild(reloadBtn);
         el.appendChild(content);
 
-        // Close reveal (shown behind swipe)
-        var reveal = document.createElement('div');
-        reveal.className = 'tab-close-reveal';
-        var closeBtn = document.createElement('button');
-        closeBtn.className = 'tab-close-btn tab-close-confirm';
-        closeBtn.textContent = 'Close';
-        closeBtn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          send({ type: 'tab_close', tabId: tab.id });
-          el.style.opacity = '0';
-          el.style.maxHeight = '0';
-          el.style.overflow = 'hidden';
-          el.style.transition = 'opacity 200ms, max-height 200ms';
-          setTimeout(function () { send({ type: 'tab_list' }); }, 300);
+        el.addEventListener('click', function () {
+          send({ type: 'tab_switch', tabId: tab.id });
         });
-        var cancelBtn = document.createElement('button');
-        cancelBtn.className = 'tab-close-btn tab-close-cancel';
-        cancelBtn.textContent = 'Cancel';
-        cancelBtn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          el.classList.remove('swiped');
-          content.style.transform = '';
-        });
-        reveal.appendChild(closeBtn);
-        reveal.appendChild(cancelBtn);
-        el.appendChild(reveal);
-
-        // Swipe gesture
-        (function (item, contentEl) {
-          var startX = 0;
-          var startY = 0;
-          var swiping = false;
-          var didSwipe = false;
-          var dx = 0;
-
-          contentEl.addEventListener('touchstart', function (e) {
-            if (item.classList.contains('swiped')) return;
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-            swiping = false;
-            didSwipe = false;
-            dx = 0;
-          });
-
-          contentEl.addEventListener('touchmove', function (e) {
-            if (item.classList.contains('swiped')) return;
-            var cx = e.touches[0].clientX;
-            var cy = e.touches[0].clientY;
-            dx = cx - startX;
-            var dy = cy - startY;
-
-            // Only swipe left; ignore right and vertical scrolls
-            if (!swiping && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) && dx < 0) {
-              swiping = true;
-              item.classList.add('swiping');
-            }
-
-            if (swiping) {
-              e.preventDefault();
-              var offset = Math.min(0, dx);
-              contentEl.style.transform = 'translateX(' + offset + 'px)';
-            }
-          }, { passive: false });
-
-          contentEl.addEventListener('touchend', function () {
-            if (item.classList.contains('swiped')) return;
-            item.classList.remove('swiping');
-
-            if (swiping && dx < -80) {
-              // Threshold met — reveal close buttons
-              contentEl.style.transform = 'translateX(-120px)';
-              item.classList.add('swiped');
-              didSwipe = true;
-            } else {
-              contentEl.style.transform = '';
-              didSwipe = swiping;
-            }
-            swiping = false;
-          });
-
-          // Prevent click from firing after swipe gesture
-          item.addEventListener('click', function () {
-            if (didSwipe || item.classList.contains('swiped')) return;
-            send({ type: 'tab_switch', tabId: tab.id });
-          });
-        })(el, content);
         list.appendChild(el);
       });
     }
