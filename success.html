@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CouchLock — You're In</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --void: #0A0B10;
+  --void-rgb: 10,11,16;
+  --ink: #0D0F1C;
+  --ink-rgb: 13,15,28;
+  --accent: #4F52E0;
+  --accent-rgb: 79,82,224;
+  --accent-light: #6366F1;
+  --teal: #16A37F;
+  --teal-rgb: 22,163,127;
+  --font-d: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-b: 'DM Sans', system-ui, sans-serif;
+  --font-m: 'DM Mono', monospace;
+  --ease-mag: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-smooth: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+body {
+  background: var(--void);
+  font-family: var(--font-b);
+  color: rgba(255,255,255,0.9);
+  overflow-x: hidden;
+}
+
+/* ═══════════════════════════════════════════
+   SHARED
+═══════════════════════════════════════════ */
+.container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 56px;
+}
+@media (max-width: 768px) {
+  .container { padding: 0 24px; }
+}
+
+.eyebrow {
+  font-family: var(--font-m);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(var(--accent-rgb),0.5);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.eyebrow::before {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background: rgba(var(--accent-rgb),0.3);
+}
+
+.section {
+  padding: 140px 0;
+  position: relative;
+}
+.section + .section {
+  border-top: 1px solid rgba(255,255,255,0.03);
+}
+
+.section-title {
+  font-family: var(--font-d);
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 800;
+  letter-spacing: -2px;
+  line-height: 1.1;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 16px;
+}
+
+.section-sub {
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.25);
+  line-height: 1.8;
+  max-width: 520px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-m);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 5px 14px;
+}
+.tag-ghost {
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.25);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.tag-accent {
+  background: rgba(var(--accent-rgb),0.1);
+  color: rgba(var(--accent-rgb),0.7);
+  border: 1px solid rgba(var(--accent-rgb),0.15);
+}
+.tag-teal {
+  background: rgba(var(--teal-rgb),0.1);
+  color: rgba(var(--teal-rgb),0.7);
+  border: 1px solid rgba(var(--teal-rgb),0.15);
+}
+
+/* ═══════════════════════════════════════════
+   01 — HERO
+═══════════════════════════════════════════ */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 50% 40% at 50% 45%, rgba(var(--accent-rgb),0.08) 0%, transparent 70%);
+}
+.hero-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  padding: 0 40px;
+  max-width: 900px;
+}
+
+/* Heartbeat orb */
+.hero-orb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: heartbeat 3.2s var(--ease-smooth) infinite;
+}
+@keyframes heartbeat {
+  0%   { box-shadow: 0 0 20px rgba(var(--accent-rgb),0.15), 0 0 60px rgba(var(--accent-rgb),0.06); }
+  12%  { box-shadow: 0 0 40px rgba(var(--accent-rgb),0.5), 0 0 100px rgba(var(--accent-rgb),0.2); }
+  18%  { box-shadow: 0 0 28px rgba(var(--accent-rgb),0.25), 0 0 70px rgba(var(--accent-rgb),0.1); }
+  28%  { box-shadow: 0 0 36px rgba(var(--accent-rgb),0.4), 0 0 90px rgba(var(--accent-rgb),0.15); }
+  45%  { box-shadow: 0 0 20px rgba(var(--accent-rgb),0.15), 0 0 60px rgba(var(--accent-rgb),0.06); }
+  100% { box-shadow: 0 0 16px rgba(var(--accent-rgb),0.1), 0 0 50px rgba(var(--accent-rgb),0.04); }
+}
+
+.hero-title {
+  font-family: var(--font-d);
+  font-size: clamp(64px, 10vw, 124px);
+  font-weight: 800;
+  letter-spacing: -4px;
+  line-height: 0.95;
+  color: rgba(255,255,255,0.9);
+}
+.hero-title span {
+  color: var(--accent);
+}
+
+.hero-sub {
+  font-size: 18px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.2);
+  line-height: 1.7;
+  max-width: 460px;
+}
+.hero-sub strong {
+  color: rgba(255,255,255,0.4);
+  font-weight: 500;
+}
+
+.hero-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.hero-scroll {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.1);
+}
+.hero-scroll-line {
+  width: 1px;
+  height: 32px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.1), transparent);
+}
+
+/* ═══════════════════════════════════════════
+   02 — HOW IT WORKS
+═══════════════════════════════════════════ */
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  margin-top: 64px;
+}
+@media (max-width: 768px) {
+  .steps-grid { grid-template-columns: 1fr; }
+}
+.step {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 24px;
+  padding: 40px 32px;
+  text-align: center;
+}
+.step-num {
+  font-family: var(--font-d);
+  font-size: 48px;
+  font-weight: 800;
+  color: rgba(var(--accent-rgb),0.12);
+  letter-spacing: -2px;
+  margin-bottom: 16px;
+}
+.step-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb),0.08);
+  border: 1px solid rgba(var(--accent-rgb),0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+.step-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke: rgba(var(--accent-rgb),0.6);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.step-title {
+  font-family: var(--font-d);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 8px;
+}
+.step-body {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.2);
+  line-height: 1.65;
+}
+
+/* ═══════════════════════════════════════════
+   03 — MODES
+═══════════════════════════════════════════ */
+.modes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+  margin-top: 64px;
+}
+@media (max-width: 768px) {
+  .modes-grid { grid-template-columns: 1fr; }
+}
+.mode-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 24px;
+  padding: 36px 32px;
+}
+.mode-card-full {
+  grid-column: 1 / -1;
+}
+.mode-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+.mode-icon svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+.mode-title {
+  font-family: var(--font-d);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: rgba(255,255,255,0.85);
+  margin-bottom: 8px;
+}
+.mode-body {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.22);
+  line-height: 1.7;
+  max-width: 480px;
+}
+.mode-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+/* ═══════════════════════════════════════════
+   04 — PERSONALISE (Theme Demo)
+═══════════════════════════════════════════ */
+.theme-demo {
+  display: flex;
+  gap: 56px;
+  align-items: center;
+  margin-top: 64px;
+}
+@media (max-width: 900px) {
+  .theme-demo { flex-direction: column; gap: 40px; }
+}
+
+/* Phone mockup */
+.phone-mock {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--dm-void, #0A0B10);
+  border: 2px solid rgba(255,255,255,0.08);
+  border-radius: 32px;
+  padding: 16px;
+  position: relative;
+  transition: background-color 500ms var(--ease-smooth), border-color 500ms var(--ease-smooth);
+}
+.phone-notch {
+  width: 80px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(var(--dm-ui, 255,255,255),0.08);
+  margin: 0 auto 14px;
+  transition: background-color 500ms var(--ease-smooth);
+}
+.phone-topbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  margin-bottom: 10px;
+}
+.phone-conn-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 6px rgba(var(--teal-rgb),0.5);
+}
+.phone-conn-text {
+  font-family: var(--font-m);
+  font-size: 7px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(var(--dm-ui, 255,255,255),0.15);
+  transition: color 500ms var(--ease-smooth);
+}
+.phone-pad {
+  background: rgba(var(--dm-ui, 255,255,255),0.04);
+  border: 1px solid rgba(var(--dm-ui, 255,255,255),0.08);
+  border-radius: 10px;
+  aspect-ratio: 1.35;
+  position: relative;
+  overflow: hidden;
+  transition: background-color 500ms var(--ease-smooth), border-color 500ms var(--ease-smooth);
+}
+.phone-pad-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(var(--dm-ui, 255,255,255),0.12) 1px, transparent 1px);
+  background-size: 12px 12px;
+  pointer-events: none;
+  transition: background-image 500ms var(--ease-smooth);
+}
+.phone-pad-sticker {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  opacity: 0.7;
+}
+.phone-pad-sticker-1 {
+  top: 18%;
+  left: 12%;
+  transform: rotate(-8deg);
+}
+.phone-pad-sticker-2 {
+  bottom: 20%;
+  right: 14%;
+  transform: rotate(5deg);
+}
+.phone-buttons {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.phone-btn {
+  flex: 1;
+  height: 28px;
+  background: rgba(var(--dm-ui, 255,255,255),0.04);
+  border: 1px solid rgba(var(--dm-ui, 255,255,255),0.06);
+  border-radius: 8px;
+  font-family: var(--font-d);
+  font-size: 8px;
+  font-weight: 700;
+  color: rgba(var(--dm-ui, 255,255,255),0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 500ms var(--ease-smooth), border-color 500ms var(--ease-smooth), color 500ms var(--ease-smooth);
+}
+.phone-nav {
+  display: flex;
+  gap: 4px;
+  margin-top: 12px;
+}
+.phone-nav-btn {
+  flex: 1;
+  aspect-ratio: 1;
+  background: rgba(var(--dm-ui, 255,255,255),0.03);
+  border: 1px solid rgba(var(--dm-ui, 255,255,255),0.06);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 500ms var(--ease-smooth), border-color 500ms var(--ease-smooth);
+}
+.phone-nav-btn svg {
+  width: 12px;
+  height: 12px;
+  stroke: rgba(var(--dm-ui, 255,255,255),0.2);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 500ms var(--ease-smooth);
+}
+.phone-nav-btn.active-nav {
+  background: rgba(var(--dm-accent-rgb, 79,82,224),0.12);
+  border-color: rgba(var(--dm-accent-rgb, 79,82,224),0.25);
+}
+.phone-nav-btn.active-nav svg {
+  stroke: var(--dm-accent, #4F52E0);
+}
+.phone-nav-btn.settings-nav {
+  background: rgba(var(--dm-ui, 255,255,255),0.1);
+  border-color: rgba(var(--dm-ui, 255,255,255),0.1);
+}
+.phone-nav-btn.settings-nav svg {
+  stroke: var(--dm-void, #0A0B10);
+}
+
+/* Theme picker */
+.theme-picker {
+  flex: 1;
+}
+.theme-picker-title {
+  font-family: var(--font-d);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 8px;
+}
+.theme-picker-sub {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.2);
+  line-height: 1.65;
+  margin-bottom: 28px;
+  max-width: 400px;
+}
+.theme-swatches-demo {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px 12px;
+}
+@media (max-width: 500px) {
+  .theme-swatches-demo { grid-template-columns: repeat(3, 1fr); }
+}
+.theme-sw {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.theme-sw:hover { opacity: 0.8; }
+.theme-sw-dot {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+  border: 3px solid transparent;
+  transition: border-color 200ms var(--ease-mag), box-shadow 200ms var(--ease-mag);
+}
+.theme-sw.active .theme-sw-dot {
+  border-color: rgba(255,255,255,0.6);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.3), 0 0 12px rgba(var(--accent-rgb),0.15);
+}
+.theme-sw-inner {
+  position: absolute;
+  inset: -25%;
+  width: 150%;
+  height: 150%;
+}
+.theme-sw-name {
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.15);
+  transition: color 200ms var(--ease-mag);
+}
+.theme-sw.active .theme-sw-name {
+  color: rgba(var(--accent-rgb),0.6);
+}
+.theme-sw-rgb .theme-sw-inner {
+  background: conic-gradient(from 0deg, #00FF78, #00D4FF, #7B61FF, #FF3CAC, #FF6B2B, #FAFF00, #00FF78);
+}
+
+/* ═══════════════════════════════════════════
+   05 — PRIVACY
+═══════════════════════════════════════════ */
+.privacy-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  margin-top: 64px;
+}
+@media (max-width: 768px) {
+  .privacy-grid { grid-template-columns: 1fr; }
+}
+.privacy-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 24px;
+  padding: 36px 28px;
+}
+.privacy-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: rgba(var(--teal-rgb),0.08);
+  border: 1px solid rgba(var(--teal-rgb),0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+.privacy-icon svg {
+  width: 22px;
+  height: 22px;
+  stroke: rgba(var(--teal-rgb),0.6);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.privacy-title {
+  font-family: var(--font-d);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 8px;
+}
+.privacy-body {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.2);
+  line-height: 1.7;
+}
+.privacy-highlight {
+  margin-top: 24px;
+  background: rgba(var(--teal-rgb),0.05);
+  border: 1px solid rgba(var(--teal-rgb),0.08);
+  border-radius: 24px;
+  padding: 32px;
+}
+.privacy-highlight-label {
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(var(--teal-rgb),0.5);
+  margin-bottom: 12px;
+}
+.privacy-highlight-text {
+  font-family: var(--font-d);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: -0.3px;
+  color: rgba(255,255,255,0.6);
+}
+
+/* ═══════════════════════════════════════════
+   06 — ACCESSIBILITY
+═══════════════════════════════════════════ */
+.access-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 64px;
+}
+@media (max-width: 768px) {
+  .access-content { grid-template-columns: 1fr; }
+}
+.access-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 24px;
+  padding: 32px;
+}
+.access-card-title {
+  font-family: var(--font-d);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 8px;
+}
+.access-card-body {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.2);
+  line-height: 1.7;
+}
+
+/* ═══════════════════════════════════════════
+   07 — PRICING
+═══════════════════════════════════════════ */
+.pricing-card {
+  max-width: 480px;
+  margin: 64px auto 0;
+  background: rgba(var(--accent-rgb),0.05);
+  border: 1px solid rgba(var(--accent-rgb),0.1);
+  border-radius: 32px;
+  padding: 48px 40px;
+  text-align: center;
+}
+.pricing-amount {
+  font-family: var(--font-d);
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: -2px;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 4px;
+}
+.pricing-label {
+  font-family: var(--font-m);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(var(--accent-rgb),0.5);
+  margin-bottom: 24px;
+}
+.pricing-perks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 32px;
+}
+.pricing-perk {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.35);
+  text-align: left;
+}
+.pricing-perk-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+  flex-shrink: 0;
+}
+.pricing-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 48px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  font-family: var(--font-d);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  cursor: pointer;
+  box-shadow: 0 0 32px rgba(var(--accent-rgb),0.25);
+  transition: opacity 150ms var(--ease-mag);
+}
+.pricing-btn:hover { opacity: 0.85; }
+
+/* ═══════════════════════════════════════════
+   08 — FOOTER
+═══════════════════════════════════════════ */
+.footer {
+  padding: 60px 0;
+  border-top: 1px solid rgba(255,255,255,0.03);
+  text-align: center;
+}
+.footer-brand {
+  font-family: var(--font-d);
+  font-size: 16px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.2);
+  margin-bottom: 8px;
+}
+.footer-brand span { color: rgba(var(--accent-rgb),0.3); }
+.footer-sub {
+  font-family: var(--font-m);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.08);
+}
+.footer-legal {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.08);
+  margin-top: 16px;
+  line-height: 1.6;
+}
+
+/* ═══════════════════════════════════════════
+   COMPATIBLE-WITH
+═══════════════════════════════════════════ */
+.compat {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 24px;
+}
+</style>
+</head>
+<body>
+
+<!-- ══ HERO ══ -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-inner">
+    <div class="hero-orb"></div>
+    <div class="hero-title">You now have<br>full <span>control.</span></div>
+    <div class="hero-sub">
+      Your phone is now your trackpad, your air mouse, your media remote, and your keyboard. <strong>All over your local network. Nothing else.</strong>
+    </div>
+    <div class="hero-tags">
+      <span class="tag tag-ghost">No cloud</span>
+      <span class="tag tag-ghost">No accounts</span>
+      <span class="tag tag-ghost">No subscriptions</span>
+      <span class="tag tag-ghost">Local WiFi only</span>
+    </div>
+  </div>
+  <div class="hero-scroll">
+    <div class="hero-scroll-line"></div>
+    Explore
+  </div>
+</section>
+
+<!-- ══ HOW IT WORKS ══ -->
+<section class="section" id="how">
+  <div class="container">
+    <div class="eyebrow">How it works</div>
+    <div class="section-title">Three steps. That's it.</div>
+    <div class="section-sub">No downloads, no sign-ups, no app stores. You're already halfway there.</div>
+
+    <div class="steps-grid">
+      <div class="step">
+        <div class="step-icon">
+          <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="3"/><path d="M8 2v20M2 8h20M2 16h20M16 2v20"/></svg>
+        </div>
+        <div class="step-title">Scan the QR</div>
+        <div class="step-body">Open the CouchLock extension on your laptop. A QR code appears. Point your phone camera at it.</div>
+      </div>
+      <div class="step">
+        <div class="step-icon">
+          <svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+        </div>
+        <div class="step-title">Instant connection</div>
+        <div class="step-body">Your phone and laptop connect directly over your WiFi. No servers. No middlemen. Under 3 seconds.</div>
+      </div>
+      <div class="step">
+        <div class="step-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <div class="step-title">Take control</div>
+        <div class="step-body">Slide your thumb to move the cursor. Tap to click. Swipe through tabs. Skip intros. You're in.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ MODES ══ -->
+<section class="section" id="modes">
+  <div class="container">
+    <div class="eyebrow">What you can do</div>
+    <div class="section-title">Five modes. One remote.</div>
+    <div class="section-sub">Every way you interact with your laptop, handled from the couch.</div>
+
+    <div class="modes-grid">
+      <div class="mode-card">
+        <div class="mode-icon" style="background:rgba(var(--teal-rgb),0.1);">
+          <svg viewBox="0 0 24 24" stroke="var(--teal)"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <div class="mode-title">Trackpad</div>
+        <div class="mode-body">Your phone screen becomes a precision trackpad. Slide to move the cursor. Tap to click. Two-finger scroll. Double-tap for double-click. Three-finger swipe for reels and shorts.</div>
+        <div class="mode-tags">
+          <span class="tag tag-teal">Left & right click</span>
+          <span class="tag tag-teal">Smart acceleration</span>
+          <span class="tag tag-teal">Scroll</span>
+        </div>
+      </div>
+
+      <div class="mode-card">
+        <div class="mode-icon" style="background:rgba(var(--accent-rgb),0.1);">
+          <svg viewBox="0 0 24 24" stroke="var(--accent)"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <div class="mode-title">Air Mouse</div>
+        <div class="mode-body">Tilt your phone to move the cursor — like a Wii remote. The gyroscope translates your wrist movements into precise cursor control. Double-tap to recalibrate when it drifts.</div>
+        <div class="mode-tags">
+          <span class="tag tag-accent">Gyroscope input</span>
+          <span class="tag tag-accent">Adjustable sensitivity</span>
+        </div>
+      </div>
+
+      <div class="mode-card">
+        <div class="mode-icon" style="background:rgba(217,119,6,0.1);">
+          <svg viewBox="0 0 24 24" stroke="#D97706"><polygon points="8,5 20,12 8,19"/></svg>
+        </div>
+        <div class="mode-title">Media Remote</div>
+        <div class="mode-body">Play, pause, seek, skip intros, jump to the next episode — all from your phone. Works with Netflix, HBO Max, Disney+, Hulu, YouTube, and any site with a video player.</div>
+        <div class="mode-tags">
+          <span class="tag tag-ghost">Play / Pause</span>
+          <span class="tag tag-ghost">Skip Intro</span>
+          <span class="tag tag-ghost">Volume</span>
+          <span class="tag tag-ghost">Scrub</span>
+        </div>
+      </div>
+
+      <div class="mode-card">
+        <div class="mode-icon" style="background:rgba(224,79,95,0.1);">
+          <svg viewBox="0 0 24 24" stroke="#E04F5F"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+        </div>
+        <div class="mode-title">Tab Switcher</div>
+        <div class="mode-body">See every open tab on your phone. Tap to jump. Swipe left to close. Open new tabs and search the web — all without reaching for the laptop.</div>
+        <div class="mode-tags">
+          <span class="tag tag-ghost">Switch tabs</span>
+          <span class="tag tag-ghost">Close tabs</span>
+          <span class="tag tag-ghost">New tab + search</span>
+        </div>
+      </div>
+
+      <div class="mode-card mode-card-full">
+        <div style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap;">
+          <div style="flex:1;min-width:240px;">
+            <div class="mode-icon" style="background:rgba(255,255,255,0.05);">
+              <svg viewBox="0 0 24 24" stroke="rgba(255,255,255,0.4)"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 20h12"/></svg>
+            </div>
+            <div class="mode-title">Keyboard</div>
+            <div class="mode-body">Type on your phone, it appears on your laptop. Search bars, login fields, URLs — anywhere there's a text input, your phone keyboard is ready. The keyboard slides up automatically when a field is focused on the laptop.</div>
+          </div>
+          <div style="flex:1;min-width:240px;">
+            <div class="mode-icon" style="background:rgba(var(--accent-rgb),0.08);">
+              <svg viewBox="0 0 24 24" stroke="var(--accent)"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            </div>
+            <div class="mode-title">Browser Navigation</div>
+            <div class="mode-body">Back, forward, reload — the navigation buttons you use every day, now accessible from the trackpad view. Browse comfortably without touching your laptop once.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ PERSONALISE ══ -->
+<section class="section" id="personalise">
+  <div class="container">
+    <div class="eyebrow">Make it yours</div>
+    <div class="section-title">12 themes. Stickers. Your remote.</div>
+    <div class="section-sub">From dark minimalism to gamer RGB — pick a vibe and make it feel like yours.</div>
+
+    <div class="theme-demo">
+      <!-- Phone mockup -->
+      <div class="phone-mock" id="phone-mock">
+        <div class="phone-notch"></div>
+        <div class="phone-topbar">
+          <div class="phone-conn-dot"></div>
+          <div class="phone-conn-text">Connected</div>
+        </div>
+        <div class="phone-pad" id="phone-pad">
+          <div class="phone-pad-grid" id="phone-pad-grid"></div>
+          <div class="phone-pad-sticker phone-pad-sticker-1">
+            <img src="stickers/smile.png" alt="" style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(1px 1px 2px rgba(0,0,0,0.5));" onerror="this.parentElement.style.display='none'">
+          </div>
+          <div class="phone-pad-sticker phone-pad-sticker-2">
+            <img src="stickers/croissant.png" alt="" style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(1px 1px 2px rgba(0,0,0,0.5));" onerror="this.parentElement.style.display='none'">
+          </div>
+        </div>
+        <div class="phone-buttons">
+          <div class="phone-btn">Left</div>
+          <div class="phone-btn">Right</div>
+        </div>
+        <div class="phone-nav">
+          <div class="phone-nav-btn active-nav">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div class="phone-nav-btn">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div class="phone-nav-btn settings-nav">
+            <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div class="phone-nav-btn">
+            <svg viewBox="0 0 24 24"><polygon points="8,5 20,12 8,19"/></svg>
+          </div>
+          <div class="phone-nav-btn">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Theme picker -->
+      <div class="theme-picker">
+        <div class="theme-picker-title">Pick a theme</div>
+        <div class="theme-picker-sub">Each theme changes everything — background, accent, borders, glow. The trackpad, buttons, and nav all follow. Tap one to see it live.</div>
+        <div class="theme-swatches-demo" id="theme-swatches-demo">
+          <!-- JS rendered -->
+        </div>
+        <div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap;">
+          <span class="tag tag-ghost">Sticker customisation</span>
+          <span class="tag tag-ghost">Drag & resize</span>
+          <span class="tag tag-ghost">Clipboard paste</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ PRIVACY ══ -->
+<section class="section" id="privacy">
+  <div class="container">
+    <div class="eyebrow">Privacy</div>
+    <div class="section-title">Nothing leaves your network.</div>
+    <div class="section-sub">That's not a tagline. It's the architecture. There is no server to leak your data because there is no server.</div>
+
+    <div class="privacy-grid">
+      <div class="privacy-card">
+        <div class="privacy-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="privacy-title">Zero cloud</div>
+        <div class="privacy-body">Your phone talks directly to your laptop over WiFi. No internet server sees, stores, or relays your input. The connection never leaves your home network.</div>
+      </div>
+      <div class="privacy-card">
+        <div class="privacy-icon">
+          <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="privacy-title">Zero accounts</div>
+        <div class="privacy-body">No sign-up. No email. No password. No profile. Open CouchLock, scan the QR, use it. That's all. There is literally nowhere for your data to go.</div>
+      </div>
+      <div class="privacy-card">
+        <div class="privacy-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div class="privacy-title">Encrypted session</div>
+        <div class="privacy-body">Every connection uses a unique 32-byte token generated fresh. It's shared once via QR code and never transmitted again. Old sessions are dead sessions.</div>
+      </div>
+    </div>
+
+    <div class="privacy-highlight">
+      <div class="privacy-highlight-label">How we interact with streaming platforms</div>
+      <div class="privacy-highlight-text">CouchLock presses the same buttons you would press yourself — play, pause, skip, seek. It operates the platform's own UI from a distance. We don't block ads. We don't bypass anything. We don't modify content. We don't touch your streaming account. We're a remote control, not a hack.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ACCESSIBILITY ══ -->
+<section class="section" id="access">
+  <div class="container">
+    <div class="eyebrow">Accessibility</div>
+    <div class="section-title">Built for everyone. Genuinely.</div>
+    <div class="section-sub">CouchLock isn't just convenient — for some people, it removes a real barrier between them and their computer.</div>
+
+    <div class="access-content">
+      <div class="access-card">
+        <div class="access-card-title">Limited mobility</div>
+        <div class="access-card-body">If reaching a laptop across the room is physically difficult, CouchLock puts full control in the hand you're already holding your phone with. Trackpad, keyboard, media — all from your position.</div>
+      </div>
+      <div class="access-card">
+        <div class="access-card-title">Air Mouse for motor control</div>
+        <div class="access-card-body">The gyroscope-based Air Mouse lets you move the cursor by tilting — smaller, more natural movements than a traditional trackpad or mouse. Sensitivity is fully adjustable.</div>
+      </div>
+      <div class="access-card">
+        <div class="access-card-title">Large touch targets</div>
+        <div class="access-card-body">Every button in CouchLock is designed for thumb-sized interaction. No tiny icons. No precision tapping. The entire trackpad surface is one big input area.</div>
+      </div>
+      <div class="access-card">
+        <div class="access-card-title">No setup complexity</div>
+        <div class="access-card-body">Scan a QR code. That's the entire setup. No downloads, no app stores, no account creation, no permissions dialogs. If someone can point a camera, they can use CouchLock.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ PRICING ══ -->
+<section class="section" id="pricing">
+  <div class="container">
+    <div class="eyebrow">Pricing</div>
+    <div class="section-title">One price. Everything. Forever.</div>
+    <div class="section-sub">No subscriptions. No renewals. No "premium tiers." Pay once, own it.</div>
+
+    <div class="pricing-card">
+      <div class="pricing-amount">$9</div>
+      <div class="pricing-label">One-time · All features · Yours forever</div>
+      <div class="pricing-perks">
+        <div class="pricing-perk"><div class="pricing-perk-dot"></div>Trackpad with smart acceleration & right-click</div>
+        <div class="pricing-perk"><div class="pricing-perk-dot"></div>Air Mouse with adjustable gyroscope sensitivity</div>
+        <div class="pricing-perk"><div class="pricing-perk-dot"></div>Full keyboard from your phone</div>
+        <div class="pricing-perk"><div class="pricing-perk-dot"></div>Media remote for Netflix, HBO Max, Disney+, Hulu, YouTube</div>
+        <div class="pricing-perk"><div class="pricing-perk-dot"></div>Tab switcher — see, switch, close, open new tabs</div>
+        <div class="pricing-perk"><div class="pricing-perk-dot"></div>12 themes including RGB gamer mode</div>
+        <div class="pricing-perk"><div class="pricing-perk-dot"></div>Trackpad stickers & clipboard paste</div>
+        <div class="pricing-perk"><div class="pricing-perk-dot"></div>Every future update, included</div>
+      </div>
+      <button class="pricing-btn">Unlock Everything</button>
+    </div>
+
+    <div class="compat">
+      <span class="tag tag-ghost">Compatible with Netflix</span>
+      <span class="tag tag-ghost">HBO Max</span>
+      <span class="tag tag-ghost">Disney+</span>
+      <span class="tag tag-ghost">Hulu</span>
+      <span class="tag tag-ghost">YouTube</span>
+      <span class="tag tag-ghost">Any video player</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FOOTER ══ -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-brand">Couch<span>Lock</span></div>
+    <div class="footer-sub">Your phone. Your remote. Every screen.</div>
+    <div class="footer-legal">CouchLock is not affiliated with Netflix, Google, Disney, Warner Bros. Discovery, or any streaming service.<br>All platform names are used for compatibility description only.</div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var THEMES = [
+    { id: 'dark',    name: 'Dark',    accent: '79,82,224',   voidHex: '#0A0B10', voidRgb: '10,11,16',    ui: '255,255,255' },
+    { id: 'light',   name: 'Light',   accent: '79,82,224',   voidHex: '#F5F4F0', voidRgb: '245,244,240', ui: '0,0,0' },
+    { id: 'arctic',  name: 'Arctic',  accent: '56,189,248',  voidHex: '#080F17', voidRgb: '8,15,23',     ui: '255,255,255' },
+    { id: 'stone',   name: 'Stone',   accent: '161,161,170', voidHex: '#F0EFEC', voidRgb: '240,239,236', ui: '28,25,23' },
+    { id: 'matcha',  name: 'Matcha',  accent: '74,222,128',  voidHex: '#0A120E', voidRgb: '10,18,14',    ui: '255,255,255' },
+    { id: 'sand',    name: 'Sand',    accent: '168,139,97',  voidHex: '#F2EDE4', voidRgb: '242,237,228', ui: '35,30,25' },
+    { id: 'rose',    name: 'Rosé',    accent: '244,114,182', voidHex: '#10090E', voidRgb: '16,9,14',     ui: '255,255,255' },
+    { id: 'ember',   name: 'Ember',   accent: '251,146,60',  voidHex: '#100C08', voidRgb: '16,12,8',     ui: '255,255,255' },
+    { id: 'kraft',   name: 'Kraft',   accent: '120,90,55',   voidHex: '#D4C4A8', voidRgb: '212,196,168', ui: '30,25,18' },
+    { id: 'forest',  name: 'Forest',  accent: '34,197,94',   voidHex: '#0B100D', voidRgb: '11,16,13',    ui: '255,255,255' },
+    { id: 'rgb',     name: 'RGB',     accent: '0,255,120',   voidHex: '#050508', voidRgb: '5,5,8',       ui: '255,255,255', rgb: true },
+    { id: 'emo',     name: 'Emo',     accent: '148,0,211',   voidHex: '#08060A', voidRgb: '8,6,10',      ui: '255,255,255', emo: true }
+  ];
+
+  var currentTheme = 'dark';
+  var rgbTimer = null;
+  var rgbIndex = 0;
+  var RGB_COLORS = [
+    { rgb: '0,255,120' },
+    { rgb: '0,212,255' },
+    { rgb: '123,97,255' },
+    { rgb: '255,60,172' },
+    { rgb: '255,107,43' },
+    { rgb: '250,255,0' }
+  ];
+
+  function getTheme(id) {
+    for (var i = 0; i < THEMES.length; i++) {
+      if (THEMES[i].id === id) return THEMES[i];
+    }
+    return THEMES[0];
+  }
+
+  function rgbToHex(r, g, b) {
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  }
+
+  function applyDemoTheme(themeId) {
+    var theme = getTheme(themeId);
+    if (!theme) return;
+    currentTheme = themeId;
+
+    // Stop any existing RGB cycle
+    if (rgbTimer) { clearInterval(rgbTimer); rgbTimer = null; }
+
+    var parts = theme.accent.split(',');
+    var r = parseInt(parts[0], 10);
+    var g = parseInt(parts[1], 10);
+    var b = parseInt(parts[2], 10);
+    var accentHex = rgbToHex(r, g, b);
+
+    var mock = document.getElementById('phone-mock');
+    var pad = document.getElementById('phone-pad');
+    var grid = document.getElementById('phone-pad-grid');
+
+    // Apply CSS custom properties scoped to the mockup
+    mock.style.setProperty('--dm-void', theme.voidHex);
+    mock.style.setProperty('--dm-void-rgb', theme.voidRgb);
+    mock.style.setProperty('--dm-accent', accentHex);
+    mock.style.setProperty('--dm-accent-rgb', theme.accent);
+    mock.style.setProperty('--dm-ui', theme.ui);
+
+    mock.style.background = theme.voidHex;
+    mock.style.borderColor = 'rgba(' + theme.ui + ',0.08)';
+
+    // Update pad
+    pad.style.background = 'rgba(' + theme.ui + ',0.04)';
+    pad.style.borderColor = 'rgba(' + theme.ui + ',0.08)';
+
+    // Grid pattern
+    if (theme.emo) {
+      grid.style.backgroundImage = 'linear-gradient(45deg, rgba(148,0,211,0.08) 25%, transparent 25%, transparent 75%, rgba(148,0,211,0.08) 75%), linear-gradient(45deg, rgba(148,0,211,0.08) 25%, transparent 25%, transparent 75%, rgba(148,0,211,0.08) 75%)';
+      grid.style.backgroundSize = '16px 16px';
+      grid.style.backgroundPosition = '0 0, 8px 8px';
+    } else {
+      grid.style.backgroundImage = 'radial-gradient(circle, rgba(' + theme.ui + ',0.12) 1px, transparent 1px)';
+      grid.style.backgroundSize = '12px 12px';
+      grid.style.backgroundPosition = '';
+    }
+
+    // Notch
+    var notch = mock.querySelector('.phone-notch');
+    if (notch) notch.style.background = 'rgba(' + theme.ui + ',0.08)';
+
+    // Conn text
+    var connText = mock.querySelector('.phone-conn-text');
+    if (connText) connText.style.color = 'rgba(' + theme.ui + ',0.15)';
+
+    // Buttons
+    var btns = mock.querySelectorAll('.phone-btn');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].style.background = 'rgba(' + theme.ui + ',0.04)';
+      btns[i].style.borderColor = 'rgba(' + theme.ui + ',0.06)';
+      btns[i].style.color = 'rgba(' + theme.ui + ',0.2)';
+    }
+
+    // Nav buttons
+    var navBtns = mock.querySelectorAll('.phone-nav-btn');
+    for (var j = 0; j < navBtns.length; j++) {
+      var btn = navBtns[j];
+      var svg = btn.querySelector('svg');
+      if (btn.classList.contains('active-nav')) {
+        btn.style.background = 'rgba(' + theme.accent + ',0.12)';
+        btn.style.borderColor = 'rgba(' + theme.accent + ',0.25)';
+        if (svg) svg.style.stroke = accentHex;
+      } else if (btn.classList.contains('settings-nav')) {
+        btn.style.background = 'rgba(' + theme.ui + ',0.1)';
+        btn.style.borderColor = 'rgba(' + theme.ui + ',0.1)';
+        if (svg) svg.style.stroke = theme.voidHex;
+      } else {
+        btn.style.background = 'rgba(' + theme.ui + ',0.03)';
+        btn.style.borderColor = 'rgba(' + theme.ui + ',0.06)';
+        if (svg) svg.style.stroke = 'rgba(' + theme.ui + ',0.2)';
+      }
+    }
+
+    // RGB cycling
+    if (theme.rgb) {
+      rgbTimer = setInterval(function () {
+        rgbIndex = (rgbIndex + 1) % RGB_COLORS.length;
+        var c = RGB_COLORS[rgbIndex];
+        var cp = c.rgb.split(',');
+        var hex = rgbToHex(parseInt(cp[0],10), parseInt(cp[1],10), parseInt(cp[2],10));
+
+        // Update active nav button
+        var activeBtn = mock.querySelector('.active-nav');
+        if (activeBtn) {
+          activeBtn.style.background = 'rgba(' + c.rgb + ',0.12)';
+          activeBtn.style.borderColor = 'rgba(' + c.rgb + ',0.25)';
+          var activeSvg = activeBtn.querySelector('svg');
+          if (activeSvg) activeSvg.style.stroke = hex;
+        }
+      }, 1400);
+    }
+
+    // Update swatch active states
+    var swatches = document.querySelectorAll('.theme-sw');
+    for (var k = 0; k < swatches.length; k++) {
+      var sw = swatches[k];
+      if (sw.getAttribute('data-theme') === themeId) {
+        sw.classList.add('active');
+      } else {
+        sw.classList.remove('active');
+      }
+    }
+  }
+
+  function buildSwatches() {
+    var container = document.getElementById('theme-swatches-demo');
+    if (!container) return;
+    container.innerHTML = '';
+
+    THEMES.forEach(function (theme) {
+      var sw = document.createElement('div');
+      sw.className = 'theme-sw' + (theme.id === currentTheme ? ' active' : '');
+      if (theme.rgb) sw.className += ' theme-sw-rgb';
+      sw.setAttribute('data-theme', theme.id);
+
+      var dot = document.createElement('div');
+      dot.className = 'theme-sw-dot';
+      var inner = document.createElement('div');
+      inner.className = 'theme-sw-inner';
+
+      if (theme.rgb) {
+        // conic gradient set via CSS class
+      } else {
+        inner.style.background = 'linear-gradient(135deg, ' + theme.voidHex + ' 50%, rgb(' + theme.accent + ') 50%)';
+      }
+      dot.appendChild(inner);
+
+      var name = document.createElement('span');
+      name.className = 'theme-sw-name';
+      name.textContent = theme.name;
+
+      sw.appendChild(dot);
+      sw.appendChild(name);
+
+      sw.addEventListener('click', function () {
+        applyDemoTheme(theme.id);
+      });
+
+      container.appendChild(sw);
+    });
+  }
+
+  buildSwatches();
+  applyDemoTheme('dark');
+})();
+</script>
+
+</body>
+</html>
