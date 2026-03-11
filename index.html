@@ -211,7 +211,7 @@ html, body {
   font-weight: 500;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: rgba(var(--ui-rgb),0.12);
+  color: rgba(var(--ui-rgb),0.6);
   position: relative;
 }
 .nav-item.active .nav-label {
@@ -926,7 +926,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 22px;
+  padding: 50px 22px;
   background: var(--ink);
   border: none;
   border-radius: 8px;
@@ -998,7 +998,7 @@ html, body {
 .theme-swatches {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 5px 0px;
+  gap: 16px;
   width: 100%;
 }
 .theme-swatch {
@@ -1079,7 +1079,7 @@ html, body {
 .wireframe-mode .setting-row { background: transparent; border: 1px solid #C8F400; }
 .wireframe-mode .setting-toggle { background: transparent; border: 1px solid #C8F400; }
 .wireframe-mode .setting-toggle.on::after { background: #C8F400; opacity: 1; }
-.wireframe-mode .theme-swatch-dot { box-shadow: 0 0 0 1px #C8F400; }
+.wireframe-mode .theme-swatch-dot { box-shadow: none; }
 
 /* ── Tab Actions ── */
 .tab-reload {
