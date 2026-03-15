@@ -4,121 +4,166 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CouchLock — You're In</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --void: #0A0B10;
-  --void-rgb: 10,11,16;
+  --void: #060608;
   --ink: #0D0F1C;
-  --ink-rgb: 13,15,28;
   --accent: #4F52E0;
   --accent-rgb: 79,82,224;
   --accent-light: #6366F1;
   --teal: #16A37F;
   --teal-rgb: 22,163,127;
+  --amber: #D97706;
+  --rose: #E04F5F;
+  --white: #F0F0F0;
+  --w90: rgba(240,240,240,0.9);
+  --w60: rgba(240,240,240,0.6);
+  --w30: rgba(240,240,240,0.3);
+  --w12: rgba(240,240,240,0.12);
+  --w06: rgba(240,240,240,0.06);
+  --w03: rgba(240,240,240,0.03);
   --font-d: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-b: 'DM Sans', system-ui, sans-serif;
   --font-m: 'DM Mono', monospace;
-  --ease-mag: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-smooth: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  scroll-behavior: smooth;
+  scrollbar-width: none;
 }
+html::-webkit-scrollbar { display: none; }
+
 body {
   background: var(--void);
   font-family: var(--font-b);
-  color: rgba(255,255,255,0.9);
+  color: var(--w90);
   overflow-x: hidden;
 }
 
-/* ═══════════════════════════════════════════
-   SHARED
-═══════════════════════════════════════════ */
-.container {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 0 56px;
-}
-@media (max-width: 768px) {
-  .container { padding: 0 24px; }
+/* ── Smooth scroll wrapper ── */
+.smooth-wrap {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  will-change: transform;
+  z-index: 5;
 }
 
-.eyebrow {
-  font-family: var(--font-m);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  color: rgba(var(--accent-rgb),0.5);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.eyebrow::before {
-  content: '';
-  width: 24px;
-  height: 1px;
-  background: rgba(var(--accent-rgb),0.3);
+/* Hero sits above canvas; everything after scene goes behind it */
+.hero { position: relative; z-index: 60; }
+.scene-spacer { position: relative; z-index: 1; }
+.below-scene { position: relative; z-index: 40; }
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .smooth-wrap { position: static !important; transform: none !important; }
+  #scene-canvas { display: none !important; }
 }
 
-.section {
-  padding: 140px 0;
-  position: relative;
-}
-.section + .section {
-  border-top: 1px solid rgba(255,255,255,0.03);
-}
-
-.section-title {
+/* ── Typography scale ── */
+.d-huge {
   font-family: var(--font-d);
-  font-size: clamp(32px, 4vw, 52px);
   font-weight: 800;
-  letter-spacing: -2px;
-  line-height: 1.1;
-  color: rgba(255,255,255,0.9);
-  margin-bottom: 16px;
+  font-size: clamp(3.2rem, 9vw, 9rem);
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  color: var(--white);
 }
 
-.section-sub {
-  font-size: 16px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.25);
-  line-height: 1.8;
-  max-width: 520px;
+.d-lg {
+  font-family: var(--font-d);
+  font-weight: 800;
+  font-size: clamp(2.4rem, 6vw, 5.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  color: var(--white);
 }
 
-.tag {
-  display: inline-flex;
-  align-items: center;
+.d-md {
+  font-family: var(--font-d);
+  font-weight: 700;
+  font-size: clamp(1.5rem, 3.5vw, 3rem);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  color: var(--white);
+}
+
+.body-lg {
+  font-family: var(--font-b);
+  font-weight: 400;
+  font-size: clamp(1rem, 1.4vw, 1.25rem);
+  line-height: 1.65;
+  color: var(--w60);
+  max-width: 38ch;
+}
+
+.label {
   font-family: var(--font-m);
-  font-size: 10px;
   font-weight: 500;
-  letter-spacing: 1.5px;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  border-radius: 999px;
-  padding: 5px 14px;
+  color: var(--w30);
 }
-.tag-ghost {
-  background: rgba(255,255,255,0.04);
-  color: rgba(255,255,255,0.25);
-  border: 1px solid rgba(255,255,255,0.06);
+
+/* ── Line reveal (JS-driven) ── */
+.line-mask { overflow: hidden; display: block; }
+.line-inner { display: block; }
+
+/* ── Layout ── */
+.pad {
+  padding-left: clamp(1.5rem, 5vw, 6rem);
+  padding-right: clamp(1.5rem, 5vw, 6rem);
 }
-.tag-accent {
-  background: rgba(var(--accent-rgb),0.1);
-  color: rgba(var(--accent-rgb),0.7);
-  border: 1px solid rgba(var(--accent-rgb),0.15);
+
+.gap {
+  padding-top: clamp(8rem, 18vh, 16rem);
+  padding-bottom: clamp(8rem, 18vh, 16rem);
 }
-.tag-teal {
-  background: rgba(var(--teal-rgb),0.1);
-  color: rgba(var(--teal-rgb),0.7);
-  border: 1px solid rgba(var(--teal-rgb),0.15);
+
+.divider {
+  width: 100%;
+  height: 1px;
+  background: var(--w06);
+}
+
+.sec-num {
+  font-family: var(--font-m);
+  font-weight: 500;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--w12);
+  margin-bottom: 3rem;
+}
+
+/* ── Grain overlay ── */
+.grain {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+}
+
+/* ── Three.js canvas ── */
+#scene-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
 }
 
 /* ═══════════════════════════════════════════
@@ -128,801 +173,812 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  justify-content: flex-end;
+  padding-bottom: clamp(4rem, 8vh, 8rem);
   position: relative;
-  overflow: hidden;
-}
-.hero-bg {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse 50% 40% at 50% 45%, rgba(var(--accent-rgb),0.08) 0%, transparent 70%);
-}
-.hero-inner {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 32px;
-  padding: 0 40px;
-  max-width: 900px;
 }
 
-/* Heartbeat orb */
-.hero-orb {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--accent);
-  animation: heartbeat 3.2s var(--ease-smooth) infinite;
-}
-@keyframes heartbeat {
-  0%   { box-shadow: 0 0 20px rgba(var(--accent-rgb),0.15), 0 0 60px rgba(var(--accent-rgb),0.06); }
-  12%  { box-shadow: 0 0 40px rgba(var(--accent-rgb),0.5), 0 0 100px rgba(var(--accent-rgb),0.2); }
-  18%  { box-shadow: 0 0 28px rgba(var(--accent-rgb),0.25), 0 0 70px rgba(var(--accent-rgb),0.1); }
-  28%  { box-shadow: 0 0 36px rgba(var(--accent-rgb),0.4), 0 0 90px rgba(var(--accent-rgb),0.15); }
-  45%  { box-shadow: 0 0 20px rgba(var(--accent-rgb),0.15), 0 0 60px rgba(var(--accent-rgb),0.06); }
-  100% { box-shadow: 0 0 16px rgba(var(--accent-rgb),0.1), 0 0 50px rgba(var(--accent-rgb),0.04); }
+.hero-word {
+  display: inline-block;
+  margin-right: 0.2em;
 }
 
-.hero-title {
-  font-family: var(--font-d);
-  font-size: clamp(64px, 10vw, 124px);
-  font-weight: 800;
-  letter-spacing: -4px;
-  line-height: 0.95;
-  color: rgba(255,255,255,0.9);
-}
-.hero-title span {
-  color: var(--accent);
-}
+.hero-word.accent-word { color: var(--accent-light); }
 
 .hero-sub {
-  font-size: 18px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.2);
-  line-height: 1.7;
-  max-width: 460px;
-}
-.hero-sub strong {
-  color: rgba(255,255,255,0.4);
-  font-weight: 500;
+  max-width: 42ch; margin-bottom: 2rem;
+  opacity: 0; transform: translateY(30px);
+  transition: opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1);
 }
 
 .hero-tags {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
+  display: flex; flex-wrap: wrap; gap: 0.75rem;
+  opacity: 0; transform: translateY(30px);
+  transition: opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1);
+}
+
+.hero-tag {
+  font-family: var(--font-m);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--w30);
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--w06);
+  border-radius: 999px;
 }
 
 .hero-scroll {
   position: absolute;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: clamp(2rem, 4vh, 4rem);
+  right: clamp(1.5rem, 5vw, 6rem);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  font-family: var(--font-m);
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.1);
+  gap: 0.75rem;
+  transition: opacity 0.3s ease;
 }
+
 .hero-scroll-line {
-  width: 1px;
-  height: 32px;
-  background: linear-gradient(to bottom, rgba(255,255,255,0.1), transparent);
+  width: 1px; height: 48px;
+  background: var(--w12);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-scroll-line::after {
+  content: '';
+  position: absolute;
+  top: -100%; left: 0;
+  width: 100%; height: 100%;
+  background: var(--accent);
+  animation: scrollPulse 2s ease infinite;
+}
+
+@keyframes scrollPulse {
+  0% { top: -100%; }
+  50% { top: 0; }
+  100% { top: 100%; }
+}
+
+.hero-scroll-label {
+  font-family: var(--font-m);
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--w12);
+  writing-mode: vertical-rl;
+}
+
+/* ═══════════════════════════════════════════
+   SCENE SPACER — tall div for 3D scroll
+═══════════════════════════════════════════ */
+.scene-spacer {
+  height: 500vh;
+  position: relative;
+}
+
+/* Scene progress label (fixed during scene) */
+.scene-label {
+  position: absolute;
+  bottom: 2rem;
+  left: clamp(1.5rem, 5vw, 6rem);
+  font-family: var(--font-m);
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--w12);
 }
 
 /* ═══════════════════════════════════════════
    02 — HOW IT WORKS
 ═══════════════════════════════════════════ */
-.steps-grid {
+.how-layout {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2px;
-  margin-top: 64px;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(2rem, 6vw, 8rem);
+  align-items: start;
 }
-@media (max-width: 768px) {
-  .steps-grid { grid-template-columns: 1fr; }
-}
+
+.how-left { position: sticky; top: 30vh; }
+
+.how-right { padding-top: 4rem; }
+
 .step {
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 24px;
-  padding: 40px 32px;
-  text-align: center;
+  padding: clamp(3rem, 6vh, 6rem) 0;
+  position: relative;
 }
-.step-num {
+
+.step + .step { border-top: 1px solid var(--w06); }
+
+.step-number {
   font-family: var(--font-d);
-  font-size: 48px;
   font-weight: 800;
-  color: rgba(var(--accent-rgb),0.12);
-  letter-spacing: -2px;
-  margin-bottom: 16px;
+  font-size: clamp(5rem, 10vw, 8rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--w03);
+  position: absolute;
+  right: 0;
+  top: clamp(2.5rem, 5vh, 5rem);
 }
-.step-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: rgba(var(--accent-rgb),0.08);
-  border: 1px solid rgba(var(--accent-rgb),0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 20px;
-}
-.step-icon svg {
-  width: 24px;
-  height: 24px;
-  stroke: rgba(var(--accent-rgb),0.6);
-  fill: none;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
+
 .step-title {
   font-family: var(--font-d);
-  font-size: 17px;
   font-weight: 700;
-  letter-spacing: -0.3px;
-  color: rgba(255,255,255,0.8);
-  margin-bottom: 8px;
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+  color: var(--white);
+  margin-bottom: 0.75rem;
 }
+
 .step-body {
-  font-size: 14px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.2);
-  line-height: 1.65;
+  font-size: clamp(0.9rem, 1.1vw, 1rem);
+  line-height: 1.7;
+  color: var(--w60);
+  max-width: 32ch;
 }
 
 /* ═══════════════════════════════════════════
    03 — MODES
 ═══════════════════════════════════════════ */
-.modes-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 2px;
-  margin-top: 64px;
+.modes-count {
+  font-family: var(--font-d);
+  font-weight: 800;
+  font-size: clamp(8rem, 20vw, 16rem);
+  line-height: 0.85;
+  letter-spacing: -0.05em;
+  color: var(--w03);
+  position: absolute;
+  right: clamp(1.5rem, 5vw, 6rem);
+  top: 0;
+  user-select: none;
+  pointer-events: none;
 }
-@media (max-width: 768px) {
-  .modes-grid { grid-template-columns: 1fr; }
+
+.modes-track {
+  display: flex;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2rem;
+  cursor: grab;
 }
-.mode-card {
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 24px;
-  padding: 36px 32px;
+.modes-track::-webkit-scrollbar { display: none; }
+.modes-track:active { cursor: grabbing; }
+
+.mode {
+  flex: 0 0 clamp(280px, 38vw, 440px);
+  scroll-snap-align: start;
+  padding: clamp(2rem, 4vw, 3.5rem) 0;
+  border-top: 2px solid var(--w06);
 }
-.mode-card-full {
-  grid-column: 1 / -1;
+
+.mode-color {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-bottom: 1.5rem;
 }
-.mode-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 999px;
+
+.mode-name {
+  font-family: var(--font-d);
+  font-weight: 800;
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  letter-spacing: -0.025em;
+  color: var(--white);
+  margin-bottom: 1rem;
+  line-height: 1;
+}
+
+.mode-desc {
+  font-size: clamp(0.85rem, 1vw, 0.95rem);
+  line-height: 1.7;
+  color: var(--w60);
+  margin-bottom: 1.5rem;
+  max-width: 36ch;
+}
+
+.mode-features { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+.mode-feat {
+  font-family: var(--font-m);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--w30);
+}
+
+.mode-feat + .mode-feat::before {
+  content: '\00b7';
+  margin-right: 0.5rem;
+}
+
+.modes-scroll-hint {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
+  gap: 1rem;
+  margin-top: 2rem;
 }
-.mode-icon svg {
-  width: 22px;
-  height: 22px;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  fill: none;
-}
-.mode-title {
-  font-family: var(--font-d);
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.4px;
-  color: rgba(255,255,255,0.85);
-  margin-bottom: 8px;
-}
-.mode-body {
-  font-size: 14px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.22);
-  line-height: 1.7;
-  max-width: 480px;
-}
-.mode-tags {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 16px;
+
+.modes-scroll-line { width: 48px; height: 1px; background: var(--w12); }
+
+.modes-scroll-text {
+  font-family: var(--font-m);
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--w12);
 }
 
 /* ═══════════════════════════════════════════
-   04 — PERSONALISE (Theme Demo)
+   04 — PERSONALISE
 ═══════════════════════════════════════════ */
-.theme-demo {
-  display: flex;
-  gap: 56px;
-  align-items: center;
-  margin-top: 64px;
-}
-@media (max-width: 900px) {
-  .theme-demo { flex-direction: column; gap: 40px; }
-}
-
-/* Phone mockup */
-.phone-mock {
-  width: 260px;
-  flex-shrink: 0;
-  background: var(--dm-void, #0A0B10);
-  border: 2px solid rgba(255,255,255,0.08);
-  border-radius: 32px;
-  padding: 16px;
-  position: relative;
-  transition: background-color 500ms var(--ease-smooth), border-color 500ms var(--ease-smooth);
-}
-.phone-notch {
-  width: 80px;
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(var(--dm-ui, 255,255,255),0.08);
-  margin: 0 auto 14px;
-  transition: background-color 500ms var(--ease-smooth);
-}
-.phone-topbar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 4px;
-  margin-bottom: 10px;
-}
-.phone-conn-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--teal);
-  box-shadow: 0 0 6px rgba(var(--teal-rgb),0.5);
-}
-.phone-conn-text {
-  font-family: var(--font-m);
-  font-size: 7px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: rgba(var(--dm-ui, 255,255,255),0.15);
-  transition: color 500ms var(--ease-smooth);
-}
-.phone-pad {
-  background: rgba(var(--dm-ui, 255,255,255),0.04);
-  border: 1px solid rgba(var(--dm-ui, 255,255,255),0.08);
-  border-radius: 10px;
-  aspect-ratio: 1.35;
-  position: relative;
-  overflow: hidden;
-  transition: background-color 500ms var(--ease-smooth), border-color 500ms var(--ease-smooth);
-}
-.phone-pad-grid {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle, rgba(var(--dm-ui, 255,255,255),0.12) 1px, transparent 1px);
-  background-size: 12px 12px;
-  pointer-events: none;
-  transition: background-image 500ms var(--ease-smooth);
-}
-.phone-pad-sticker {
-  position: absolute;
-  width: 36px;
-  height: 36px;
-  border-radius: 4px;
-  opacity: 0.7;
-}
-.phone-pad-sticker-1 {
-  top: 18%;
-  left: 12%;
-  transform: rotate(-8deg);
-}
-.phone-pad-sticker-2 {
-  bottom: 20%;
-  right: 14%;
-  transform: rotate(5deg);
-}
-.phone-buttons {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-}
-.phone-btn {
-  flex: 1;
-  height: 28px;
-  background: rgba(var(--dm-ui, 255,255,255),0.04);
-  border: 1px solid rgba(var(--dm-ui, 255,255,255),0.06);
-  border-radius: 8px;
-  font-family: var(--font-d);
-  font-size: 8px;
-  font-weight: 700;
-  color: rgba(var(--dm-ui, 255,255,255),0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 500ms var(--ease-smooth), border-color 500ms var(--ease-smooth), color 500ms var(--ease-smooth);
-}
-.phone-nav {
-  display: flex;
-  gap: 4px;
-  margin-top: 12px;
-}
-.phone-nav-btn {
-  flex: 1;
-  aspect-ratio: 1;
-  background: rgba(var(--dm-ui, 255,255,255),0.03);
-  border: 1px solid rgba(var(--dm-ui, 255,255,255),0.06);
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 500ms var(--ease-smooth), border-color 500ms var(--ease-smooth);
-}
-.phone-nav-btn svg {
-  width: 12px;
-  height: 12px;
-  stroke: rgba(var(--dm-ui, 255,255,255),0.2);
-  fill: none;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  transition: stroke 500ms var(--ease-smooth);
-}
-.phone-nav-btn.active-nav {
-  background: rgba(var(--dm-accent-rgb, 79,82,224),0.12);
-  border-color: rgba(var(--dm-accent-rgb, 79,82,224),0.25);
-}
-.phone-nav-btn.active-nav svg {
-  stroke: var(--dm-accent, #4F52E0);
-}
-.phone-nav-btn.settings-nav {
-  background: rgba(var(--dm-ui, 255,255,255),0.1);
-  border-color: rgba(var(--dm-ui, 255,255,255),0.1);
-}
-.phone-nav-btn.settings-nav svg {
-  stroke: var(--dm-void, #0A0B10);
-}
-
-/* Theme picker */
-.theme-picker {
-  flex: 1;
-}
-.theme-picker-title {
-  font-family: var(--font-d);
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.4px;
-  color: rgba(255,255,255,0.8);
-  margin-bottom: 8px;
-}
-.theme-picker-sub {
-  font-size: 14px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.2);
-  line-height: 1.65;
-  margin-bottom: 28px;
-  max-width: 400px;
-}
-.theme-swatches-demo {
+.pers-layout {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px 12px;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(3rem, 8vw, 10rem);
+  align-items: center;
 }
-@media (max-width: 500px) {
-  .theme-swatches-demo { grid-template-columns: repeat(3, 1fr); }
-}
-.theme-sw {
+
+.pers-features {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: opacity 150ms var(--ease-mag);
+  gap: 1.5rem;
+  margin-top: 2.5rem;
 }
-.theme-sw:hover { opacity: 0.8; }
-.theme-sw-dot {
+
+.pers-feat { padding-left: 1.5rem; border-left: 1px solid var(--w06); }
+
+.pers-feat-title {
+  font-family: var(--font-d);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--white);
+  margin-bottom: 0.35rem;
+}
+
+.pers-feat-body {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--w60);
+}
+
+/* Phone mock */
+.phone-frame {
+  width: clamp(220px, 22vw, 280px);
+  aspect-ratio: 9/19;
+  background: #111118;
+  border-radius: 32px;
+  border: 1px solid var(--w06);
+  padding: 12px;
+  position: relative;
+  transform: rotate(-3deg);
+  box-shadow: 0 60px 120px rgba(0,0,0,0.5);
+}
+
+.phone-screen {
+  width: 100%; height: 100%;
+  border-radius: 22px;
+  background: var(--void);
+  overflow: hidden;
+}
+
+.phone-notch {
+  width: 80px; height: 20px;
+  background: #111118;
+  border-radius: 0 0 16px 16px;
+  margin: 0 auto;
+}
+
+.phone-ui {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.phone-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0;
+}
+
+.phone-status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+}
+
+.phone-status-text {
+  font-family: var(--font-m);
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--teal);
+}
+
+.phone-trackpad {
   width: 100%;
   aspect-ratio: 1;
+  background: var(--w03);
+  border-radius: 16px;
+  border: 1px solid var(--w06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.phone-grid {
+  width: 80%; height: 80%;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  gap: 1px;
+  opacity: 0.06;
+}
+
+.phone-grid span {
+  background: var(--white);
+  border-radius: 1px;
+}
+
+.phone-nav-bar {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 0.75rem 0;
+}
+
+.phone-nav-dot {
+  width: 6px; height: 6px;
   border-radius: 50%;
-  position: relative;
-  overflow: hidden;
-  border: 3px solid transparent;
-  transition: border-color 200ms var(--ease-mag), box-shadow 200ms var(--ease-mag);
+  background: var(--w12);
 }
-.theme-sw.active .theme-sw-dot {
-  border-color: rgba(255,255,255,0.6);
-  box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.3), 0 0 12px rgba(var(--accent-rgb),0.15);
+
+.phone-nav-dot.active { background: var(--accent); }
+
+.theme-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
 }
-.theme-sw-inner {
-  position: absolute;
-  inset: -25%;
-  width: 150%;
-  height: 150%;
+
+.theme-swatch {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--w06);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
 }
-.theme-sw-name {
-  font-family: var(--font-m);
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.15);
-  transition: color 200ms var(--ease-mag);
-}
-.theme-sw.active .theme-sw-name {
-  color: rgba(var(--accent-rgb),0.6);
-}
-.theme-sw-rgb .theme-sw-inner {
-  background: conic-gradient(from 0deg, #00FF78, #00D4FF, #7B61FF, #FF3CAC, #FF6B2B, #FAFF00, #00FF78);
-}
+
+.theme-swatch:hover { opacity: 0.7; }
 
 /* ═══════════════════════════════════════════
    05 — PRIVACY
 ═══════════════════════════════════════════ */
-.privacy-grid {
+.privacy {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.priv-headline {
+  font-family: var(--font-d);
+  font-weight: 800;
+  font-size: clamp(3rem, 8vw, 8rem);
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  color: var(--white);
+  margin-bottom: clamp(2rem, 4vh, 4rem);
+}
+
+.priv-headline em { font-style: normal; color: var(--teal); }
+
+.priv-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 2px;
-  margin-top: 64px;
+  gap: 1px;
+  background: var(--w06);
+  max-width: 900px;
+  margin-top: clamp(3rem, 6vh, 6rem);
 }
-@media (max-width: 768px) {
-  .privacy-grid { grid-template-columns: 1fr; }
-}
-.privacy-card {
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 24px;
-  padding: 36px 28px;
-}
-.privacy-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 999px;
-  background: rgba(var(--teal-rgb),0.08);
-  border: 1px solid rgba(var(--teal-rgb),0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-.privacy-icon svg {
-  width: 22px;
-  height: 22px;
-  stroke: rgba(var(--teal-rgb),0.6);
-  fill: none;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.privacy-title {
+
+.priv-cell { padding: clamp(1.5rem, 3vw, 2.5rem); }
+
+.priv-cell-title {
   font-family: var(--font-d);
-  font-size: 17px;
   font-weight: 700;
-  letter-spacing: -0.3px;
-  color: rgba(255,255,255,0.8);
-  margin-bottom: 8px;
+  font-size: 1rem;
+  color: var(--white);
+  margin-bottom: 0.6rem;
 }
-.privacy-body {
-  font-size: 14px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.2);
-  line-height: 1.7;
+
+.priv-cell-body {
+  font-size: 0.85rem;
+  line-height: 1.65;
+  color: var(--w60);
 }
-.privacy-highlight {
-  margin-top: 24px;
-  background: rgba(var(--teal-rgb),0.05);
-  border: 1px solid rgba(var(--teal-rgb),0.08);
-  border-radius: 24px;
-  padding: 32px;
+
+.ethics-strip {
+  margin-top: clamp(3rem, 6vh, 6rem);
+  padding-top: 2rem;
+  border-top: 1px solid var(--w06);
+  max-width: 600px;
 }
-.privacy-highlight-label {
+
+.ethics-label {
   font-family: var(--font-m);
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 2px;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: rgba(var(--teal-rgb),0.5);
-  margin-bottom: 12px;
+  color: var(--w12);
+  margin-bottom: 0.75rem;
 }
-.privacy-highlight-text {
-  font-family: var(--font-d);
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.5;
-  letter-spacing: -0.3px;
-  color: rgba(255,255,255,0.6);
+
+.ethics-text {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--w60);
 }
 
 /* ═══════════════════════════════════════════
    06 — ACCESSIBILITY
 ═══════════════════════════════════════════ */
-.access-content {
+.access-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  margin-top: 64px;
+  gap: clamp(3rem, 8vw, 10rem);
 }
-@media (max-width: 768px) {
-  .access-content { grid-template-columns: 1fr; }
-}
-.access-card {
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 24px;
-  padding: 32px;
-}
-.access-card-title {
+
+.access-left { position: sticky; top: 30vh; }
+
+.access-item { padding: clamp(1.5rem, 3vh, 2.5rem) 0; }
+
+.access-item + .access-item { border-top: 1px solid var(--w06); }
+
+.access-item-title {
   font-family: var(--font-d);
-  font-size: 17px;
   font-weight: 700;
-  letter-spacing: -0.3px;
-  color: rgba(255,255,255,0.8);
-  margin-bottom: 8px;
+  font-size: clamp(1rem, 1.4vw, 1.2rem);
+  color: var(--white);
+  margin-bottom: 0.5rem;
 }
-.access-card-body {
-  font-size: 14px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.2);
-  line-height: 1.7;
+
+.access-item-body {
+  font-size: 0.85rem;
+  line-height: 1.65;
+  color: var(--w60);
+  max-width: 36ch;
 }
 
 /* ═══════════════════════════════════════════
    07 — PRICING
 ═══════════════════════════════════════════ */
-.pricing-card {
-  max-width: 480px;
-  margin: 64px auto 0;
-  background: rgba(var(--accent-rgb),0.05);
-  border: 1px solid rgba(var(--accent-rgb),0.1);
-  border-radius: 32px;
-  padding: 48px 40px;
-  text-align: center;
+.pricing-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(3rem, 8vw, 10rem);
+  align-items: start;
 }
+
 .pricing-amount {
   font-family: var(--font-d);
-  font-size: 56px;
   font-weight: 800;
-  letter-spacing: -2px;
-  color: rgba(255,255,255,0.9);
-  margin-bottom: 4px;
+  font-size: clamp(6rem, 14vw, 12rem);
+  line-height: 0.85;
+  letter-spacing: -0.05em;
+  color: var(--white);
 }
+
 .pricing-label {
   font-family: var(--font-m);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 2px;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: rgba(var(--accent-rgb),0.5);
-  margin-bottom: 24px;
+  color: var(--w30);
+  margin-top: 1rem;
 }
-.pricing-perks {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-bottom: 32px;
-}
-.pricing-perk {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 16px;
-  font-size: 14px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.35);
-  text-align: left;
-}
-.pricing-perk-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--teal);
-  flex-shrink: 0;
-}
-.pricing-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px 48px;
-  border: none;
-  border-radius: 999px;
-  background: var(--accent);
-  color: white;
+
+.pricing-tagline {
   font-family: var(--font-d);
-  font-size: 15px;
   font-weight: 700;
-  letter-spacing: -0.2px;
-  cursor: pointer;
-  box-shadow: 0 0 32px rgba(var(--accent-rgb),0.25);
-  transition: opacity 150ms var(--ease-mag);
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
+  letter-spacing: -0.02em;
+  color: var(--white);
+  margin-bottom: 2rem;
+  line-height: 1.15;
 }
+
+.pricing-perks { display: flex; flex-direction: column; margin-bottom: clamp(2rem, 4vh, 3rem); }
+
+.pricing-perk {
+  padding: 0.8rem 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--w60);
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.pricing-perk + .pricing-perk { border-top: 1px solid var(--w06); }
+
+.pricing-perk-mark {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  margin-top: 0.5rem;
+}
+
+.pricing-btn {
+  font-family: var(--font-d);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  color: var(--void);
+  background: var(--white);
+  border: none;
+  padding: 1rem 2.5rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
 .pricing-btn:hover { opacity: 0.85; }
+
+.compat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: clamp(3rem, 6vh, 5rem);
+}
+
+.compat-tag {
+  font-family: var(--font-m);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--w30);
+}
+
+.compat-tag + .compat-tag::before {
+  content: '\00b7';
+  margin-right: 0.75rem;
+}
 
 /* ═══════════════════════════════════════════
    08 — FOOTER
 ═══════════════════════════════════════════ */
-.footer {
-  padding: 60px 0;
-  border-top: 1px solid rgba(255,255,255,0.03);
-  text-align: center;
-}
-.footer-brand {
-  font-family: var(--font-d);
-  font-size: 16px;
-  font-weight: 800;
-  color: rgba(255,255,255,0.2);
-  margin-bottom: 8px;
-}
-.footer-brand span { color: rgba(var(--accent-rgb),0.3); }
-.footer-sub {
-  font-family: var(--font-m);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.08);
-}
-.footer-legal {
-  font-size: 12px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.08);
-  margin-top: 16px;
-  line-height: 1.6;
+.footer { padding-top: clamp(4rem, 8vh, 8rem); padding-bottom: clamp(2rem, 4vh, 4rem); }
+
+.footer-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 3rem;
 }
 
+.footer-brand {
+  font-family: var(--font-d);
+  font-weight: 800;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  letter-spacing: -0.03em;
+  color: var(--white);
+}
+
+.footer-brand span { color: var(--accent); }
+
+.footer-tagline {
+  font-family: var(--font-m);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--w30);
+}
+
+.footer-line { width: 100%; height: 1px; background: var(--w06); margin-bottom: 1.5rem; }
+
+.footer-legal { font-size: 0.7rem; line-height: 1.7; color: var(--w12); max-width: 60ch; }
+
 /* ═══════════════════════════════════════════
-   COMPATIBLE-WITH
+   RESPONSIVE
 ═══════════════════════════════════════════ */
-.compat {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 24px;
+@media (max-width: 768px) {
+  .how-layout,
+  .pers-layout,
+  .access-layout,
+  .pricing-layout {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+  .how-left, .access-left { position: static; }
+  .step-number { position: static; margin-bottom: 0.5rem; }
+  .priv-grid { grid-template-columns: 1fr; }
+  .modes-count { font-size: clamp(5rem, 25vw, 10rem); }
+  .phone-frame { transform: rotate(0deg); }
+  .footer-top { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .scene-spacer { height: 500vh; }
 }
 </style>
 </head>
 <body>
 
-<!-- ══ HERO ══ -->
-<section class="hero">
-  <div class="hero-bg"></div>
-  <div class="hero-inner">
-    <div class="hero-orb"></div>
-    <div class="hero-title">You now have<br>full <span>control.</span></div>
-    <div class="hero-sub">
-      Your phone is now your trackpad, your air mouse, your media remote, and your keyboard. <strong>All over your local network. Nothing else.</strong>
-    </div>
-    <div class="hero-tags">
-      <span class="tag tag-ghost">No cloud</span>
-      <span class="tag tag-ghost">No accounts</span>
-      <span class="tag tag-ghost">No subscriptions</span>
-      <span class="tag tag-ghost">Local WiFi only</span>
+<div class="grain"></div>
+<canvas id="scene-canvas"></canvas>
+
+<div id="scroll-height"></div>
+
+<div class="smooth-wrap" id="smooth-wrap">
+
+<!-- ══ 01 — HERO ══ -->
+<section class="hero pad">
+  <div>
+    <h1 class="d-huge" id="hero-title" style="margin-bottom:clamp(1.5rem,3vh,3rem);"></h1>
+    <p class="body-lg hero-sub" data-reveal data-d="4">Your phone is now your trackpad, air mouse, media remote, and keyboard. All over local WiFi. Nothing else.</p>
+    <div class="hero-tags" data-reveal data-d="6">
+      <span class="hero-tag">No cloud</span>
+      <span class="hero-tag">No accounts</span>
+      <span class="hero-tag">No subscriptions</span>
+      <span class="hero-tag">Local WiFi only</span>
     </div>
   </div>
-  <div class="hero-scroll">
+  <div class="hero-scroll" id="hero-scroll">
     <div class="hero-scroll-line"></div>
-    Explore
+    <div class="hero-scroll-label">Scroll</div>
   </div>
 </section>
 
-<!-- ══ HOW IT WORKS ══ -->
-<section class="section" id="how">
-  <div class="container">
-    <div class="eyebrow">How it works</div>
-    <div class="section-title">Three steps. That's it.</div>
-    <div class="section-sub">No downloads, no sign-ups, no app stores. You're already halfway there.</div>
+<!-- ══ 3D SCENE SPACER ══ -->
+<div class="scene-spacer" id="scene-spacer">
+  <div class="scene-label" data-reveal data-d="0">From remote control — to your phone</div>
+</div>
 
-    <div class="steps-grid">
-      <div class="step">
-        <div class="step-icon">
-          <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="3"/><path d="M8 2v20M2 8h20M2 16h20M16 2v20"/></svg>
-        </div>
+<div class="below-scene">
+<div class="divider pad"></div>
+
+<!-- ══ 02 — HOW IT WORKS ══ -->
+<section class="pad gap" id="sec-how">
+  <div class="sec-num" data-reveal>02 — How it works</div>
+  <div class="how-layout">
+    <div class="how-left">
+      <div>
+        <div class="line-mask"><span class="line-inner d-lg">Same WiFi.</span></div>
+        <div class="line-mask"><span class="line-inner d-lg">Direct link.</span></div>
+      </div>
+      <p class="body-lg" data-reveal data-d="2" style="margin-top:1.5rem;">No apps. No accounts. Your phone and laptop are already on the same network — that's all CouchLock needs.</p>
+    </div>
+    <div class="how-right">
+      <div class="step" data-reveal data-d="1">
+        <div class="step-number">01</div>
         <div class="step-title">Scan the QR</div>
-        <div class="step-body">Open the CouchLock extension on your laptop. A QR code appears. Point your phone camera at it.</div>
+        <div class="step-body">Open the extension on your laptop. A QR code appears. Point your phone camera at it.</div>
       </div>
-      <div class="step">
-        <div class="step-icon">
-          <svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-        </div>
-        <div class="step-title">Instant connection</div>
-        <div class="step-body">Your phone and laptop connect directly over your WiFi. No servers. No middlemen. Under 3 seconds.</div>
+      <div class="step" data-reveal data-d="2">
+        <div class="step-number">02</div>
+        <div class="step-title">Instant pair</div>
+        <div class="step-body">Your phone and laptop connect directly over WiFi. No servers. No middlemen. No sign-up.</div>
       </div>
-      <div class="step">
-        <div class="step-icon">
-          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3"/></svg>
-        </div>
+      <div class="step" data-reveal data-d="3">
+        <div class="step-number">03</div>
         <div class="step-title">Take control</div>
-        <div class="step-body">Slide your thumb to move the cursor. Tap to click. Swipe through tabs. Skip intros. You're in.</div>
+        <div class="step-body">Slide your thumb. Tap to click. Swipe through tabs. Skip intros. You're in.</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ══ MODES ══ -->
-<section class="section" id="modes">
-  <div class="container">
-    <div class="eyebrow">What you can do</div>
-    <div class="section-title">Five modes. One remote.</div>
-    <div class="section-sub">Every way you interact with your laptop, handled from the couch.</div>
+<div class="divider pad"></div>
 
-    <div class="modes-grid">
-      <div class="mode-card">
-        <div class="mode-icon" style="background:rgba(var(--teal-rgb),0.1);">
-          <svg viewBox="0 0 24 24" stroke="var(--teal)"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3"/></svg>
+<!-- ══ 03 — MODES ══ -->
+<section class="pad gap" id="sec-modes">
+  <div class="sec-num" data-reveal>03 — What you can do</div>
+  <div style="position:relative;margin-bottom:clamp(3rem,6vh,6rem);">
+    <div class="modes-count" aria-hidden="true">5</div>
+    <div class="line-mask"><span class="line-inner d-lg">Five modes.</span></div>
+    <div class="line-mask"><span class="line-inner d-lg">One remote.</span></div>
+    <p class="body-lg" data-reveal data-d="2" style="position:relative;z-index:2;margin-top:1rem;">Every way you interact with your laptop, handled from the couch.</p>
+  </div>
+
+  <div class="modes-track" id="modes-track">
+    <div class="mode" data-reveal data-d="0">
+      <div class="mode-color" style="background:var(--teal);"></div>
+      <div class="mode-name">Trackpad</div>
+      <div class="mode-desc">Your phone screen becomes a precision trackpad. Slide to move, tap to click, two-finger scroll, three-finger swipe for reels.</div>
+      <div class="mode-features"><span class="mode-feat">Left & right click</span><span class="mode-feat">Scroll</span><span class="mode-feat">Smart acceleration</span></div>
+    </div>
+    <div class="mode" data-reveal data-d="1">
+      <div class="mode-color" style="background:var(--accent);"></div>
+      <div class="mode-name">Air Mouse</div>
+      <div class="mode-desc">Tilt your phone to move the cursor — like a Wii remote. Gyroscope translates wrist movements into precise control.</div>
+      <div class="mode-features"><span class="mode-feat">Gyroscope</span><span class="mode-feat">Adjustable sensitivity</span></div>
+    </div>
+    <div class="mode" data-reveal data-d="2">
+      <div class="mode-color" style="background:var(--amber);"></div>
+      <div class="mode-name">Media Remote</div>
+      <div class="mode-desc">Play, pause, seek, skip intros, next episode, volume — all from your phone. Works with every major streaming platform.</div>
+      <div class="mode-features"><span class="mode-feat">Play / Pause</span><span class="mode-feat">Skip Intro</span><span class="mode-feat">Volume</span><span class="mode-feat">Scrub</span></div>
+    </div>
+    <div class="mode" data-reveal data-d="3">
+      <div class="mode-color" style="background:var(--rose);"></div>
+      <div class="mode-name">Tab Switcher</div>
+      <div class="mode-desc">See every open tab on your phone. Tap to jump, swipe to close, open new tabs and search — without reaching for the laptop.</div>
+      <div class="mode-features"><span class="mode-feat">Switch</span><span class="mode-feat">Close</span><span class="mode-feat">New tab + search</span></div>
+    </div>
+    <div class="mode" data-reveal data-d="4">
+      <div class="mode-color" style="background:var(--w30);"></div>
+      <div class="mode-name">Keyboard</div>
+      <div class="mode-desc">Type on your phone, it appears on your laptop. Search bars, login fields, URLs. Auto-detects focused fields.</div>
+      <div class="mode-features"><span class="mode-feat">Full input</span><span class="mode-feat">Auto-detect focus</span></div>
+    </div>
+  </div>
+
+  <div class="modes-scroll-hint" data-reveal data-d="3">
+    <div class="modes-scroll-line"></div>
+    <div class="modes-scroll-text">Drag to explore</div>
+  </div>
+</section>
+
+<div class="divider pad"></div>
+
+<!-- ══ 04 — PERSONALISE ══-->
+<section class="pad gap" id="sec-pers">
+  <div class="sec-num" data-reveal>04 — Make it yours</div>
+  <div class="pers-layout">
+    <div>
+      <div class="line-mask"><span class="line-inner d-lg">Your remote.</span></div>
+      <div class="line-mask"><span class="line-inner d-lg">Your rules.</span></div>
+      <p class="body-lg" data-reveal data-d="2" style="margin-top:1.5rem;">From dark minimalism to gamer RGB — pick a vibe and make it yours.</p>
+
+      <div class="pers-features" data-reveal data-d="3">
+        <div class="pers-feat">
+          <div class="pers-feat-title">12 themes</div>
+          <div class="pers-feat-body">Each changes everything — background, accent, borders, glow. Tap one, see it live.</div>
         </div>
-        <div class="mode-title">Trackpad</div>
-        <div class="mode-body">Your phone screen becomes a precision trackpad. Slide to move the cursor. Tap to click. Two-finger scroll. Double-tap for double-click. Three-finger swipe for reels and shorts.</div>
-        <div class="mode-tags">
-          <span class="tag tag-teal">Left & right click</span>
-          <span class="tag tag-teal">Smart acceleration</span>
-          <span class="tag tag-teal">Scroll</span>
+        <div class="pers-feat">
+          <div class="pers-feat-title">Trackpad stickers</div>
+          <div class="pers-feat-body">Place up to 3 stickers. Drag to position, resize from corners. Your trackpad, your personality.</div>
+        </div>
+        <div class="pers-feat">
+          <div class="pers-feat-title">Everything syncs</div>
+          <div class="pers-feat-body">Theme, stickers, settings persist across sessions and sync to the extension popup.</div>
         </div>
       </div>
 
-      <div class="mode-card">
-        <div class="mode-icon" style="background:rgba(var(--accent-rgb),0.1);">
-          <svg viewBox="0 0 24 24" stroke="var(--accent)"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
-        </div>
-        <div class="mode-title">Air Mouse</div>
-        <div class="mode-body">Tilt your phone to move the cursor — like a Wii remote. The gyroscope translates your wrist movements into precise cursor control. Double-tap to recalibrate when it drifts.</div>
-        <div class="mode-tags">
-          <span class="tag tag-accent">Gyroscope input</span>
-          <span class="tag tag-accent">Adjustable sensitivity</span>
-        </div>
+      <div class="theme-row" data-reveal data-d="5">
+        <div class="theme-swatch" style="background:#0A0B10;" title="Dark"></div>
+        <div class="theme-swatch" style="background:#F0F0F0;" title="Light"></div>
+        <div class="theme-swatch" style="background:#D4E4ED;" title="Arctic"></div>
+        <div class="theme-swatch" style="background:#8B8680;" title="Stone"></div>
+        <div class="theme-swatch" style="background:#90B886;" title="Matcha"></div>
+        <div class="theme-swatch" style="background:#C4A882;" title="Sand"></div>
+        <div class="theme-swatch" style="background:#D4838A;" title="Rose"></div>
+        <div class="theme-swatch" style="background:#CC6B49;" title="Ember"></div>
+        <div class="theme-swatch" style="background:#A68B6B;" title="Kraft"></div>
+        <div class="theme-swatch" style="background:#4A7C59;" title="Forest"></div>
+        <div class="theme-swatch" style="background:linear-gradient(135deg,#FF0044,#00FF88,#0088FF);" title="RGB"></div>
+        <div class="theme-swatch" style="background:#1A1A1A;background-image:repeating-conic-gradient(#333 0% 25%, transparent 0% 50%);background-size:8px 8px;" title="Emo"></div>
       </div>
+    </div>
 
-      <div class="mode-card">
-        <div class="mode-icon" style="background:rgba(217,119,6,0.1);">
-          <svg viewBox="0 0 24 24" stroke="#D97706"><polygon points="8,5 20,12 8,19"/></svg>
-        </div>
-        <div class="mode-title">Media Remote</div>
-        <div class="mode-body">Play, pause, seek, skip intros, jump to the next episode — all from your phone. Works with Netflix, HBO Max, Disney+, Hulu, YouTube, and any site with a video player.</div>
-        <div class="mode-tags">
-          <span class="tag tag-ghost">Play / Pause</span>
-          <span class="tag tag-ghost">Skip Intro</span>
-          <span class="tag tag-ghost">Volume</span>
-          <span class="tag tag-ghost">Scrub</span>
-        </div>
-      </div>
-
-      <div class="mode-card">
-        <div class="mode-icon" style="background:rgba(224,79,95,0.1);">
-          <svg viewBox="0 0 24 24" stroke="#E04F5F"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
-        </div>
-        <div class="mode-title">Tab Switcher</div>
-        <div class="mode-body">See every open tab on your phone. Tap to jump. Swipe left to close. Open new tabs and search the web — all without reaching for the laptop.</div>
-        <div class="mode-tags">
-          <span class="tag tag-ghost">Switch tabs</span>
-          <span class="tag tag-ghost">Close tabs</span>
-          <span class="tag tag-ghost">New tab + search</span>
-        </div>
-      </div>
-
-      <div class="mode-card mode-card-full">
-        <div style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap;">
-          <div style="flex:1;min-width:240px;">
-            <div class="mode-icon" style="background:rgba(255,255,255,0.05);">
-              <svg viewBox="0 0 24 24" stroke="rgba(255,255,255,0.4)"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 20h12"/></svg>
+    <div style="display:flex;justify-content:center;align-items:center;" data-reveal data-d="2">
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="phone-notch"></div>
+          <div class="phone-ui">
+            <div class="phone-status"><div class="phone-status-dot"></div><div class="phone-status-text">Connected</div></div>
+            <div class="phone-trackpad"><div class="phone-grid" id="phone-grid"></div></div>
+            <div class="phone-nav-bar">
+              <div class="phone-nav-dot active"></div>
+              <div class="phone-nav-dot"></div>
+              <div class="phone-nav-dot"></div>
+              <div class="phone-nav-dot"></div>
+              <div class="phone-nav-dot"></div>
             </div>
-            <div class="mode-title">Keyboard</div>
-            <div class="mode-body">Type on your phone, it appears on your laptop. Search bars, login fields, URLs — anywhere there's a text input, your phone keyboard is ready. The keyboard slides up automatically when a field is focused on the laptop.</div>
-          </div>
-          <div style="flex:1;min-width:240px;">
-            <div class="mode-icon" style="background:rgba(var(--accent-rgb),0.08);">
-              <svg viewBox="0 0 24 24" stroke="var(--accent)"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-            </div>
-            <div class="mode-title">Browser Navigation</div>
-            <div class="mode-body">Back, forward, reload — the navigation buttons you use every day, now accessible from the trackpad view. Browse comfortably without touching your laptop once.</div>
           </div>
         </div>
       </div>
@@ -930,371 +986,1333 @@ body {
   </div>
 </section>
 
-<!-- ══ PERSONALISE ══ -->
-<section class="section" id="personalise">
-  <div class="container">
-    <div class="eyebrow">Make it yours</div>
-    <div class="section-title">12 themes. Stickers. Your remote.</div>
-    <div class="section-sub">From dark minimalism to gamer RGB — pick a vibe and make it feel like yours.</div>
+<div class="divider pad"></div>
 
-    <div class="theme-demo">
-      <!-- Phone mockup -->
-      <div class="phone-mock" id="phone-mock">
-        <div class="phone-notch"></div>
-        <div class="phone-topbar">
-          <div class="phone-conn-dot"></div>
-          <div class="phone-conn-text">Connected</div>
-        </div>
-        <div class="phone-pad" id="phone-pad">
-          <div class="phone-pad-grid" id="phone-pad-grid"></div>
-          <div class="phone-pad-sticker phone-pad-sticker-1">
-            <img src="stickers/smile.png" alt="" style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(1px 1px 2px rgba(0,0,0,0.5));" onerror="this.parentElement.style.display='none'">
-          </div>
-          <div class="phone-pad-sticker phone-pad-sticker-2">
-            <img src="stickers/croissant.png" alt="" style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(1px 1px 2px rgba(0,0,0,0.5));" onerror="this.parentElement.style.display='none'">
-          </div>
-        </div>
-        <div class="phone-buttons">
-          <div class="phone-btn">Left</div>
-          <div class="phone-btn">Right</div>
-        </div>
-        <div class="phone-nav">
-          <div class="phone-nav-btn active-nav">
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3"/></svg>
-          </div>
-          <div class="phone-nav-btn">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
-          </div>
-          <div class="phone-nav-btn settings-nav">
-            <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-          </div>
-          <div class="phone-nav-btn">
-            <svg viewBox="0 0 24 24"><polygon points="8,5 20,12 8,19"/></svg>
-          </div>
-          <div class="phone-nav-btn">
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
-          </div>
-        </div>
+<!-- ══ 05 — PRIVACY ══ -->
+<section class="privacy pad gap" id="sec-priv">
+  <div class="sec-num" data-reveal>05 — Privacy</div>
+  <div class="priv-headline">
+    <div class="line-mask"><span class="line-inner">Nothing</span></div>
+    <div class="line-mask"><span class="line-inner"><em>leaves</em></span></div>
+    <div class="line-mask"><span class="line-inner">your network.</span></div>
+  </div>
+  <p class="body-lg" data-reveal data-d="4" style="margin-bottom:clamp(2rem,4vh,4rem);">That's not a tagline. It's the architecture. There is no server to leak your data because there is no server.</p>
+
+  <div class="priv-grid" data-reveal data-d="5">
+    <div class="priv-cell">
+      <div class="priv-cell-title">Zero cloud</div>
+      <div class="priv-cell-body">Your phone talks directly to your laptop over WiFi. No internet server sees, stores, or relays your input.</div>
+    </div>
+    <div class="priv-cell">
+      <div class="priv-cell-title">Zero accounts</div>
+      <div class="priv-cell-body">No sign-up. No email. No password. Open CouchLock, scan the QR, use it.</div>
+    </div>
+    <div class="priv-cell">
+      <div class="priv-cell-title">Encrypted session</div>
+      <div class="priv-cell-body">Every connection uses a unique 32-byte token generated fresh. Shared once via QR. Never transmitted again.</div>
+    </div>
+  </div>
+
+  <div class="ethics-strip" data-reveal data-d="6">
+    <div class="ethics-label">Platform ethics</div>
+    <div class="ethics-text">CouchLock presses the same buttons you would press yourself. We don't block ads. We don't bypass anything. We don't modify content. We're a remote control, not a hack.</div>
+  </div>
+</section>
+
+<div class="divider pad"></div>
+
+<!-- ══ 06 — ACCESSIBILITY ══ -->
+<section class="pad gap" id="sec-access">
+  <div class="sec-num" data-reveal>06 — Accessibility</div>
+  <div class="access-layout">
+    <div class="access-left">
+      <div class="line-mask"><span class="line-inner d-lg">Built for</span></div>
+      <div class="line-mask"><span class="line-inner d-lg">everyone.</span></div>
+      <p class="body-lg" data-reveal data-d="2" style="margin-top:1.5rem;">CouchLock isn't just convenient — for some people, it removes a real barrier.</p>
+    </div>
+    <div>
+      <div class="access-item" data-reveal data-d="1">
+        <div class="access-item-title">Limited mobility</div>
+        <div class="access-item-body">If reaching your laptop is physically difficult, CouchLock puts full control in the hand already holding your phone.</div>
       </div>
-
-      <!-- Theme picker -->
-      <div class="theme-picker">
-        <div class="theme-picker-title">Pick a theme</div>
-        <div class="theme-picker-sub">Each theme changes everything — background, accent, borders, glow. The trackpad, buttons, and nav all follow. Tap one to see it live.</div>
-        <div class="theme-swatches-demo" id="theme-swatches-demo">
-          <!-- JS rendered -->
-        </div>
-        <div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap;">
-          <span class="tag tag-ghost">Sticker customisation</span>
-          <span class="tag tag-ghost">Drag & resize</span>
-          <span class="tag tag-ghost">Clipboard paste</span>
-        </div>
+      <div class="access-item" data-reveal data-d="2">
+        <div class="access-item-title">Air Mouse for motor control</div>
+        <div class="access-item-body">Move the cursor by tilting — smaller, more natural movements than a trackpad. Sensitivity is fully adjustable.</div>
+      </div>
+      <div class="access-item" data-reveal data-d="3">
+        <div class="access-item-title">Large touch targets</div>
+        <div class="access-item-body">Every button is thumb-sized. No tiny icons. The entire trackpad surface is one big input area.</div>
+      </div>
+      <div class="access-item" data-reveal data-d="4">
+        <div class="access-item-title">Zero setup complexity</div>
+        <div class="access-item-body">Scan a QR code. That's it. No downloads, no app stores, no accounts. Point a camera and you're in.</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ══ PRIVACY ══ -->
-<section class="section" id="privacy">
-  <div class="container">
-    <div class="eyebrow">Privacy</div>
-    <div class="section-title">Nothing leaves your network.</div>
-    <div class="section-sub">That's not a tagline. It's the architecture. There is no server to leak your data because there is no server.</div>
+<div class="divider pad"></div>
 
-    <div class="privacy-grid">
-      <div class="privacy-card">
-        <div class="privacy-icon">
-          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        </div>
-        <div class="privacy-title">Zero cloud</div>
-        <div class="privacy-body">Your phone talks directly to your laptop over WiFi. No internet server sees, stores, or relays your input. The connection never leaves your home network.</div>
-      </div>
-      <div class="privacy-card">
-        <div class="privacy-icon">
-          <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        </div>
-        <div class="privacy-title">Zero accounts</div>
-        <div class="privacy-body">No sign-up. No email. No password. No profile. Open CouchLock, scan the QR, use it. That's all. There is literally nowhere for your data to go.</div>
-      </div>
-      <div class="privacy-card">
-        <div class="privacy-icon">
-          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        </div>
-        <div class="privacy-title">Encrypted session</div>
-        <div class="privacy-body">Every connection uses a unique 32-byte token generated fresh. It's shared once via QR code and never transmitted again. Old sessions are dead sessions.</div>
-      </div>
+<!-- ══ 07 — PRICING ══ -->
+<section class="pad gap" id="sec-pricing">
+  <div class="sec-num" data-reveal>07 — Pricing</div>
+  <div class="pricing-layout">
+    <div>
+      <div class="line-mask"><span class="line-inner pricing-amount">$9</span></div>
+      <div class="pricing-label" data-reveal data-d="2">One-time · Forever</div>
     </div>
-
-    <div class="privacy-highlight">
-      <div class="privacy-highlight-label">How we interact with streaming platforms</div>
-      <div class="privacy-highlight-text">CouchLock presses the same buttons you would press yourself — play, pause, skip, seek. It operates the platform's own UI from a distance. We don't block ads. We don't bypass anything. We don't modify content. We don't touch your streaming account. We're a remote control, not a hack.</div>
-    </div>
-  </div>
-</section>
-
-<!-- ══ ACCESSIBILITY ══ -->
-<section class="section" id="access">
-  <div class="container">
-    <div class="eyebrow">Accessibility</div>
-    <div class="section-title">Built for everyone. Genuinely.</div>
-    <div class="section-sub">CouchLock isn't just convenient — for some people, it removes a real barrier between them and their computer.</div>
-
-    <div class="access-content">
-      <div class="access-card">
-        <div class="access-card-title">Limited mobility</div>
-        <div class="access-card-body">If reaching a laptop across the room is physically difficult, CouchLock puts full control in the hand you're already holding your phone with. Trackpad, keyboard, media — all from your position.</div>
-      </div>
-      <div class="access-card">
-        <div class="access-card-title">Air Mouse for motor control</div>
-        <div class="access-card-body">The gyroscope-based Air Mouse lets you move the cursor by tilting — smaller, more natural movements than a traditional trackpad or mouse. Sensitivity is fully adjustable.</div>
-      </div>
-      <div class="access-card">
-        <div class="access-card-title">Large touch targets</div>
-        <div class="access-card-body">Every button in CouchLock is designed for thumb-sized interaction. No tiny icons. No precision tapping. The entire trackpad surface is one big input area.</div>
-      </div>
-      <div class="access-card">
-        <div class="access-card-title">No setup complexity</div>
-        <div class="access-card-body">Scan a QR code. That's the entire setup. No downloads, no app stores, no account creation, no permissions dialogs. If someone can point a camera, they can use CouchLock.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ══ PRICING ══ -->
-<section class="section" id="pricing">
-  <div class="container">
-    <div class="eyebrow">Pricing</div>
-    <div class="section-title">One price. Everything. Forever.</div>
-    <div class="section-sub">No subscriptions. No renewals. No "premium tiers." Pay once, own it.</div>
-
-    <div class="pricing-card">
-      <div class="pricing-amount">$9</div>
-      <div class="pricing-label">One-time · All features · Yours forever</div>
-      <div class="pricing-perks">
-        <div class="pricing-perk"><div class="pricing-perk-dot"></div>Trackpad with smart acceleration & right-click</div>
-        <div class="pricing-perk"><div class="pricing-perk-dot"></div>Air Mouse with adjustable gyroscope sensitivity</div>
-        <div class="pricing-perk"><div class="pricing-perk-dot"></div>Full keyboard from your phone</div>
-        <div class="pricing-perk"><div class="pricing-perk-dot"></div>Media remote for Netflix, HBO Max, Disney+, Hulu, YouTube</div>
-        <div class="pricing-perk"><div class="pricing-perk-dot"></div>Tab switcher — see, switch, close, open new tabs</div>
-        <div class="pricing-perk"><div class="pricing-perk-dot"></div>12 themes including RGB gamer mode</div>
-        <div class="pricing-perk"><div class="pricing-perk-dot"></div>Trackpad stickers & clipboard paste</div>
-        <div class="pricing-perk"><div class="pricing-perk-dot"></div>Every future update, included</div>
+    <div style="padding-top:clamp(1rem,3vh,3rem);">
+      <div class="pricing-tagline" data-reveal data-d="1">One price. Everything.<br>No subscriptions. No renewals.</div>
+      <div class="pricing-perks" data-reveal data-d="3">
+        <div class="pricing-perk"><div class="pricing-perk-mark"></div>Trackpad with smart acceleration & right-click</div>
+        <div class="pricing-perk"><div class="pricing-perk-mark"></div>Air Mouse with gyroscope control</div>
+        <div class="pricing-perk"><div class="pricing-perk-mark"></div>Full keyboard from your phone</div>
+        <div class="pricing-perk"><div class="pricing-perk-mark"></div>Media remote for all major platforms</div>
+        <div class="pricing-perk"><div class="pricing-perk-mark"></div>Tab switcher — see, switch, close, open</div>
+        <div class="pricing-perk"><div class="pricing-perk-mark"></div>12 themes including RGB mode</div>
+        <div class="pricing-perk"><div class="pricing-perk-mark"></div>Trackpad stickers & clipboard paste</div>
+        <div class="pricing-perk"><div class="pricing-perk-mark"></div>Every future update, included</div>
       </div>
       <button class="pricing-btn">Unlock Everything</button>
     </div>
-
-    <div class="compat">
-      <span class="tag tag-ghost">Compatible with Netflix</span>
-      <span class="tag tag-ghost">HBO Max</span>
-      <span class="tag tag-ghost">Disney+</span>
-      <span class="tag tag-ghost">Hulu</span>
-      <span class="tag tag-ghost">YouTube</span>
-      <span class="tag tag-ghost">Any video player</span>
-    </div>
+  </div>
+  <div class="compat-row" data-reveal data-d="5">
+    <span class="compat-tag">Netflix</span>
+    <span class="compat-tag">HBO Max</span>
+    <span class="compat-tag">Disney+</span>
+    <span class="compat-tag">Hulu</span>
+    <span class="compat-tag">YouTube</span>
+    <span class="compat-tag">Any video player</span>
   </div>
 </section>
 
-<!-- ══ FOOTER ══ -->
-<footer class="footer">
-  <div class="container">
+<!-- ══ 08 — FOOTER ══ -->
+<footer class="footer pad">
+  <div class="footer-top">
     <div class="footer-brand">Couch<span>Lock</span></div>
-    <div class="footer-sub">Your phone. Your remote. Every screen.</div>
-    <div class="footer-legal">CouchLock is not affiliated with Netflix, Google, Disney, Warner Bros. Discovery, or any streaming service.<br>All platform names are used for compatibility description only.</div>
+    <div class="footer-tagline">Your phone. Your remote. Every screen.</div>
   </div>
+  <div class="footer-line"></div>
+  <div class="footer-legal">CouchLock is not affiliated with Netflix, Google, Disney, Warner Bros. Discovery, or any streaming service. All platform names are used for compatibility description only.</div>
 </footer>
+</div><!-- /below-scene -->
+
+</div><!-- /smooth-wrap -->
+
+<!-- ═══════════════════════════════════════════
+     THREE.JS — CDN + GLTFLoader
+═══════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.137.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/loaders/GLTFLoader.js"></script>
 
 <script>
 (function () {
-  var THEMES = [
-    { id: 'dark',    name: 'Dark',    accent: '79,82,224',   voidHex: '#0A0B10', voidRgb: '10,11,16',    ui: '255,255,255' },
-    { id: 'light',   name: 'Light',   accent: '79,82,224',   voidHex: '#F5F4F0', voidRgb: '245,244,240', ui: '0,0,0' },
-    { id: 'arctic',  name: 'Arctic',  accent: '56,189,248',  voidHex: '#080F17', voidRgb: '8,15,23',     ui: '255,255,255' },
-    { id: 'stone',   name: 'Stone',   accent: '161,161,170', voidHex: '#F0EFEC', voidRgb: '240,239,236', ui: '28,25,23' },
-    { id: 'matcha',  name: 'Matcha',  accent: '74,222,128',  voidHex: '#0A120E', voidRgb: '10,18,14',    ui: '255,255,255' },
-    { id: 'sand',    name: 'Sand',    accent: '168,139,97',  voidHex: '#F2EDE4', voidRgb: '242,237,228', ui: '35,30,25' },
-    { id: 'rose',    name: 'Rosé',    accent: '244,114,182', voidHex: '#10090E', voidRgb: '16,9,14',     ui: '255,255,255' },
-    { id: 'ember',   name: 'Ember',   accent: '251,146,60',  voidHex: '#100C08', voidRgb: '16,12,8',     ui: '255,255,255' },
-    { id: 'kraft',   name: 'Kraft',   accent: '120,90,55',   voidHex: '#D4C4A8', voidRgb: '212,196,168', ui: '30,25,18' },
-    { id: 'forest',  name: 'Forest',  accent: '34,197,94',   voidHex: '#0B100D', voidRgb: '11,16,13',    ui: '255,255,255' },
-    { id: 'rgb',     name: 'RGB',     accent: '0,255,120',   voidHex: '#050508', voidRgb: '5,5,8',       ui: '255,255,255', rgb: true },
-    { id: 'emo',     name: 'Emo',     accent: '148,0,211',   voidHex: '#08060A', voidRgb: '8,6,10',      ui: '255,255,255', emo: true }
+  'use strict';
+
+  var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var DEG = Math.PI / 180;
+
+  /* ═══════════════════════════════════════════
+     UTILITIES
+  ═══════════════════════════════════════════ */
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function cinematicEase(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+  function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+  function mapRange(val, inMin, inMax, outMin, outMax) {
+    var t = clamp((val - inMin) / (inMax - inMin), 0, 1);
+    return lerp(outMin, outMax, t);
+  }
+
+  /* ═══════════════════════════════════════════
+     SMOOTH SCROLL ENGINE
+  ═══════════════════════════════════════════ */
+  var wrap = document.getElementById('smooth-wrap');
+  var heightEl = document.getElementById('scroll-height');
+  var current = 0;
+  var target = 0;
+  var EASE = 0.045;
+
+  function setBodyHeight() {
+    heightEl.style.height = wrap.scrollHeight + 'px';
+  }
+
+  /* ═══════════════════════════════════════════
+     SCROLL-DRIVEN REVEAL SYSTEM
+     Continuous, reversible — not one-shot
+  ═══════════════════════════════════════════ */
+  var reveals = [];
+  var lineMasks = [];
+
+  function cacheElements() {
+    reveals = [];
+    lineMasks = [];
+
+    var revealEls = document.querySelectorAll('[data-reveal]');
+    for (var i = 0; i < revealEls.length; i++) {
+      var el = revealEls[i];
+      /* Skip hero intro elements — they animate on load, not scroll */
+      if (el.hasAttribute('data-hero-intro')) continue;
+      var delay = parseInt(el.getAttribute('data-d') || '0', 10) * 0.06;
+      reveals.push({ el: el, top: 0, delay: delay });
+    }
+
+    var maskEls = document.querySelectorAll('.line-mask');
+    for (var j = 0; j < maskEls.length; j++) {
+      var maskEl = maskEls[j];
+      var inner = maskEl.querySelector('.line-inner');
+      if (!inner) continue;
+      var parent = maskEl.parentElement;
+      var siblings = parent ? parent.querySelectorAll('.line-mask') : [];
+      var sibIdx = 0;
+      for (var k = 0; k < siblings.length; k++) {
+        if (siblings[k] === maskEl) { sibIdx = k; break; }
+      }
+      lineMasks.push({ el: maskEl, inner: inner, top: 0, delay: sibIdx * 0.1 });
+    }
+
+    recalcPositions();
+  }
+
+  function recalcPositions() {
+    for (var i = 0; i < reveals.length; i++) {
+      reveals[i].top = getOffsetTop(reveals[i].el);
+    }
+    for (var j = 0; j < lineMasks.length; j++) {
+      lineMasks[j].top = getOffsetTop(lineMasks[j].el);
+    }
+  }
+
+  function getOffsetTop(el) {
+    var top = 0;
+    var node = el;
+    while (node && node !== wrap) {
+      top += node.offsetTop;
+      node = node.offsetParent;
+    }
+    return top;
+  }
+
+  function updateReveals() {
+    var vh = window.innerHeight;
+    var triggerZone = vh * 0.75;
+
+    for (var i = 0; i < reveals.length; i++) {
+      var r = reveals[i];
+      var relPos = r.top - current;
+      var raw = (triggerZone - relPos) / (vh * 0.35);
+      var progress = clamp(raw - r.delay, 0, 1);
+      var eased = easeOutCubic(progress);
+
+      r.el.style.opacity = eased;
+      r.el.style.transform = 'translateY(' + (40 * (1 - eased)) + 'px)';
+    }
+
+    for (var j = 0; j < lineMasks.length; j++) {
+      var l = lineMasks[j];
+      var lRelPos = l.top - current;
+      var lRaw = (triggerZone - lRelPos) / (vh * 0.3);
+      var lProgress = clamp(lRaw - l.delay, 0, 1);
+      var lEased = easeOutCubic(lProgress);
+
+      l.inner.style.transform = 'translateY(' + (110 * (1 - lEased)) + '%)';
+      l.inner.style.opacity = lEased;
+    }
+  }
+
+  /* ═══════════════════════════════════════════
+     HERO — TIMED INTRO (not scroll-driven)
+     Words + sub + tags appear on page load
+  ═══════════════════════════════════════════ */
+  var heroTitle = document.getElementById('hero-title');
+  var heroWords = [
+    { text: 'You', accent: false },
+    { text: 'now', accent: false },
+    { text: 'have', accent: false, br: true },
+    { text: 'full', accent: true },
+    { text: 'control.', accent: true }
   ];
 
-  var currentTheme = 'dark';
-  var rgbTimer = null;
-  var rgbIndex = 0;
-  var RGB_COLORS = [
-    { rgb: '0,255,120' },
-    { rgb: '0,212,255' },
-    { rgb: '123,97,255' },
-    { rgb: '255,60,172' },
-    { rgb: '255,107,43' },
-    { rgb: '250,255,0' }
-  ];
-
-  function getTheme(id) {
-    for (var i = 0; i < THEMES.length; i++) {
-      if (THEMES[i].id === id) return THEMES[i];
+  heroWords.forEach(function (w) {
+    var span = document.createElement('span');
+    span.className = 'hero-word' + (w.accent ? ' accent-word' : '');
+    span.style.opacity = '0';
+    span.style.transform = 'translateY(50px)';
+    span.style.transition = 'opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1)';
+    span.textContent = w.text;
+    heroTitle.appendChild(span);
+    if (w.br) {
+      heroTitle.appendChild(document.createElement('br'));
     }
-    return THEMES[0];
-  }
+  });
 
-  function rgbToHex(r, g, b) {
-    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-  }
+  var heroWordEls = heroTitle.querySelectorAll('.hero-word');
+  var heroSub = document.querySelector('.hero-sub');
+  var heroTags = document.querySelector('.hero-tags');
 
-  function applyDemoTheme(themeId) {
-    var theme = getTheme(themeId);
-    if (!theme) return;
-    currentTheme = themeId;
-
-    // Stop any existing RGB cycle
-    if (rgbTimer) { clearInterval(rgbTimer); rgbTimer = null; }
-
-    var parts = theme.accent.split(',');
-    var r = parseInt(parts[0], 10);
-    var g = parseInt(parts[1], 10);
-    var b = parseInt(parts[2], 10);
-    var accentHex = rgbToHex(r, g, b);
-
-    var mock = document.getElementById('phone-mock');
-    var pad = document.getElementById('phone-pad');
-    var grid = document.getElementById('phone-pad-grid');
-
-    // Apply CSS custom properties scoped to the mockup
-    mock.style.setProperty('--dm-void', theme.voidHex);
-    mock.style.setProperty('--dm-void-rgb', theme.voidRgb);
-    mock.style.setProperty('--dm-accent', accentHex);
-    mock.style.setProperty('--dm-accent-rgb', theme.accent);
-    mock.style.setProperty('--dm-ui', theme.ui);
-
-    mock.style.background = theme.voidHex;
-    mock.style.borderColor = 'rgba(' + theme.ui + ',0.08)';
-
-    // Update pad
-    pad.style.background = 'rgba(' + theme.ui + ',0.04)';
-    pad.style.borderColor = 'rgba(' + theme.ui + ',0.08)';
-
-    // Grid pattern
-    if (theme.emo) {
-      grid.style.backgroundImage = 'linear-gradient(45deg, rgba(148,0,211,0.08) 25%, transparent 25%, transparent 75%, rgba(148,0,211,0.08) 75%), linear-gradient(45deg, rgba(148,0,211,0.08) 25%, transparent 25%, transparent 75%, rgba(148,0,211,0.08) 75%)';
-      grid.style.backgroundSize = '16px 16px';
-      grid.style.backgroundPosition = '0 0, 8px 8px';
-    } else {
-      grid.style.backgroundImage = 'radial-gradient(circle, rgba(' + theme.ui + ',0.12) 1px, transparent 1px)';
-      grid.style.backgroundSize = '12px 12px';
-      grid.style.backgroundPosition = '';
+  /* Stagger hero elements on load */
+  setTimeout(function () {
+    for (var i = 0; i < heroWordEls.length; i++) {
+      (function (idx) {
+        setTimeout(function () {
+          heroWordEls[idx].style.opacity = '1';
+          heroWordEls[idx].style.transform = 'translateY(0)';
+        }, idx * 120);
+      })(i);
     }
-
-    // Notch
-    var notch = mock.querySelector('.phone-notch');
-    if (notch) notch.style.background = 'rgba(' + theme.ui + ',0.08)';
-
-    // Conn text
-    var connText = mock.querySelector('.phone-conn-text');
-    if (connText) connText.style.color = 'rgba(' + theme.ui + ',0.15)';
-
-    // Buttons
-    var btns = mock.querySelectorAll('.phone-btn');
-    for (var i = 0; i < btns.length; i++) {
-      btns[i].style.background = 'rgba(' + theme.ui + ',0.04)';
-      btns[i].style.borderColor = 'rgba(' + theme.ui + ',0.06)';
-      btns[i].style.color = 'rgba(' + theme.ui + ',0.2)';
-    }
-
-    // Nav buttons
-    var navBtns = mock.querySelectorAll('.phone-nav-btn');
-    for (var j = 0; j < navBtns.length; j++) {
-      var btn = navBtns[j];
-      var svg = btn.querySelector('svg');
-      if (btn.classList.contains('active-nav')) {
-        btn.style.background = 'rgba(' + theme.accent + ',0.12)';
-        btn.style.borderColor = 'rgba(' + theme.accent + ',0.25)';
-        if (svg) svg.style.stroke = accentHex;
-      } else if (btn.classList.contains('settings-nav')) {
-        btn.style.background = 'rgba(' + theme.ui + ',0.1)';
-        btn.style.borderColor = 'rgba(' + theme.ui + ',0.1)';
-        if (svg) svg.style.stroke = theme.voidHex;
-      } else {
-        btn.style.background = 'rgba(' + theme.ui + ',0.03)';
-        btn.style.borderColor = 'rgba(' + theme.ui + ',0.06)';
-        if (svg) svg.style.stroke = 'rgba(' + theme.ui + ',0.2)';
+    /* Sub appears after words */
+    setTimeout(function () {
+      if (heroSub) {
+        heroSub.style.opacity = '1';
+        heroSub.style.transform = 'translateY(0)';
       }
-    }
-
-    // RGB cycling
-    if (theme.rgb) {
-      rgbTimer = setInterval(function () {
-        rgbIndex = (rgbIndex + 1) % RGB_COLORS.length;
-        var c = RGB_COLORS[rgbIndex];
-        var cp = c.rgb.split(',');
-        var hex = rgbToHex(parseInt(cp[0],10), parseInt(cp[1],10), parseInt(cp[2],10));
-
-        // Update active nav button
-        var activeBtn = mock.querySelector('.active-nav');
-        if (activeBtn) {
-          activeBtn.style.background = 'rgba(' + c.rgb + ',0.12)';
-          activeBtn.style.borderColor = 'rgba(' + c.rgb + ',0.25)';
-          var activeSvg = activeBtn.querySelector('svg');
-          if (activeSvg) activeSvg.style.stroke = hex;
-        }
-      }, 1400);
-    }
-
-    // Update swatch active states
-    var swatches = document.querySelectorAll('.theme-sw');
-    for (var k = 0; k < swatches.length; k++) {
-      var sw = swatches[k];
-      if (sw.getAttribute('data-theme') === themeId) {
-        sw.classList.add('active');
-      } else {
-        sw.classList.remove('active');
+    }, heroWords.length * 120 + 200);
+    /* Tags appear last */
+    setTimeout(function () {
+      if (heroTags) {
+        heroTags.style.opacity = '1';
+        heroTags.style.transform = 'translateY(0)';
       }
+    }, heroWords.length * 120 + 500);
+  }, 200);
+
+  /* Remove hero sub/tags from scroll reveal system by marking them */
+  if (heroSub) heroSub.setAttribute('data-hero-intro', '');
+  if (heroTags) heroTags.setAttribute('data-hero-intro', '');
+
+  function updateHeroScroll() {
+    var heroScroll = document.getElementById('hero-scroll');
+    if (heroScroll) {
+      heroScroll.style.opacity = clamp(1 - current / (window.innerHeight * 0.3), 0, 1);
     }
   }
 
-  function buildSwatches() {
-    var container = document.getElementById('theme-swatches-demo');
-    if (!container) return;
-    container.innerHTML = '';
+  /* ═══════════════════════════════════════════
+     PHONE GRID DOTS
+  ═══════════════════════════════════════════ */
+  var phoneGrid = document.getElementById('phone-grid');
+  if (phoneGrid) {
+    for (var g = 0; g < 64; g++) {
+      phoneGrid.appendChild(document.createElement('span'));
+    }
+  }
 
-    THEMES.forEach(function (theme) {
-      var sw = document.createElement('div');
-      sw.className = 'theme-sw' + (theme.id === currentTheme ? ' active' : '');
-      if (theme.rgb) sw.className += ' theme-sw-rgb';
-      sw.setAttribute('data-theme', theme.id);
+  /* ═══════════════════════════════════════════
+     MODES — DRAG SCROLL
+  ═══════════════════════════════════════════ */
+  var track = document.getElementById('modes-track');
+  var isDragging = false;
+  var dragStartX = 0;
+  var dragScrollLeft = 0;
 
-      var dot = document.createElement('div');
-      dot.className = 'theme-sw-dot';
-      var inner = document.createElement('div');
-      inner.className = 'theme-sw-inner';
-
-      if (theme.rgb) {
-        // conic gradient set via CSS class
-      } else {
-        inner.style.background = 'linear-gradient(135deg, ' + theme.voidHex + ' 50%, rgb(' + theme.accent + ') 50%)';
-      }
-      dot.appendChild(inner);
-
-      var name = document.createElement('span');
-      name.className = 'theme-sw-name';
-      name.textContent = theme.name;
-
-      sw.appendChild(dot);
-      sw.appendChild(name);
-
-      sw.addEventListener('click', function () {
-        applyDemoTheme(theme.id);
-      });
-
-      container.appendChild(sw);
+  if (track) {
+    track.addEventListener('mousedown', function (e) {
+      isDragging = true;
+      dragStartX = e.pageX - track.offsetLeft;
+      dragScrollLeft = track.scrollLeft;
+      track.style.cursor = 'grabbing';
+    });
+    track.addEventListener('mousemove', function (e) {
+      if (!isDragging) return;
+      e.preventDefault();
+      var x = e.pageX - track.offsetLeft;
+      track.scrollLeft = dragScrollLeft - (x - dragStartX) * 1.5;
+    });
+    track.addEventListener('mouseup', function () {
+      isDragging = false;
+      track.style.cursor = 'grab';
+    });
+    track.addEventListener('mouseleave', function () {
+      isDragging = false;
+      track.style.cursor = 'grab';
     });
   }
 
-  buildSwatches();
-  applyDemoTheme('dark');
+  /* ═══════════════════════════════════════════
+     THREE.JS — REMOTE (GLB) + PHONE SCENE
+  ═══════════════════════════════════════════ */
+  var canvas = document.getElementById('scene-canvas');
+  var spacer = document.getElementById('scene-spacer');
+  var scene, camera, renderer, remoteGroup, phoneGroup;
+  var sceneReady = false;
+  var cameraLookAt = new THREE.Vector3(0, 0, 0);
+
+  function initThree() {
+    if (typeof THREE === 'undefined') return;
+
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(2.5, 0.5, 5);
+    camera.lookAt(0, 0, 0);
+
+    renderer = new THREE.WebGLRenderer({
+      canvas: canvas,
+      antialias: true,
+      alpha: true
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+
+    /* Lighting */
+    var ambient = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambient);
+
+    var keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
+    keyLight.position.set(3, 4, 5);
+    scene.add(keyLight);
+
+    var fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+    fillLight.position.set(-2, 0, 3);
+    scene.add(fillLight);
+
+    var rimLight = new THREE.DirectionalLight(0x6366F1, 0.25);
+    rimLight.position.set(-3, 1, -2);
+    scene.add(rimLight);
+
+    /* Load GLB remote model */
+    loadRemoteGLB();
+
+    /* Build procedural phone */
+    phoneGroup = createPhone();
+    phoneGroup.visible = false;
+    scene.add(phoneGroup);
+
+    window.addEventListener('resize', function () {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  }
+
+  /* ══════════════════════════════════════════════
+     GLB LOADER — remote.glb
+  ══════════════════════════════════════════════ */
+  function loadRemoteGLB() {
+    if (typeof THREE.GLTFLoader === 'undefined') {
+      console.error('GLTFLoader not available');
+      return;
+    }
+
+    var loader = new THREE.GLTFLoader();
+    loader.load(
+      'models/remote.glb',
+      function (gltf) {
+        remoteGroup = gltf.scene;
+
+        /* Make all materials transparent-capable for opacity animation */
+        remoteGroup.traverse(function (child) {
+          if (child.isMesh && child.material) {
+            child.material.transparent = true;
+            child.material.opacity = 1;
+          }
+        });
+
+        scene.add(remoteGroup);
+        remoteGroup.visible = true;
+        setGroupOpacity(remoteGroup, 1);
+        sceneReady = true;
+
+        /* Force initial render */
+        canvas.style.opacity = 1;
+        renderer.render(scene, camera);
+
+        /* Log bounding box so we know the model's scale */
+        var box = new THREE.Box3().setFromObject(remoteGroup);
+        var size = new THREE.Vector3();
+        box.getSize(size);
+        console.log('[GLB] Remote loaded. BBox size:', size.x.toFixed(2), size.y.toFixed(2), size.z.toFixed(2));
+        console.log('[GLB] BBox center:', box.getCenter(new THREE.Vector3()));
+      },
+      function (progress) {
+        if (progress.total > 0) {
+          console.log('[GLB] Loading... ' + Math.round(progress.loaded / progress.total * 100) + '%');
+        }
+      },
+      function (error) {
+        console.error('[GLB] Failed to load remote.glb:', error);
+        console.log('[GLB] Make sure remote.glb is in pwa/models/remote.glb');
+      }
+    );
+  }
+
+  /* ── Rounded rect shape helper ── */
+  function rrShape(w, h, r) {
+    var s = new THREE.Shape();
+    var x = -w / 2, y = -h / 2;
+    s.moveTo(x + r, y);
+    s.lineTo(x + w - r, y);
+    s.quadraticCurveTo(x + w, y, x + w, y + r);
+    s.lineTo(x + w, y + h - r);
+    s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    s.lineTo(x + r, y + h);
+    s.quadraticCurveTo(x, y + h, x, y + h - r);
+    s.lineTo(x, y + r);
+    s.quadraticCurveTo(x, y, x + r, y);
+    return s;
+  }
+
+  /* ══════════════════════════════════════════════
+     PHONE MODEL — improved procedural
+  ══════════════════════════════════════════════ */
+  function createPhone() {
+    var group = new THREE.Group();
+
+    /* Modern smartphone proportions: ~19.5:9 aspect ratio */
+    var phoneW = 1.0;
+    var phoneH = 2.17;
+    var phoneD = 0.1;
+    var cornerR = 0.14;
+
+    /* ── Main body ── */
+    var bodyGeo = new THREE.ExtrudeGeometry(rrShape(phoneW, phoneH, cornerR), {
+      depth: phoneD, bevelEnabled: true,
+      bevelThickness: 0.015, bevelSize: 0.015, bevelSegments: 4
+    });
+    bodyGeo.center();
+    var bodyMat = new THREE.MeshStandardMaterial({
+      color: 0x111113, roughness: 0.45, metalness: 0.25,
+      transparent: true, opacity: 1
+    });
+    group.add(new THREE.Mesh(bodyGeo, bodyMat));
+
+    /* ── Metal frame / chamfer ring ── */
+    var framePath = rrShape(phoneW + 0.03, phoneH + 0.03, cornerR + 0.01);
+    var frameHole = rrShape(phoneW - 0.03, phoneH - 0.03, cornerR - 0.01);
+    framePath.holes.push(frameHole);
+    var frameGeo = new THREE.ExtrudeGeometry(framePath, {
+      depth: phoneD, bevelEnabled: true,
+      bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 2
+    });
+    frameGeo.center();
+    var frameMat = new THREE.MeshStandardMaterial({
+      color: 0x2a2a2e, roughness: 0.25, metalness: 0.7,
+      transparent: true, opacity: 1
+    });
+    group.add(new THREE.Mesh(frameGeo, frameMat));
+
+    /* ── Edge highlights (chamfer simulation) ── */
+    var edgePath = rrShape(phoneW + 0.035, phoneH + 0.035, cornerR + 0.012);
+    var edgeHole = rrShape(phoneW + 0.025, phoneH + 0.025, cornerR + 0.008);
+    edgePath.holes.push(edgeHole);
+    var edgeGeo = new THREE.ExtrudeGeometry(edgePath, {
+      depth: phoneD * 0.6, bevelEnabled: false
+    });
+    edgeGeo.center();
+    var edgeMat = new THREE.MeshStandardMaterial({
+      color: 0x3a3a3e, roughness: 0.15, metalness: 0.85,
+      transparent: true, opacity: 0.6
+    });
+    group.add(new THREE.Mesh(edgeGeo, edgeMat));
+
+    /* ── Screen (slightly smaller than body, with subtle chin at bottom) ── */
+    var screenW = phoneW - 0.08;
+    var screenH = phoneH - 0.14;
+    var screenOffsetY = 0.01; /* slight upward offset = thinner top bezel, thicker chin */
+
+    /*
+       Body front face after bevel: (phoneD + 2 * bevelThickness) / 2 = (0.1 + 0.03) / 2 = 0.065
+       Screen must be IN FRONT of this, not behind it.
+    */
+    var frontFace = (phoneD + 0.03) / 2;
+
+    var screenGeo = new THREE.PlaneGeometry(screenW, screenH);
+    var screenTex = createScreenTexture();
+    screenTex.minFilter = THREE.LinearFilter;
+    screenTex.magFilter = THREE.LinearFilter;
+    screenTex.generateMipmaps = false;
+    var screenMat = new THREE.MeshBasicMaterial({
+      map: screenTex, transparent: true, opacity: 1,
+      side: THREE.DoubleSide, toneMapped: false
+    });
+    var screenMesh = new THREE.Mesh(screenGeo, screenMat);
+    screenMesh.position.set(0, screenOffsetY, frontFace + 0.003);
+    screenMesh.name = 'phoneScreen';
+    group.add(screenMesh);
+
+    /* ── Dynamic Island (front camera/sensor) ── */
+    var diW = 0.22, diH = 0.06, diR = 0.03;
+    var diGeo = new THREE.ExtrudeGeometry(rrShape(diW, diH, diR), {
+      depth: 0.005, bevelEnabled: true,
+      bevelThickness: 0.002, bevelSize: 0.002, bevelSegments: 2
+    });
+    diGeo.center();
+    var diMat = new THREE.MeshStandardMaterial({
+      color: 0x050508, roughness: 0.3, metalness: 0.2,
+      transparent: true, opacity: 1
+    });
+    var diMesh = new THREE.Mesh(diGeo, diMat);
+    diMesh.position.set(0, phoneH * 0.5 - 0.12, frontFace + 0.008);
+    group.add(diMesh);
+
+    /* ── Front camera dot inside dynamic island ── */
+    var fcGeo = new THREE.CircleGeometry(0.015, 16);
+    var fcMat = new THREE.MeshStandardMaterial({
+      color: 0x0a0a10, roughness: 0.1, metalness: 0.5,
+      emissive: 0x111125, emissiveIntensity: 0.2,
+      transparent: true, opacity: 1
+    });
+    var fcMesh = new THREE.Mesh(fcGeo, fcMat);
+    fcMesh.position.set(0.04, phoneH * 0.5 - 0.12, frontFace + 0.012);
+    group.add(fcMesh);
+
+    /* ── Side buttons — Power (right side) ── */
+    var powerBtnGeo = new THREE.BoxGeometry(0.015, 0.18, 0.035);
+    var sideButtonMat = new THREE.MeshStandardMaterial({
+      color: 0x222225, roughness: 0.25, metalness: 0.7,
+      transparent: true, opacity: 1
+    });
+    var powerBtn = new THREE.Mesh(powerBtnGeo, sideButtonMat);
+    powerBtn.position.set(phoneW * 0.5 + 0.022, 0.2, 0);
+    group.add(powerBtn);
+
+    /* ── Side buttons — Volume Up (left side) ── */
+    var volUpGeo = new THREE.BoxGeometry(0.015, 0.12, 0.035);
+    var volUp = new THREE.Mesh(volUpGeo, sideButtonMat);
+    volUp.position.set(-phoneW * 0.5 - 0.022, 0.35, 0);
+    group.add(volUp);
+
+    /* ── Side buttons — Volume Down (left side) ── */
+    var volDownGeo = new THREE.BoxGeometry(0.015, 0.12, 0.035);
+    var volDown = new THREE.Mesh(volDownGeo, sideButtonMat);
+    volDown.position.set(-phoneW * 0.5 - 0.022, 0.15, 0);
+    group.add(volDown);
+
+    /* ── Antenna lines (subtle grooves on frame, left and right) ── */
+    var antennaLineMat = new THREE.MeshStandardMaterial({
+      color: 0x222226, roughness: 0.5, metalness: 0.4,
+      transparent: true, opacity: 0.5
+    });
+    var antennaPositions = [
+      { x: phoneW * 0.5 + 0.016, y: phoneH * 0.35 },
+      { x: phoneW * 0.5 + 0.016, y: -phoneH * 0.35 },
+      { x: -phoneW * 0.5 - 0.016, y: phoneH * 0.35 },
+      { x: -phoneW * 0.5 - 0.016, y: -phoneH * 0.35 }
+    ];
+    for (var ai = 0; ai < antennaPositions.length; ai++) {
+      var aGeo = new THREE.BoxGeometry(0.008, 0.003, phoneD * 0.5);
+      var aMesh = new THREE.Mesh(aGeo, antennaLineMat);
+      aMesh.position.set(antennaPositions[ai].x, antennaPositions[ai].y, 0);
+      group.add(aMesh);
+    }
+
+    /* ── Speaker grille (top, front face) ── */
+    var speakerTopMat = new THREE.MeshStandardMaterial({
+      color: 0x111113, roughness: 0.6, metalness: 0.3,
+      transparent: true, opacity: 1
+    });
+    for (var si = 0; si < 6; si++) {
+      var sGeo = new THREE.BoxGeometry(0.012, 0.003, 0.002);
+      var sMesh = new THREE.Mesh(sGeo, speakerTopMat);
+      sMesh.position.set(-0.04 + si * 0.016, phoneH * 0.5 - 0.04, frontFace + 0.002);
+      group.add(sMesh);
+    }
+
+    /* ── Speaker/mic grille (bottom edge) ── */
+    for (var bi = 0; bi < 6; bi++) {
+      var bGeo = new THREE.CylinderGeometry(0.004, 0.004, 0.008, 8);
+      bGeo.rotateX(Math.PI / 2);
+      var bMesh = new THREE.Mesh(bGeo, speakerTopMat);
+      bMesh.position.set(-0.1 + bi * 0.025, -phoneH * 0.5 - 0.01, 0);
+      group.add(bMesh);
+    }
+
+    /* ── USB-C port indicator (bottom center) ── */
+    var usbGeo = new THREE.ExtrudeGeometry(rrShape(0.08, 0.03, 0.01), {
+      depth: 0.008, bevelEnabled: false
+    });
+    usbGeo.center();
+    var usbMat = new THREE.MeshStandardMaterial({
+      color: 0x111113, roughness: 0.5, metalness: 0.4,
+      transparent: true, opacity: 1
+    });
+    var usbMesh = new THREE.Mesh(usbGeo, usbMat);
+    usbMesh.position.set(0.06, -phoneH * 0.5 - 0.01, 0);
+    usbMesh.rotation.x = Math.PI / 2;
+    group.add(usbMesh);
+
+    /* ── Camera bump (back) ── */
+    var camBumpGeo = new THREE.ExtrudeGeometry(rrShape(0.38, 0.38, 0.1), {
+      depth: 0.035, bevelEnabled: true,
+      bevelThickness: 0.01, bevelSize: 0.01, bevelSegments: 2
+    });
+    camBumpGeo.center();
+    var camBumpMat = new THREE.MeshStandardMaterial({
+      color: 0x1a1a1e, roughness: 0.35, metalness: 0.3,
+      transparent: true, opacity: 1
+    });
+    var camBump = new THREE.Mesh(camBumpGeo, camBumpMat);
+    camBump.position.set(-0.22, 0.72, -frontFace - 0.02);
+    group.add(camBump);
+
+    /* ── Camera lenses (back) ── */
+    var lensGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.025, 20);
+    lensGeo.rotateX(Math.PI / 2);
+    var lensMat = new THREE.MeshStandardMaterial({
+      color: 0x080810, roughness: 0.15, metalness: 0.6,
+      emissive: 0x12122a, emissiveIntensity: 0.3,
+      transparent: true, opacity: 1
+    });
+    /* Torus rings — default orientation (XY plane) faces -Z which is the back */
+    var lensRingGeo = new THREE.TorusGeometry(0.065, 0.008, 8, 20);
+    var lensRingMat = new THREE.MeshStandardMaterial({
+      color: 0x3a3a3e, roughness: 0.2, metalness: 0.7,
+      transparent: true, opacity: 1
+    });
+
+    var lensPositions = [[-0.14, 0.80], [-0.30, 0.80], [-0.22, 0.64]];
+    lensPositions.forEach(function (lp) {
+      var lens = new THREE.Mesh(lensGeo, lensMat);
+      lens.position.set(lp[0], lp[1], -frontFace - 0.04);
+      group.add(lens);
+      var lRing = new THREE.Mesh(lensRingGeo, lensRingMat);
+      lRing.position.set(lp[0], lp[1], -frontFace - 0.04);
+      group.add(lRing);
+    });
+
+    return group;
+  }
+
+  /* ══════════════════════════════════════════════
+     PHONE SCREEN TEXTURE — detailed PWA PAD layout
+  ══════════════════════════════════════════════ */
+  function createScreenTexture() {
+    var W = 512, H = 1024;
+    var c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    var ctx = c.getContext('2d');
+    var scrR = 36;
+
+    /* Scale factor: canvas maps ~375×812 phone to 512×1024 */
+    var S = 512 / 375;
+
+    /* Clip to rounded rect for border-radius effect */
+    ctx.save();
+    drawRR(ctx, 0, 0, W, H, scrR);
+    ctx.clip();
+
+    /* ── Background — var(--void) #0A0B10 ── */
+    ctx.fillStyle = '#0A0B10';
+    ctx.fillRect(0, 0, W, H);
+
+    /* ── TOPBAR — padding: 14px 20px, flex row ── */
+    var tbPadX = Math.round(20 * S);
+    var tbPadY = Math.round(14 * S);
+    var tbH = Math.round(48 * S);
+
+    /* Connection dot (6×6, teal #16A37F with glow) */
+    var dotX = tbPadX + Math.round(4 * S);
+    var dotY = Math.round(tbH / 2);
+    var dotR = Math.round(4 * S);
+    ctx.fillStyle = '#16A37F';
+    ctx.beginPath();
+    ctx.arc(dotX, dotY, dotR, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* Dot glow */
+    var dotGlow = ctx.createRadialGradient(dotX, dotY, 1, dotX, dotY, dotR * 5);
+    dotGlow.addColorStop(0, 'rgba(22,163,127,0.5)');
+    dotGlow.addColorStop(1, 'rgba(22,163,127,0)');
+    ctx.fillStyle = dotGlow;
+    ctx.fillRect(0, 0, Math.round(80 * S), tbH);
+
+    /* "CONNECTED" text — font-family: monospace, 9px, weight 500, letter-spacing 1px */
+    ctx.font = '500 ' + Math.round(9 * S) + 'px "Century Gothic", monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.textAlign = 'left';
+    ctx.letterSpacing = Math.round(1 * S) + 'px';
+    ctx.fillText('CONNECTED', dotX + dotR + Math.round(6 * S), dotY + Math.round(3 * S));
+    ctx.letterSpacing = '0px';
+
+    /* Topbar nav buttons (right-aligned, 3 square buttons, gap:6px) */
+    /* Real width: calc((100vw - 48px) * 3/5 + 12px) ≈ 208px on 375px phone */
+    var tnGap = Math.round(6 * S);
+    var tnBtnSize = Math.round(30 * S);
+    var tnStartX = W - tbPadX - (tnBtnSize * 3 + tnGap * 2);
+    var tnY = Math.round((tbH - tnBtnSize) / 2);
+    var tnBtnR = Math.round(4 * S);
+
+    for (var tni = 0; tni < 3; tni++) {
+      var tnx = tnStartX + tni * (tnBtnSize + tnGap);
+      /* Button bg — var(--ink) #0D0F1C, disabled opacity 0.15 */
+      drawRR(ctx, tnx, tnY, tnBtnSize, tnBtnSize, tnBtnR);
+      ctx.fillStyle = '#0D0F1C';
+      ctx.fill();
+
+      /* Icon strokes — rgba(255,255,255,0.3) at disabled opacity */
+      var icx = tnx + tnBtnSize / 2;
+      var icy = tnY + tnBtnSize / 2;
+      var ics = tnBtnSize * 0.32;
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = Math.max(1.5, 1.8 * S * 0.6);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      if (tni === 0) {
+        /* Back: ← arrow */
+        ctx.beginPath();
+        ctx.moveTo(icx + ics * 0.5, icy);
+        ctx.lineTo(icx - ics * 0.5, icy);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(icx - ics * 0.1, icy - ics * 0.5);
+        ctx.lineTo(icx - ics * 0.5, icy);
+        ctx.lineTo(icx - ics * 0.1, icy + ics * 0.5);
+        ctx.stroke();
+      } else if (tni === 1) {
+        /* Forward: → arrow */
+        ctx.beginPath();
+        ctx.moveTo(icx - ics * 0.5, icy);
+        ctx.lineTo(icx + ics * 0.5, icy);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(icx + ics * 0.1, icy - ics * 0.5);
+        ctx.lineTo(icx + ics * 0.5, icy);
+        ctx.lineTo(icx + ics * 0.1, icy + ics * 0.5);
+        ctx.stroke();
+      } else {
+        /* Reload: circular arrow */
+        ctx.beginPath();
+        ctx.arc(icx, icy, ics * 0.45, -Math.PI * 0.6, Math.PI * 0.9);
+        ctx.stroke();
+        /* Arrow tip */
+        var tipAngle = Math.PI * 0.9;
+        var tipX = icx + Math.cos(tipAngle) * ics * 0.45;
+        var tipY = icy + Math.sin(tipAngle) * ics * 0.45;
+        ctx.beginPath();
+        ctx.moveTo(tipX - 3, tipY - 4);
+        ctx.lineTo(tipX, tipY);
+        ctx.lineTo(tipX + 4, tipY - 2);
+        ctx.stroke();
+      }
+    }
+
+    /* ── MAIN AREA — trackpad view ── */
+    /* .trackpad: padding 10px 10px 0 */
+    var mainY = tbH;
+    var mainPad = Math.round(10 * S);
+
+    /* Bottom nav total height: btn + gap + label + gap + triangle ≈ 100px real */
+    var bnTotalH = Math.round(100 * S);
+    var mainBottom = H - bnTotalH;
+
+    /* Trackpad buttons: height 56px, gap 10px above */
+    var cbtnH = Math.round(56 * S);
+    var cbtnGap = Math.round(10 * S);
+
+    /* Trackpad surface fills remaining space */
+    var tpX = mainPad;
+    var tpY = mainY + mainPad;
+    var tpW = W - mainPad * 2;
+    var tpBottom = mainBottom - cbtnH - cbtnGap;
+    var tpH = tpBottom - tpY;
+    var tpR = Math.round(12 * S);
+
+    /* Surface bg — var(--ink) #0D0F1C */
+    drawRR(ctx, tpX, tpY, tpW, tpH, tpR);
+    ctx.fillStyle = '#0D0F1C';
+    ctx.fill();
+
+    /* Dot grid — 16px spacing, 1px dots, rgba(255,255,255,0.15) */
+    var gridSpace = Math.round(16 * S);
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    for (var gy = tpY + gridSpace; gy < tpY + tpH - gridSpace / 2; gy += gridSpace) {
+      for (var gx = tpX + gridSpace; gx < tpX + tpW - gridSpace / 2; gx += gridSpace) {
+        ctx.beginPath();
+        ctx.arc(gx, gy, Math.max(0.8, 1 * S * 0.5), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    /* Center glow — radial-gradient(accent at 6%, transparent 70%) */
+    var glowCx = tpX + tpW / 2;
+    var glowCy = tpY + tpH / 2;
+    var glow = ctx.createRadialGradient(glowCx, glowCy, 0, glowCx, glowCy, tpW * 0.5);
+    glow.addColorStop(0, 'rgba(79,82,224,0.08)');
+    glow.addColorStop(0.5, 'rgba(79,82,224,0.03)');
+    glow.addColorStop(1, 'rgba(79,82,224,0)');
+    ctx.fillStyle = glow;
+    drawRR(ctx, tpX, tpY, tpW, tpH, tpR);
+    ctx.fill();
+
+    /* Hint overlay — "Slide to move cursor" with blurred bg */
+    /* .trackpad-hint: bg rgba(void,0.7), backdrop-blur, centered, 14px font */
+    drawRR(ctx, tpX, tpY, tpW, tpH, tpR);
+    ctx.fillStyle = 'rgba(10,11,16,0.55)';
+    ctx.fill();
+    ctx.font = '500 ' + Math.round(14 * S) + 'px "DM Sans", sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.textAlign = 'center';
+    ctx.fillText('Slide to move cursor', W / 2, tpY + tpH / 2 + Math.round(5 * S));
+
+    /* ── Trackpad buttons — Left / Right ── */
+    var cbtnY = tpBottom;
+    var cbtnInnerGap = Math.round(10 * S);
+    var cbtnW = (tpW - cbtnInnerGap) / 2;
+    var cbtnR = Math.round(8 * S);
+
+    /* Left button */
+    drawRR(ctx, tpX, cbtnY, cbtnW, cbtnH, cbtnR);
+    ctx.fillStyle = '#0D0F1C';
+    ctx.fill();
+
+    /* Right button */
+    drawRR(ctx, tpX + cbtnW + cbtnInnerGap, cbtnY, cbtnW, cbtnH, cbtnR);
+    ctx.fillStyle = '#0D0F1C';
+    ctx.fill();
+
+    /* Button text — monospace 10px, uppercase, rgba(255,255,255,0.7) */
+    ctx.font = '100 ' + Math.round(10 * S) + 'px "Century Gothic", monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.textAlign = 'center';
+    ctx.letterSpacing = Math.round(1 * S) + 'px';
+    ctx.fillText('LEFT', tpX + cbtnW / 2, cbtnY + cbtnH / 2 + Math.round(3 * S));
+    ctx.fillText('RIGHT', tpX + cbtnW + cbtnInnerGap + cbtnW / 2, cbtnY + cbtnH / 2 + Math.round(3 * S));
+    ctx.letterSpacing = '0px';
+
+    /* ── BOTTOM NAV — 5 items, padding 10px, gap 6px ── */
+    var bnPad = Math.round(10 * S);
+    var bnGap = Math.round(6 * S);
+    var bnY = mainBottom + Math.round(4 * S);
+    var bnAvail = W - bnPad * 2;
+    var bnBtnSize = Math.floor((bnAvail - bnGap * 4) / 5);
+    var bnStartX = bnPad;
+    var bnBtnR = Math.round(8 * S);
+
+    var navLabels = ['PAD', 'AIR', 'SETTINGS', 'MEDIA', 'TABS'];
+    /* Settings btn index = 2 gets accent bg */
+
+    for (var ni = 0; ni < 5; ni++) {
+      var nx = bnStartX + ni * (bnBtnSize + bnGap);
+      var btnCx = nx + bnBtnSize / 2;
+      var btnCy = bnY + bnBtnSize / 2;
+
+      /* Button bg */
+      drawRR(ctx, nx, bnY, bnBtnSize, bnBtnSize, bnBtnR);
+      if (ni === 2) {
+        ctx.fillStyle = '#4F52E0';
+      } else {
+        ctx.fillStyle = '#0D0F1C';
+      }
+      ctx.fill();
+
+      /* Icons — stroke style, 1.8px weight, linecap round */
+      var iconS = bnBtnSize * 0.28;
+      ctx.lineWidth = Math.max(1.5, 1.8 * S * 0.55);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      if (ni === 0) {
+        /* PAD: rect with center circle — stroke rgba(255,255,255,0.3) */
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillStyle = 'transparent';
+        drawRR(ctx, btnCx - iconS, btnCy - iconS, iconS * 2, iconS * 2, iconS * 0.4);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(btnCx, btnCy, iconS * 0.35, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (ni === 1) {
+        /* AIR: two concentric circles */
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.beginPath();
+        ctx.arc(btnCx, btnCy, iconS * 0.75, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(btnCx, btnCy, iconS * 0.3, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (ni === 2) {
+        /* SETTINGS: gear — simplified as circle with 6 ticks, white on accent */
+        ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+        ctx.beginPath();
+        ctx.arc(btnCx, btnCy, iconS * 0.4, 0, Math.PI * 2);
+        ctx.stroke();
+        for (var gi = 0; gi < 6; gi++) {
+          var ga = (gi / 6) * Math.PI * 2 - Math.PI / 2;
+          ctx.beginPath();
+          ctx.moveTo(btnCx + Math.cos(ga) * iconS * 0.55, btnCy + Math.sin(ga) * iconS * 0.55);
+          ctx.lineTo(btnCx + Math.cos(ga) * iconS * 0.85, btnCy + Math.sin(ga) * iconS * 0.85);
+          ctx.stroke();
+        }
+      } else if (ni === 3) {
+        /* MEDIA: play triangle */
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.beginPath();
+        ctx.moveTo(btnCx - iconS * 0.35, btnCy - iconS * 0.6);
+        ctx.lineTo(btnCx + iconS * 0.65, btnCy);
+        ctx.lineTo(btnCx - iconS * 0.35, btnCy + iconS * 0.6);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        /* TABS: rect with horizontal line */
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        drawRR(ctx, btnCx - iconS, btnCy - iconS, iconS * 2, iconS * 2, iconS * 0.2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(btnCx - iconS, btnCy - iconS * 0.35);
+        ctx.lineTo(btnCx + iconS, btnCy - iconS * 0.35);
+        ctx.stroke();
+      }
+    }
+
+    /* Nav labels — monospace 8px uppercase, rgba(255,255,255,0.6), active gets 0.4 + weight 700 */
+    var lblY = bnY + bnBtnSize + Math.round(5 * S) + Math.round(8 * S);
+    ctx.textAlign = 'center';
+    for (var li = 0; li < navLabels.length; li++) {
+      var lx = bnStartX + li * (bnBtnSize + bnGap) + bnBtnSize / 2;
+      if (li === 0) {
+        ctx.font = '700 ' + Math.round(8 * S) + 'px "Century Gothic", monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      } else {
+        ctx.font = '500 ' + Math.round(8 * S) + 'px "Century Gothic", monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      }
+      ctx.fillText(navLabels[li], lx, lblY);
+    }
+
+    /* Active triangle indicator below PAD */
+    var padCx = bnStartX + bnBtnSize / 2;
+    var triY2 = lblY + Math.round(6 * S);
+    var triSize = Math.round(4 * S);
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.beginPath();
+    ctx.moveTo(padCx - triSize, triY2);
+    ctx.lineTo(padCx + triSize, triY2);
+    ctx.lineTo(padCx, triY2 + triSize);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+    return new THREE.CanvasTexture(c);
+  }
+
+  function drawRR(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  /* ══════════════════════════════════════════════
+     SCENE ANIMATION — Scroll-driven
+  ══════════════════════════════════════════════ */
+  var spacerTopCached = 0;
+  var spacerHeightCached = 0;
+
+  function cacheSpacerPos() {
+    if (!spacer) return;
+    spacerTopCached = getOffsetTop(spacer);
+    spacerHeightCached = spacer.offsetHeight;
+  }
+
+  function getScrollProgress() {
+    var vh = window.innerHeight;
+    var scrollIntoSpacer = current - spacerTopCached + vh;
+    var totalRange = spacerHeightCached + vh;
+    return clamp(scrollIntoSpacer / totalRange, 0, 1);
+  }
+
+  function updateScene() {
+    if (!sceneReady || !spacer) return;
+
+    var p = getScrollProgress();
+
+    /* Canvas opacity: fade in, then stays visible behind content */
+    var canvasOpacity = 0;
+    if (p > 0.005) {
+      canvasOpacity = cinematicEase(clamp((p - 0.005) / 0.05, 0, 1));
+    }
+    canvas.style.opacity = canvasOpacity;
+    if (canvasOpacity < 0.01) return;
+
+    /* Interpolate ALL objects from the 8 keyframes */
+    var objects = ['remote', 'phone', 'camera'];
+    for (var i = 0; i < objects.length; i++) {
+      var st = getInterp(objects[i], p);
+      if (st) applyObjState(objects[i], st);
+    }
+
+    renderer.render(scene, camera);
+  }
+
+  function setGroupOpacity(group, opacity) {
+    group.traverse(function (child) {
+      if (child.isMesh && child.material) {
+        child.material.opacity = opacity;
+      }
+    });
+  }
+
+  /* ═══════════════════════════════════════════
+     KEYFRAMES — 8 FIXED KEYFRAMES
+  ═══════════════════════════════════════════ */
+
+  /* 5 keyframes, evenly spaced — each one = 1 viewport of scroll.
+     Spacer is 500vh so each keyframe transition takes exactly 100vh. */
+  var keyframes = [
+    { label: 'Remote enters',
+      remote:  { px:0, py:0, pz:0, rx:5.7, ry:-22.9, rz:2.9, s:1, opacity:0 },
+      phone:   { px:0, py:0, pz:0, rx:5.7, ry:180, rz:-1.1, s:1, opacity:0 },
+      camera:  { px:1.8, py:0.3, pz:5.5, lx:0, ly:0, lz:0 }
+    },
+    { label: 'Remote front',
+      remote:  { px:0, py:0, pz:0, rx:5.7, ry:0, rz:0, s:1, opacity:1 },
+      phone:   { px:0, py:0, pz:0, rx:5.7, ry:180, rz:-1.1, s:1, opacity:0 },
+      camera:  { px:4.517, py:6.514, pz:-10.987, lx:0, ly:0.7, lz:0 }
+    },
+    { label: 'Remote tilt/IR',
+      remote:  { px:0, py:0, pz:0, rx:-68.8, ry:0, rz:0, s:1, opacity:1 },
+      phone:   { px:0, py:0, pz:0, rx:5.7, ry:180, rz:-1.1, s:1, opacity:0 },
+      camera:  { px:-1.841, py:-12.123, pz:-5.796, lx:0.32, ly:0.968, lz:0.769 }
+    },
+    { label: 'Phone front',
+      remote:  { px:0, py:0, pz:0, rx:0, ry:0, rz:0, s:1, opacity:0 },
+      phone:   { px:0, py:0, pz:0, rx:0, ry:0, rz:0.6, s:1, opacity:1 },
+      camera:  { px:-0.783, py:-4.274, pz:1.548, lx:-0.208, ly:-0.065, lz:0.064 }
+    },
+    { label: 'Phone settled',
+      remote:  { px:0, py:0, pz:0, rx:0, ry:0, rz:0, s:1, opacity:0 },
+      phone:   { px:0, py:0, pz:0, rx:0, ry:0, rz:0, s:1, opacity:1 },
+      camera:  { px:0, py:0, pz:4.5, lx:0, ly:0, lz:0 }
+    }
+  ];
+
+  /* ── Interpolate a single object's properties between two keyframe snapshots ── */
+  function lerpObj(a, b, t) {
+    var r = {};
+    for (var k in a) {
+      if (a.hasOwnProperty(k)) {
+        r[k] = lerp(a[k], b[k] !== undefined ? b[k] : a[k], t);
+      }
+    }
+    return r;
+  }
+
+  /* ── Get interpolated state for one object at progress p ── */
+  function getInterp(objName, p) {
+    if (keyframes.length === 0) return null;
+    var count = keyframes.length;
+    if (p <= 0) return keyframes[0][objName];
+    if (p >= 1) return keyframes[count - 1][objName];
+    var idx = p * (count - 1);
+    var lo = Math.floor(idx);
+    var hi = Math.min(lo + 1, count - 1);
+    var t = idx - lo;
+    t = cinematicEase(t);
+    return lerpObj(keyframes[lo][objName], keyframes[hi][objName], t);
+  }
+
+  /* ── Apply object state to scene ── */
+  function applyObjState(objName, st) {
+    if (!st) return;
+    if (objName === 'camera') {
+      camera.position.set(st.px, st.py, st.pz);
+      cameraLookAt.set(st.lx, st.ly, st.lz);
+      camera.lookAt(cameraLookAt);
+    } else {
+      var obj = objName === 'remote' ? remoteGroup : phoneGroup;
+      if (!obj) return;
+      obj.position.set(st.px, st.py, st.pz);
+      obj.rotation.set(st.rx * DEG, st.ry * DEG, st.rz * DEG);
+      obj.scale.setScalar(st.s);
+      obj.visible = st.opacity > 0.001;
+      setGroupOpacity(obj, st.opacity);
+    }
+  }
+
+  /* ═══════════════════════════════════════════
+     SCENE SNAP SCROLL — wheel inside spacer snaps to keyframes
+  ═══════════════════════════════════════════ */
+  var sceneKeyIndex = 0;
+  var sceneSnapping = false;
+  var snapCooldown = 0;
+  var snapExiting = false;
+
+  function getKeyframeScrollPos(idx) {
+    var vh = window.innerHeight;
+    var count = keyframes.length;
+    var p = idx / (count - 1);
+    return p * (spacerHeightCached + vh) + spacerTopCached - vh;
+  }
+
+  function isInSpacerRange() {
+    var vh = window.innerHeight;
+    var scrollY = window.scrollY;
+    return scrollY >= (spacerTopCached - vh * 0.3) && scrollY <= (spacerTopCached + spacerHeightCached);
+  }
+
+  function snapToKeyframe(idx) {
+    var count = keyframes.length;
+    idx = Math.max(0, Math.min(idx, count - 1));
+    sceneKeyIndex = idx;
+    sceneSnapping = true;
+    snapExiting = false;
+    var dest = getKeyframeScrollPos(idx);
+    window.scrollTo({ top: dest, behavior: 'smooth' });
+    snapCooldown = Date.now() + 800;
+  }
+
+  function exitSnap(dir) {
+    sceneSnapping = false;
+    snapExiting = true;
+    snapCooldown = Date.now() + 1200;
+    /* Scroll past the spacer boundary so we don't re-enter */
+    if (dir > 0) {
+      var pastEnd = spacerTopCached + spacerHeightCached + window.innerHeight * 0.2;
+      window.scrollTo({ top: pastEnd, behavior: 'smooth' });
+    } else {
+      var beforeStart = Math.max(0, spacerTopCached - window.innerHeight * 1.2);
+      window.scrollTo({ top: beforeStart, behavior: 'smooth' });
+    }
+  }
+
+  window.addEventListener('wheel', function (e) {
+    if (!sceneReady || !spacer) return;
+    if (snapExiting) {
+      if (!isInSpacerRange()) snapExiting = false;
+      return;
+    }
+    if (!isInSpacerRange()) {
+      sceneSnapping = false;
+      return;
+    }
+
+    if (Date.now() < snapCooldown) {
+      e.preventDefault();
+      return;
+    }
+
+    e.preventDefault();
+
+    var dir = e.deltaY > 0 ? 1 : -1;
+    var count = keyframes.length;
+
+    /* If entering the spacer fresh, determine closest keyframe */
+    if (!sceneSnapping) {
+      var p = getScrollProgress();
+      sceneKeyIndex = Math.round(p * (count - 1));
+      sceneSnapping = true;
+    }
+
+    var next = sceneKeyIndex + dir;
+
+    /* Exit at boundaries — scroll past the spacer */
+    if (next < 0) {
+      exitSnap(-1);
+      return;
+    }
+    if (next >= count) {
+      exitSnap(1);
+      return;
+    }
+
+    snapToKeyframe(next);
+  }, { passive: false });
+
+  /* Touch snap support */
+  var touchStartY = 0;
+  var touchHandled = false;
+  window.addEventListener('touchstart', function (e) {
+    touchStartY = e.touches[0].clientY;
+    touchHandled = false;
+  }, { passive: true });
+
+  window.addEventListener('touchmove', function (e) {
+    if (!sceneReady || !spacer) return;
+    if (snapExiting) {
+      if (!isInSpacerRange()) snapExiting = false;
+      return;
+    }
+    if (!isInSpacerRange()) return;
+    if (touchHandled) { e.preventDefault(); return; }
+    if (Date.now() < snapCooldown) { e.preventDefault(); return; }
+
+    var dy = touchStartY - e.touches[0].clientY;
+    if (Math.abs(dy) > 30) {
+      e.preventDefault();
+      touchHandled = true;
+      var dir = dy > 0 ? 1 : -1;
+      var count = keyframes.length;
+      if (!sceneSnapping) {
+        var p = getScrollProgress();
+        sceneKeyIndex = Math.round(p * (count - 1));
+        sceneSnapping = true;
+      }
+      var next = sceneKeyIndex + dir;
+      if (next < 0) { exitSnap(-1); return; }
+      if (next >= count) { exitSnap(1); return; }
+      snapToKeyframe(next);
+    }
+  }, { passive: false });
+
+  /* ═══════════════════════════════════════════
+     MAIN LOOP
+  ═══════════════════════════════════════════ */
+  function tick() {
+    target = window.scrollY;
+    current += (target - current) * EASE;
+    if (Math.abs(target - current) < 0.5) current = target;
+
+    wrap.style.transform = 'translateY(' + (-current) + 'px)';
+
+    updateHeroScroll();
+    updateReveals();
+    updateScene();
+
+    requestAnimationFrame(tick);
+  }
+
+  /* ═══════════════════════════════════════════
+     INIT
+  ═══════════════════════════════════════════ */
+  if (!REDUCED) {
+    setBodyHeight();
+    cacheElements();
+    cacheSpacerPos();
+    initThree();
+    tick();
+
+    window.addEventListener('resize', function () {
+      setBodyHeight();
+      recalcPositions();
+      cacheSpacerPos();
+    });
+    window.addEventListener('load', function () {
+      setBodyHeight();
+      recalcPositions();
+      cacheSpacerPos();
+    });
+  } else {
+    var allReveals = document.querySelectorAll('[data-reveal]');
+    for (var ri = 0; ri < allReveals.length; ri++) {
+      allReveals[ri].style.opacity = '1';
+      allReveals[ri].style.transform = 'none';
+      allReveals[ri].style.transition = 'none';
+    }
+    var allInners = document.querySelectorAll('.line-inner');
+    for (var li2 = 0; li2 < allInners.length; li2++) {
+      allInners[li2].style.opacity = '1';
+      allInners[li2].style.transform = 'none';
+    }
+    var allWords = document.querySelectorAll('.hero-word');
+    for (var wi = 0; wi < allWords.length; wi++) {
+      allWords[wi].style.opacity = '1';
+      allWords[wi].style.transform = 'none';
+      allWords[wi].style.transition = 'none';
+    }
+    if (heroSub) { heroSub.style.opacity = '1'; heroSub.style.transform = 'none'; heroSub.style.transition = 'none'; }
+    if (heroTags) { heroTags.style.opacity = '1'; heroTags.style.transform = 'none'; heroTags.style.transition = 'none'; }
+  }
+
 })();
 </script>
-
 </body>
 </html>
