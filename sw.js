@@ -4,7 +4,7 @@
  * Handles caching for offline PWA support.
  * Cache-first for static assets, network-first for transport.
  */
-var CACHE_NAME = 'couchlock-v1';
+var CACHE_NAME = 'couchlock-v2';
 var STATIC_ASSETS = [
   './',
   './index.html',
