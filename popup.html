@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --void: #0A0B10;
+  --void-rgb: 10,11,16;
+  --ink: #0D0F1C;
+  --accent: #4F52E0;
+  --accent-rgb: 79,82,224;
+  --accent-light: #6366F1;
+  --ui-rgb: 255,255,255;
+  --teal: #16A37F;
+  --teal-rgb: 22,163,127;
+  --font-d: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-b: 'DM Sans', system-ui, sans-serif;
+  --font-m: 'DM Mono', monospace;
+  --ease-mag: cubic-bezier(0.22, 1, 0.36, 1);
+}
+body {
+  width: 340px;
+  min-height: 220px;
+  background: var(--void);
+  color: rgba(var(--ui-rgb),0.9);
+  font-family: var(--font-b);
+  -webkit-font-smoothing: antialiased;
+}
+.popup {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Header ── */
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 2;
+}
+.brand {
+  font-family: var(--font-d);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: rgba(var(--ui-rgb),0.9);
+}
+.brand span { color: var(--accent); }
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(var(--ui-rgb),0.02);
+  border: 1px solid rgba(var(--ui-rgb),0.04);
+}
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(var(--ui-rgb),0.1);
+  flex-shrink: 0;
+}
+.status-dot.connected {
+  background: var(--teal);
+  box-shadow: 0 0 6px rgba(var(--teal-rgb),0.5);
+}
+.status-dot.connecting {
+  background: var(--accent);
+  animation: blink 1s steps(1) infinite;
+}
+@keyframes blink {
+  0%, 60% { opacity: 1; }
+  65% { opacity: 0.3; }
+  80% { opacity: 1; }
+}
+.status-text {
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.25);
+  letter-spacing: 0.5px;
+}
+
+/* ── Trackpad-style surface (shared look for QR + paired) ── */
+.surface {
+  position: relative;
+  background: var(--void);
+  border: 1px solid rgba(var(--ui-rgb),0.06);
+  border-radius: 20px;
+  overflow: hidden;
+  z-index: 1;
+}
+.surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(var(--ui-rgb),0.12) 1px, transparent 1px);
+  background-size: 14px 14px;
+  pointer-events: none;
+  z-index: 0;
+}
+.surface::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at center, rgba(var(--accent-rgb),0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Sticker layer (full popup window) ── */
+.popup-sticker-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.popup-sticker-wrap {
+  position: absolute;
+}
+.popup-sticker-wrap img {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+.popup-sticker-shadow {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  filter: brightness(0);
+  opacity: 0.25;
+  transform: translateY(2px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ── QR Area (unpaired) ── */
+.qr-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 24px 20px;
+  position: relative;
+  z-index: 1;
+}
+.qr-label {
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(var(--accent-rgb),0.4);
+}
+#qr-canvas {
+  border-radius: 12px;
+  background: white;
+  padding: 8px;
+}
+.qr-hint {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.15);
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ── Paired state ── */
+.paired-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 28px 20px;
+  position: relative;
+  z-index: 1;
+}
+.paired-title {
+  font-family: var(--font-d);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: rgba(var(--ui-rgb),0.8);
+}
+.paired-detail {
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.15);
+  letter-spacing: 0.5px;
+}
+
+/* ── Buttons ── */
+.btn {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 999px;
+  font-family: var(--font-d);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.btn:hover { opacity: 0.85; }
+.btn-ghost {
+  background: var(--void);
+  color: rgba(var(--ui-rgb),0.35);
+  border: 1px solid rgba(var(--ui-rgb),0.06);
+  position: relative;
+  z-index: 2;
+}
+
+/* ── Footer ── */
+.popup-footer {
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+.popup-tagline {
+  font-family: var(--font-m);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(var(--ui-rgb),0.06);
+}
+
+.hidden { display: none; }
+</style>
+</head>
+<body>
+<!-- Full-window sticker layer (behind everything) -->
+<div class="popup-sticker-layer" id="sticker-layer-global"></div>
+
+<div class="popup">
+  <div class="popup-header">
+    <div class="brand">Couch<span>Lock</span></div>
+    <div class="status-pill">
+      <div class="status-dot" id="status-dot"></div>
+      <div class="status-text" id="status-text">Initializing...</div>
+    </div>
+  </div>
+
+  <!-- Unpaired state -->
+  <div id="unpaired">
+    <div class="surface">
+      <div class="qr-area">
+        <div class="qr-label">Scan to connect</div>
+        <canvas id="qr-canvas" width="160" height="160"></canvas>
+        <div class="qr-hint">Point your phone camera at this code.</div>
+      </div>
+    </div>
+    <button class="btn btn-ghost" id="btn-new-session" style="margin-top:12px">Generate New Code</button>
+  </div>
+
+  <!-- Paired state -->
+  <div id="paired" class="hidden">
+    <div class="surface">
+      <div class="paired-area">
+        <div class="paired-title">Phone connected</div>
+        <div class="paired-detail" id="paired-session">Session: ---</div>
+      </div>
+    </div>
+    <button class="btn btn-ghost" id="btn-disconnect" style="margin-top:12px">Disconnect &amp; New Session</button>
+  </div>
+
+  <div class="popup-footer">
+    <div class="popup-tagline">Nothing leaves your network</div>
+  </div>
+</div>
+
+<script src="qrcode.min.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>
