@@ -1,0 +1,11 @@
+# Local-only project docs (kept on disk, not published)
+/docs/
+/CLAUDE.md
+
+# Local Claude Code config
+/.claude/
+
+# Packaged artifacts & OS junk
+*.zip
+.DS_Store
+Thumbs.db
