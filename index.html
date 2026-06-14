@@ -1,0 +1,3864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0A0B10">
+<title>CouchLock</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=DM+Sans:wght@400;500;600&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --void: #0A0B10;
+  --void-rgb: 10,11,16;
+  --ink: #0D0F1C;
+  --accent: #4F52E0;
+  --accent-rgb: 79,82,224;
+  --accent-light: #6366F1;
+  --primary: #4F52E0;
+  --primary-rgb: 79,82,224;
+  --primary-on: 255,255,255;
+  --ui-rgb: 255,255,255;
+  --teal: #16A37F;
+  --teal-rgb: 22,163,127;
+  --amber: #D97706;
+  --amber-rgb: 217,119,6;
+  --rose: #E04F5F;
+  --rose-rgb: 224,79,95;
+  --font-d: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-b: 'DM Sans', system-ui, sans-serif;
+  --font-m: 'Century Gothic', 'Open Sans', sans-serif;
+  --ease-mag: cubic-bezier(0.22, 1, 0.36, 1);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--void);
+  color: rgba(var(--ui-rgb),0.9);
+  font-family: var(--font-b);
+  -webkit-font-smoothing: antialiased;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+
+/* ═══════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════ */
+.app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+
+/* ── Top Bar ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  flex-shrink: 0;
+  position: relative;
+}
+.conn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.15);
+  letter-spacing: 1px;
+}
+.conn-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(var(--ui-rgb),0.1);
+}
+.conn-dot.on {
+  background: var(--teal);
+  box-shadow: 0 0 6px rgba(var(--teal-rgb),0.5);
+}
+/* Topbar nav — right-aligned, visible only on pad tab */
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  /* Match width of 3 bottom-nav columns: each btn = (100vw - 48px)/5, then 3 btns + 2 gaps */
+  width: calc((100vw - 48px) * 3 / 5 + 12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms var(--ease-mag);
+}
+.topbar-nav.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.topbar-nav-btn {
+  flex: 1;
+  aspect-ratio: 1;
+  border: none;
+  border-radius: 4px;
+  background: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.topbar-nav-btn:active { opacity: 0.6; }
+.topbar-nav-btn.disabled {
+  opacity: 0.15;
+  pointer-events: none;
+}
+.topbar-nav-btn svg {
+  width: 18px; height: 18px;
+  stroke: rgba(var(--ui-rgb),0.3);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── Main Content ── */
+.main {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Mode Views ── */
+.mode-view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms var(--ease-mag);
+}
+.mode-view.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Bottom Nav ── */
+.bottomnav {
+  padding: 10px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+  position: relative;
+}
+.nav-btn {
+  width: 100%;
+  aspect-ratio: 1;
+  height: auto;
+  border: none;
+  border-radius: 8px;
+  background: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+  position: relative;
+}
+.nav-btn:active { opacity: 0.7; }
+.nav-btn[data-mode="settings"] {
+  background: var(--primary);
+}
+.nav-btn[data-mode="settings"] svg {
+  stroke: rgba(var(--primary-on),0.9);
+}
+.nav-btn.locked::after {
+  content: '';
+  position: absolute;
+  top: -2px; right: -2px;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: rgba(var(--ui-rgb),0.08);
+  border: 1px solid rgba(var(--ui-rgb),0.1);
+}
+.nav-btn svg {
+  width: 20px; height: 20px;
+  stroke: rgba(var(--ui-rgb),0.3);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.nav-label {
+  font-family: var(--font-m);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(var(--ui-rgb),0.6);
+  position: relative;
+}
+.nav-item.active .nav-label {
+  font-weight: 700;
+  color: rgba(var(--ui-rgb),0.4);
+}
+.nav-item.active .nav-label::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 4px solid rgba(var(--ui-rgb),0.4);
+}
+@keyframes heartbeat-rest {
+  0%   { box-shadow: 0 0 24px rgba(var(--accent-rgb),0.15); }
+  12%  { box-shadow: 0 0 40px rgba(var(--accent-rgb),0.45); }
+  18%  { box-shadow: 0 0 30px rgba(var(--accent-rgb),0.28); }
+  28%  { box-shadow: 0 0 36px rgba(var(--accent-rgb),0.35); }
+  45%  { box-shadow: 0 0 24px rgba(var(--accent-rgb),0.15); }
+  100% { box-shadow: 0 0 20px rgba(var(--accent-rgb),0.1); }
+}
+
+/* ═══════════════════════════════════════════
+   PAIRING SCREEN
+═══════════════════════════════════════════ */
+.pairing {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 40px;
+  text-align: center;
+  z-index: 50;
+  background: var(--void);
+}
+.pairing.hidden { display: none; }
+.pairing-orb {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: heartbeat-rest 833ms ease infinite;
+}
+.pairing-title {
+  font-family: var(--font-d);
+  font-size: 64px;
+  font-weight: 800;
+  letter-spacing: -2px;
+  color: rgba(var(--ui-rgb),0.9);
+  line-height: 1;
+}
+.pairing-title span { color: var(--accent); }
+.pairing-sub {
+  font-size: 22px;
+  font-weight: 400;
+  color: rgba(var(--ui-rgb),0.25);
+  line-height: 1.2;
+  max-width: 320px;
+}
+.pairing-status {
+  font-family: var(--font-m);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  color: rgba(var(--accent-rgb),0.4);
+}
+
+/* ═══════════════════════════════════════════
+   PAYWALL OVERLAY
+═══════════════════════════════════════════ */
+.paywall {
+  position: absolute;
+  inset: 0;
+  background: rgba(var(--void-rgb),0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 40;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms var(--ease-mag);
+}
+.paywall.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.paywall-icon {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb),0.1);
+  border: 1px solid rgba(var(--accent-rgb),0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.paywall-icon svg {
+  width: 26px; height: 26px;
+  stroke: var(--accent);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.paywall-title {
+  font-family: var(--font-d);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: rgba(var(--ui-rgb),0.9);
+}
+.paywall-sub {
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.25);
+  text-align: center;
+  padding: 0 32px;
+  line-height: 1.5;
+}
+.paywall-btn {
+  padding: 16px 36px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  font-family: var(--font-d);
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 0 32px rgba(var(--accent-rgb),0.35);
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.paywall-btn:active { opacity: 0.85; }
+
+/* ═══════════════════════════════════════════
+   TRACKPAD MODE
+═══════════════════════════════════════════ */
+.trackpad {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 10px 0;
+}
+.trackpad-surface {
+  flex: 1;
+  position: relative;
+  background: var(--ink);
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.trackpad-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(var(--ui-rgb),0.15) 1px, transparent 1px);
+  background-size: 16px 16px;
+  pointer-events: none;
+  z-index: 0;
+}
+.trackpad-surface::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at center, rgba(var(--accent-rgb),0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.trackpad-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-b);
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.2);
+  pointer-events: none;
+  transition: opacity 300ms var(--ease-mag);
+  z-index: 5;
+  background: rgba(var(--void-rgb),0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 12px;
+}
+.trackpad-hint.hidden { opacity: 0; }
+.trackpad-buttons {
+  display: flex;
+  gap: 10px;
+  padding-top: 10px;
+  flex-shrink: 0;
+}
+.trackpad-btn {
+  flex: 1;
+  height: 56px;
+  border: none;
+  border-radius: 8px;
+  background: var(--ink);
+  font-family: var(--font-m);
+  font-size: 10px;
+  font-weight: 100;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(var(--ui-rgb),0.7);
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.trackpad-btn:active { opacity: 0.6; }
+
+
+/* ═══════════════════════════════════════════
+   AIR MOUSE MODE
+═══════════════════════════════════════════ */
+.airmouse {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 24px;
+}
+.airmouse-orb {
+  width: 140px; height: 140px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 80px rgba(var(--accent-rgb),0.3);
+  animation: heartbeat-rest 833ms ease infinite;
+}
+.airmouse-label {
+  font-family: var(--font-d);
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -2px;
+  color: rgba(var(--ui-rgb),0.9);
+  text-align: center;
+  line-height: 1;
+  transition: color 200ms var(--ease-mag);
+}
+.airmouse-label span {
+  color: var(--accent);
+}
+.airmouse-hint {
+  font-family: var(--font-b);
+  font-size: 17px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.25);
+  text-align: center;
+  line-height: 1.5;
+}
+.airmouse-recal {
+  width: 100%;
+  max-width: 280px;
+  padding: 22px 40px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  font-family: var(--font-d);
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 0 40px rgba(var(--accent-rgb),0.35);
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag), box-shadow 200ms var(--ease-mag);
+}
+.airmouse-recal:active { opacity: 0.85; }
+.airmouse-recal.confirmed {
+  box-shadow: 0 0 56px rgba(var(--accent-rgb),0.5);
+}
+.airmouse-hint-tip {
+  font-family: var(--font-m);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(var(--ui-rgb),0.1);
+  text-align: center;
+  line-height: 1.8;
+}
+
+/* ═══════════════════════════════════════════
+   MEDIA MODE
+═══════════════════════════════════════════ */
+.media {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  gap: 0;
+}
+.media-now {
+  flex: 1;
+  background: var(--ink);
+  border: none;
+  border-radius: 8px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.media-platform {
+  font-family: var(--font-m);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(var(--accent-rgb),0.5);
+  margin-bottom: 12px;
+}
+.media-title {
+  font-family: var(--font-d);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  color: rgba(var(--ui-rgb),0.8);
+  margin-bottom: 20px;
+  line-height: 1.2;
+}
+.media-progress {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+  cursor: pointer;
+  position: relative;
+  touch-action: none;
+}
+.media-progress-track {
+  width: 100%;
+  height: 4px;
+  background: var(--ink);
+  border-radius: 999px;
+  position: relative;
+  overflow: hidden;
+}
+.media-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  width: 0%;
+  transition: width 500ms linear;
+}
+.media-progress.scrubbing .media-progress-fill {
+  transition: none;
+}
+.media-progress-thumb {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(var(--accent-rgb),0.4);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 150ms var(--ease-mag);
+  pointer-events: none;
+}
+.media-progress.scrubbing .media-progress-thumb,
+.media-progress:active .media-progress-thumb {
+  opacity: 1;
+}
+.media-time {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-m);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: rgba(var(--ui-rgb),0.15);
+}
+.media-bottom {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding-top: 12px;
+}
+.media-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.media-btn {
+  width: 60px; height: 60px;
+  border: none;
+  border-radius: 50%;
+  background: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.media-btn:active { opacity: 0.6; }
+.media-btn svg {
+  width: 24px; height: 24px;
+  stroke: rgba(var(--ui-rgb),0.4);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.media-btn-play {
+  width: 80px; height: 80px;
+  background: var(--accent);
+  border-color: transparent;
+  box-shadow: 0 0 32px rgba(var(--accent-rgb),0.35);
+}
+.media-btn-play svg { stroke: white; width: 28px; height: 28px; }
+.media-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+.media-action {
+  padding: 16px 8px;
+  border: none;
+  border-radius: 999px;
+  background: var(--ink);
+  font-family: var(--font-d);
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(var(--ui-rgb),0.7);
+  cursor: pointer;
+  text-align: center;
+  transition: opacity 150ms var(--ease-mag), background 200ms var(--ease-mag), color 200ms var(--ease-mag);
+}
+.media-action:active { opacity: 0.6; }
+.media-action.faded {
+  opacity: 0.25;
+  pointer-events: none;
+}
+.media-action.highlight {
+  background: rgba(var(--accent-rgb),0.15);
+  border-color: rgba(var(--accent-rgb),0.3);
+  color: var(--accent);
+}
+
+/* Media idle state — nothing playing */
+.media.media-idle .media-controls {
+  opacity: 0.3;
+  pointer-events: none;
+}
+.media.media-idle .media-actions {
+  opacity: 0.2;
+  pointer-events: none;
+}
+.media.media-idle .media-progress {
+  opacity: 0.2;
+  pointer-events: none;
+}
+.media.media-idle .media-time {
+  opacity: 0.2;
+}
+
+/* ═══════════════════════════════════════════
+   KEYBOARD OVERLAY (slides up over current view)
+═══════════════════════════════════════════ */
+.kb-overlay {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  background: var(--void);
+  border-top: 1px solid rgba(var(--ui-rgb),0.06);
+  padding: 12px 12px 16px;
+  z-index: 45;
+  transform: translateY(100%);
+  transition: transform 300ms var(--ease-mag);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.kb-overlay.visible { transform: translateY(0); }
+.kb-overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 4px;
+}
+.kb-overlay-preview {
+  flex: 1;
+  font-family: var(--font-m);
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kb-overlay-preview .kb-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 14px;
+  background: var(--accent);
+  vertical-align: middle;
+  animation: cursor-blink 1s steps(1) infinite;
+}
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+.kb-dismiss {
+  width: 36px; height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.kb-dismiss svg {
+  width: 16px; height: 16px;
+  stroke: rgba(var(--ui-rgb),0.3);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.kb-native-input {
+  position: absolute;
+  left: -9999px;
+  width: 1px; height: 1px;
+  opacity: 0;
+  font-size: 16px;
+}
+.kb-fallback {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.kb-row {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+.kb-key {
+  height: 44px;
+  min-width: 30px;
+  flex: 1;
+  max-width: 38px;
+  border: none;
+  border-radius: 12px;
+  background: var(--ink);
+  font-family: var(--font-b);
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.5);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 100ms;
+}
+.kb-key:active {
+  opacity: 0.5;
+  background: rgba(var(--accent-rgb),0.15);
+}
+.kb-key-special {
+  font-family: var(--font-d);
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(var(--ui-rgb),0.3);
+  max-width: none;
+  background: var(--ink);
+}
+.kb-key-shift { flex: 1.2; max-width: 52px; }
+.kb-key-wide { flex: 1.5; max-width: 64px; }
+.kb-key-space { flex: 4; max-width: none; border-radius: 999px; }
+.kb-key-return {
+  flex: 1.5;
+  max-width: 72px;
+  background: var(--accent);
+  border-color: transparent;
+  color: white;
+  font-family: var(--font-d);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 0 16px rgba(var(--accent-rgb),0.25);
+}
+
+/* ═══════════════════════════════════════════
+   TAB SWITCHER MODE
+═══════════════════════════════════════════ */
+.tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 6px;
+  overflow-y: auto;
+}
+.tab-item {
+  min-height: 64px;
+  flex-shrink: 0;
+  background: var(--ink);
+  border: none;
+  border-radius: 24px;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag), max-height 200ms var(--ease-mag);
+  position: relative;
+  overflow: hidden;
+}
+.tab-item:active { opacity: 0.7; }
+.tab-item.active-tab {
+  background: rgba(var(--accent-rgb),0.15);
+  border: none;
+}
+.tab-close {
+  width: 28px; height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 150ms var(--ease-mag);
+}
+.tab-close:active { opacity: 0.5; }
+.tab-close svg {
+  width: 14px; height: 14px;
+  stroke: rgba(var(--ui-rgb),0.2);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tab-item.active-tab .tab-close svg {
+  stroke: rgba(var(--accent-rgb),0.4);
+}
+.tab-info { flex: 1; min-width: 0; }
+.tab-title {
+  font-family: var(--font-d);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: rgba(var(--ui-rgb),0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tab-url {
+  font-family: var(--font-m);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: rgba(var(--ui-rgb),0.12);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 3px;
+}
+.tabs-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-b);
+  font-size: 14px;
+  color: rgba(var(--ui-rgb),0.12);
+}
+
+.tab-item-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 0 16px 0 20px;
+}
+
+/* ═══════════════════════════════════════════
+   SETTINGS MODE
+═══════════════════════════════════════════ */
+.settings {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 10px;
+  overflow-y: auto;
+}
+.setting-section-label {
+  font-family: var(--font-m);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(var(--accent-rgb),0.4);
+  padding: 8px 4px 4px;
+  margin-top: 30px;
+}
+.setting-section-label:first-child { margin-top: 0; }
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 50px 22px;
+  background: var(--ink);
+  border: none;
+  border-radius: 8px;
+  min-height: 68px;
+}
+.setting-label {
+  font-family: var(--font-d);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: rgba(var(--ui-rgb),0.5);
+}
+.setting-desc {
+  font-family: var(--font-b);
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(var(--ui-rgb),0.15);
+  margin-top: 3px;
+}
+.setting-toggle {
+  width: 44px; height: 26px;
+  border-radius: 999px;
+  border: none;
+  background: var(--ink);
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.setting-toggle::after {
+  content: '';
+  position: absolute;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: rgba(var(--ui-rgb),0.3);
+  top: 3px; left: 3px;
+  transition: transform 200ms var(--ease-mag), background 200ms var(--ease-mag);
+}
+.setting-toggle.on {
+  background: rgba(var(--accent-rgb),0.2);
+}
+.setting-toggle.on::after {
+  transform: translateX(18px);
+  background: var(--accent);
+}
+.setting-slider {
+  width: 120px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--ink);
+  border-radius: 2px;
+  outline: none;
+}
+.setting-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+/* ── Theme Swatches ── */
+.theme-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 20px 18px;
+  min-height: auto;
+}
+.theme-swatches {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+.theme-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 10px;
+  cursor: pointer;
+  position: relative;
+}
+.theme-swatch-dot {
+  width: 100%; aspect-ratio: 1;
+  border-radius: 10px;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+.theme-swatch-name {
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(var(--ui-rgb),0.2);
+  transition: color 200ms var(--ease-mag);
+}
+.theme-swatch.active .theme-swatch-name {
+  color: rgba(var(--ui-rgb),0.9);
+}
+.theme-swatch-lock {
+  position: absolute;
+  top: 8px; right: 8px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: rgba(var(--ui-rgb),0.4);
+  border: 1.5px solid rgba(var(--ui-rgb),0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+.theme-swatch-lock svg {
+  width: 11px; height: 11px;
+  stroke: rgba(var(--ui-rgb),0.5);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.theme-swatch.locked {
+  opacity: 0.5;
+}
+
+/* ── Wireframe Mode ── */
+.wireframe-mode body { background: #000; }
+.wireframe-mode .app { background: transparent; }
+.wireframe-mode .topbar { background: transparent; border-bottom: 1px solid #C8F400; }
+.wireframe-mode .conn-dot { background: #C8F400; }
+.wireframe-mode .topbar-nav-btn { background: transparent; border: 1px solid #C8F400; }
+.wireframe-mode .nav-btn { background: transparent; border: 1px solid #C8F400; opacity: 0.4; }
+.wireframe-mode .nav-btn.active { opacity: 1; }
+.wireframe-mode .nav-btn svg { stroke: #C8F400; }
+.wireframe-mode .trackpad-surface { background: transparent; border: 1px solid #C8F400; }
+.wireframe-mode .trackpad-surface::before { background-image: none; }
+.wireframe-mode .trackpad-surface::after { background-image: none; }
+.wireframe-mode .trackpad-btn { background: transparent; border: 1px solid #C8F400; color: #C8F400; }
+.wireframe-mode .trackpad-hint { color: #C8F400; opacity: 0.5; }
+.wireframe-mode .media-now { background: transparent; border: 1px solid #C8F400; }
+.wireframe-mode .media-btn { background: transparent; border: 1px solid #C8F400; }
+.wireframe-mode .media-btn svg { stroke: #C8F400; }
+.wireframe-mode .media-btn-play { background: transparent; }
+.wireframe-mode .media-btn-play svg { stroke: #C8F400; }
+.wireframe-mode .media-action { background: transparent; border: 1px solid #C8F400; color: #C8F400; }
+.wireframe-mode .media-action.highlight { background: #C8F400; color: #000; }
+.wireframe-mode .media-progress-track { background: transparent; border: 1px solid #C8F400; }
+.wireframe-mode .media-progress-fill { background: #C8F400; }
+.wireframe-mode .setting-row { background: transparent; border: 1px solid #C8F400; }
+.wireframe-mode .setting-toggle { background: transparent; border: 1px solid #C8F400; }
+.wireframe-mode .setting-toggle.on::after { background: #C8F400; opacity: 1; }
+.wireframe-mode .theme-swatch-dot { box-shadow: none; }
+
+/* ── Tab Actions ── */
+.tab-reload {
+  width: 36px; height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 150ms var(--ease-mag);
+}
+.tab-reload:active { opacity: 0.5; }
+.tab-reload svg {
+  width: 14px; height: 14px;
+  stroke: rgba(var(--ui-rgb),0.25);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tab-new {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 64px;
+  flex-shrink: 0;
+  padding: 0 20px;
+  background: rgba(var(--accent-rgb),0.06);
+  border: 1px dashed rgba(var(--accent-rgb),0.15);
+  border-radius: 24px;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.tab-new:active { opacity: 0.7; }
+.tab-new svg {
+  width: 18px; height: 18px;
+  stroke: var(--accent);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tab-new span {
+  font-family: var(--font-d);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: rgba(var(--accent-rgb),0.5);
+}
+.btn-close-session {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 64px;
+  margin-top: 24px;
+  background: rgba(224,79,95,0.08);
+  border: 1px solid rgba(224,79,95,0.15);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+  font-family: var(--font-d);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: rgba(224,79,95,0.7);
+}
+.btn-close-session:active { opacity: 0.7; }
+.btn-close-session svg {
+  width: 16px; height: 16px;
+  stroke: rgba(224,79,95,0.7);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.settings-about {
+  margin-top: 12px;
+  padding: 20px;
+  text-align: center;
+}
+.about-brand {
+  font-family: var(--font-d);
+  font-size: 18px;
+  font-weight: 800;
+  color: rgba(var(--ui-rgb),0.3);
+  margin-bottom: 4px;
+}
+.about-brand span { color: rgba(var(--accent-rgb),0.4); }
+.about-ver {
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.08);
+  letter-spacing: 1px;
+}
+
+/* ── Theme Transition — Cross-fade overlay + surface transitions ── */
+.theme-fade-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 600ms cubic-bezier(0.45, 0.05, 0.55, 0.95);
+}
+.theme-fade-overlay.active {
+  opacity: 1;
+}
+.app.theme-transitioning,
+.app.theme-transitioning *,
+.app.theme-transitioning *::before,
+.app.theme-transitioning *::after {
+  transition:
+    background-color 500ms cubic-bezier(0.45, 0.05, 0.55, 0.95),
+    border-color 500ms cubic-bezier(0.45, 0.05, 0.55, 0.95),
+    color 400ms cubic-bezier(0.45, 0.05, 0.55, 0.95),
+    box-shadow 500ms cubic-bezier(0.45, 0.05, 0.55, 0.95),
+    fill 400ms cubic-bezier(0.45, 0.05, 0.55, 0.95),
+    stroke 400ms cubic-bezier(0.45, 0.05, 0.55, 0.95) !important;
+}
+
+/* ── Toast Notifications ── */
+.toast-container {
+  position: fixed;
+  top: calc(var(--safe-top) + 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(var(--ui-rgb),0.08);
+  border: 1px solid rgba(var(--ui-rgb),0.1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  font-family: var(--font-d);
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(var(--ui-rgb),0.7);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 300ms var(--ease-mag), transform 300ms var(--ease-mag);
+  pointer-events: none;
+}
+.toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Swipe indicator ── */
+.trackpad-swipe-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(var(--accent-rgb),0.4);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms var(--ease-mag);
+}
+.trackpad-swipe-hint.visible { opacity: 1; }
+
+/* ═══════════════════════════════════════════
+   TRACKPAD STICKERS
+═══════════════════════════════════════════ */
+
+/* Stickers on the actual trackpad surface */
+.sticker-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.sticker-wrap {
+  position: absolute;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.sticker-wrap img {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+/* Black drop shadow layer — sits behind the sticker */
+.sticker-shadow {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: auto;
+  filter: brightness(0);
+  opacity: 0.25;
+  transform: translateY(2px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ── Sticker Editor Overlay ── */
+.sticker-editor {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--void);
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms var(--ease-mag);
+}
+.sticker-editor.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sticker-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 8px;
+}
+.sticker-editor-title {
+  font-family: var(--font-d);
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(var(--ui-rgb),0.9);
+}
+.sticker-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sticker-editor-cancel {
+  background: var(--ink);
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-family: var(--font-b);
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.35);
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.sticker-editor-cancel:active { opacity: 0.6; }
+.sticker-editor-save {
+  background: rgba(var(--accent-rgb),0.15);
+  border: 1px solid rgba(var(--accent-rgb),0.25);
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-family: var(--font-b);
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(var(--accent-rgb),1);
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.sticker-editor-save:active { opacity: 0.6; }
+
+/* Preview trackpad inside editor */
+.sticker-preview-wrap {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 12px 16px;
+  min-height: 0;
+}
+.sticker-preview {
+  width: 100%;
+  position: relative;
+  background: var(--ink);
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.sticker-preview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at center, rgba(var(--accent-rgb),0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Editor sticker (draggable, selectable) */
+.sticker-editor-item {
+  position: absolute;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  touch-action: none;
+}
+.sticker-editor-item:active { cursor: grabbing; }
+.sticker-editor-item img {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+.sticker-editor-item .sticker-shadow {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  filter: brightness(0);
+  opacity: 0.25;
+  transform: translateY(2px);
+  z-index: -1;
+  pointer-events: none;
+}
+.sticker-editor-item.selected {
+  outline: 2px solid rgba(var(--accent-rgb),0.6);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+/* Resize handle on selected sticker */
+.sticker-resize-handle {
+  position: absolute;
+  bottom: -6px; right: -6px;
+  width: 16px; height: 16px;
+  background: var(--accent);
+  border-radius: 50%;
+  border: 2px solid var(--void);
+  cursor: nwse-resize;
+  touch-action: none;
+  display: none;
+  z-index: 5;
+}
+.sticker-editor-item.selected .sticker-resize-handle { display: block; }
+
+/* Bottom panel: gallery + controls */
+.sticker-editor-panel {
+  background: var(--ink);
+  border-top: none;
+  padding: 16px;
+}
+
+.sticker-panel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.sticker-panel-label {
+  font-family: var(--font-m);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(var(--accent-rgb),0.4);
+}
+.sticker-paste-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 12px;
+  background: rgba(var(--accent-rgb),0.1);
+  border: 1px solid rgba(var(--accent-rgb),0.2);
+  border-radius: 999px;
+  font-family: var(--font-b);
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(var(--accent-rgb),0.8);
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.sticker-paste-btn:active { opacity: 0.6; }
+.sticker-paste-btn svg {
+  width: 13px; height: 13px;
+  stroke: rgba(var(--accent-rgb),0.6);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sticker-paste-btn.disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* Sticker gallery */
+.sticker-gallery {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.sticker-gallery-item {
+  width: 64px; height: 64px;
+  flex-shrink: 0;
+  background: var(--ink);
+  border: none;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag), border-color 150ms var(--ease-mag);
+}
+.sticker-gallery-item:active { opacity: 0.6; }
+.sticker-gallery-item img {
+  width: 48px; height: 48px;
+  object-fit: contain;
+  pointer-events: none;
+}
+.sticker-gallery-item.disabled {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+/* Controls row for selected sticker */
+.sticker-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(var(--ui-rgb),0.04);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms var(--ease-mag);
+}
+.sticker-controls.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.sticker-ctrl-btn {
+  height: 46px;
+  padding: 0 24px;
+  background: var(--ink);
+  border: none;
+  border-radius: 999px;
+  font-family: var(--font-b);
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(var(--ui-rgb),0.5);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: opacity 150ms var(--ease-mag);
+}
+.sticker-ctrl-btn:active { opacity: 0.6; }
+.sticker-ctrl-btn svg {
+  width: 14px; height: 14px;
+  stroke: rgba(var(--ui-rgb),0.4);
+  stroke-width: 1.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sticker-ctrl-btn.danger {
+  color: rgba(224,79,95,0.7);
+}
+.sticker-ctrl-btn.danger svg {
+  stroke: rgba(224,79,95,0.6);
+}
+.sticker-count {
+  font-family: var(--font-m);
+  font-size: 10px;
+  color: rgba(var(--ui-rgb),0.2);
+  margin-left: auto;
+}
+
+/* ── Multiple-tab guard ── */
+.tabguard {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--safe-bottom, 0px) + 92px);
+  transform: translateX(-50%);
+  z-index: 120;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px 12px 20px;
+  border-radius: 999px;
+  background: rgba(var(--void-rgb),0.72);
+  border: 1px solid rgba(var(--accent-rgb),0.35);
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb),0.12), 0 8px 40px rgba(var(--accent-rgb),0.22);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 300ms var(--ease-mag);
+  pointer-events: none;
+}
+.tabguard.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+.tabguard-text {
+  font-family: var(--font-b);
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.75);
+  line-height: 1.3;
+}
+.tabguard-btn {
+  flex-shrink: 0;
+  font-family: var(--font-d);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: rgb(var(--primary-on));
+  background: rgb(var(--primary-rgb));
+  border: none;
+  border-radius: 999px;
+  padding: 9px 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 150ms var(--ease-mag);
+}
+.tabguard-btn:hover { opacity: 0.85; }
+
+/* Parked state — a duplicate tab steps aside so the established session keeps control */
+.tab-parked {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px;
+  text-align: center;
+  background: rgb(var(--void-rgb));
+}
+.tab-parked.visible { display: flex; }
+.tab-parked-title {
+  font-family: var(--font-d);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: rgba(var(--ui-rgb),0.9);
+}
+.tab-parked-sub {
+  font-family: var(--font-b);
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.45);
+  max-width: 280px;
+  line-height: 1.5;
+}
+</style>
+</head>
+<body>
+
+<div class="theme-fade-overlay" id="theme-fade-overlay"></div>
+<div class="app" id="app">
+
+  <!-- Toast Notifications -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Multiple-tab guard -->
+  <div class="tabguard" id="tabguard" role="status" aria-live="polite">
+    <span class="tabguard-text" id="tabguard-text"></span>
+    <button class="tabguard-btn" id="tabguard-btn" type="button"></button>
+  </div>
+
+  <!-- Parked state (duplicate tab stepped aside) -->
+  <div class="tab-parked" id="tab-parked" role="alertdialog" aria-modal="true" aria-labelledby="tab-parked-title">
+    <div class="tab-parked-title" id="tab-parked-title">You can close this tab</div>
+    <div class="tab-parked-sub">Your CouchLock remote is active in another tab. This one is no longer connected.</div>
+  </div>
+
+  <!-- Pairing Screen -->
+  <div class="pairing" id="pairing">
+    <div class="pairing-orb"></div>
+    <div class="pairing-title">Couch<span>Lock</span></div>
+    <div class="pairing-sub">Scan the QR code from the extension to connect your phone.</div>
+    <div class="pairing-status" id="pairing-status">Waiting for connection...</div>
+  </div>
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="conn">
+      <div class="conn-dot" id="conn-dot"></div>
+      <span id="conn-text">Disconnected</span>
+    </div>
+    <div class="topbar-nav visible" id="topbar-nav">
+      <button class="topbar-nav-btn disabled" id="btn-back" aria-label="Browser Back">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      </button>
+      <button class="topbar-nav-btn disabled" id="btn-forward" aria-label="Browser Forward">
+        <svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+      </button>
+      <button class="topbar-nav-btn disabled" id="btn-reload" aria-label="Reload Page">
+        <svg viewBox="0 0 24 24"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mode Views -->
+  <div class="main" id="main">
+
+    <!-- Trackpad -->
+    <div class="mode-view active" id="view-trackpad">
+      <div class="trackpad">
+        <div class="trackpad-surface" id="trackpad-surface">
+          <div class="sticker-layer" id="sticker-layer"><!-- Stickers rendered by JS --></div>
+          <div class="trackpad-hint" id="trackpad-hint">Slide to move cursor</div>
+          <div class="trackpad-swipe-hint" id="trackpad-swipe-hint"></div>
+        </div>
+        <div class="trackpad-buttons">
+          <button class="trackpad-btn" id="btn-left-click">Left</button>
+          <button class="trackpad-btn" id="btn-right-click">Right</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Air Mouse -->
+    <div class="mode-view" id="view-airmouse">
+      <div class="airmouse">
+        <div class="airmouse-orb"></div>
+        <div class="airmouse-label" id="airmouse-label">Air<br>Mouse<br><span>Active</span></div>
+        <div class="airmouse-hint">Tilt your phone to move the cursor</div>
+        <button class="airmouse-recal" id="btn-recalibrate">Recalibrate</button>
+        <div class="airmouse-hint-tip">Hold phone flat, then tilt gently.<br>Double-tap anywhere to recalibrate.</div>
+      </div>
+      <div class="paywall" id="paywall-airmouse">
+        <div class="paywall-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
+        <div class="paywall-title">Air Mouse</div>
+        <div class="paywall-sub">Gyroscope cursor control. Tilt your phone like a Wii remote.</div>
+        <button class="paywall-btn">Unlock Everything — $9</button>
+      </div>
+    </div>
+
+    <!-- Media -->
+    <div class="mode-view" id="view-media">
+      <div class="media">
+        <div class="media-now">
+          <div class="media-platform" id="media-platform">No media detected</div>
+          <div class="media-title" id="media-title">—</div>
+          <div class="media-progress" id="media-progress-bar"><div class="media-progress-track"><div class="media-progress-fill" id="media-progress"></div></div><div class="media-progress-thumb" id="media-thumb"></div></div>
+          <div class="media-time"><span id="media-current">0:00</span><span id="media-duration">0:00</span></div>
+        </div>
+        <div class="media-bottom">
+          <div class="media-controls">
+            <button class="media-btn" id="btn-seek-back"><svg viewBox="0 0 24 24"><path d="M12 8l-6 4 6 4V8z"/><path d="M18 8l-6 4 6 4V8z"/></svg></button>
+            <button class="media-btn media-btn-play" id="btn-play-pause">
+              <svg viewBox="0 0 24 24" id="icon-play"><polygon points="8,5 20,12 8,19"/></svg>
+              <svg viewBox="0 0 24 24" id="icon-pause" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+            </button>
+            <button class="media-btn" id="btn-seek-fwd"><svg viewBox="0 0 24 24"><path d="M6 8l6 4-6 4V8z"/><path d="M12 8l6 4-6 4V8z"/></svg></button>
+          </div>
+          <div class="media-actions">
+            <button class="media-action faded" id="btn-skip-ad">Skip Ad</button>
+            <button class="media-action faded" id="btn-skip-intro">Skip</button>
+            <button class="media-action" id="btn-next-ep">Next Ep</button>
+            <button class="media-action" id="btn-fullscreen">Full</button>
+            <button class="media-action" id="btn-vol-down">Vol −</button>
+            <button class="media-action" id="btn-vol-up">Vol +</button>
+            <button class="media-action" id="btn-mute">Mute</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Switcher -->
+    <div class="mode-view" id="view-tabs">
+      <div class="tabs" id="tab-list">
+        <div class="tabs-empty">Tap to load tabs</div>
+      </div>
+      <div class="paywall" id="paywall-tabs">
+        <div class="paywall-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg></div>
+        <div class="paywall-title">Tab Switcher</div>
+        <div class="paywall-sub">See and switch between all open browser tabs from your phone.</div>
+        <button class="paywall-btn">Unlock Everything — $9</button>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="mode-view" id="view-settings">
+      <div class="settings">
+        <div class="setting-section-label">Theme</div>
+        <div class="setting-row theme-row">
+          <div class="theme-swatches" id="theme-swatches">
+            <!-- Generated by JS -->
+          </div>
+        </div>
+
+        <div class="setting-section-label">Customize</div>
+        <div class="setting-row">
+          <div><div class="setting-label">Trackpad Stickers</div><div class="setting-desc">Make it like your laptop</div></div>
+          <button class="sticker-ctrl-btn" id="btn-open-sticker-editor">
+            <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Edit
+          </button>
+        </div>
+
+        <div class="setting-section-label">Cursor</div>
+        <div class="setting-row">
+          <div><div class="setting-label">Cursor size</div><div class="setting-desc">Size on laptop screen</div></div>
+          <input type="range" class="setting-slider" id="setting-cursor-size" min="12" max="32" step="2" value="16">
+        </div>
+
+        <div class="setting-section-label">Trackpad</div>
+        <div class="setting-row">
+          <div><div class="setting-label">Sensitivity</div><div class="setting-desc">Cursor movement speed</div></div>
+          <input type="range" class="setting-slider" id="setting-trackpad" min="0.5" max="3" step="0.1" value="1.5">
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Scroll acceleration</div><div class="setting-desc">Faster scroll on quick swipes</div></div>
+          <button class="setting-toggle on" id="setting-scroll-accel"></button>
+        </div>
+
+        <div class="setting-section-label">Air Mouse</div>
+        <div class="setting-row">
+          <div><div class="setting-label">Gyro sensitivity</div><div class="setting-desc">Air mouse movement speed</div></div>
+          <input type="range" class="setting-slider" id="setting-gyro" min="0.2" max="5" step="0.1" value="1.5">
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Invert X axis</div><div class="setting-desc">Flip horizontal direction</div></div>
+          <button class="setting-toggle" id="setting-invert-x"></button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Invert Y axis</div><div class="setting-desc">Flip vertical direction</div></div>
+          <button class="setting-toggle" id="setting-invert-y"></button>
+        </div>
+
+        <div class="setting-section-label">General</div>
+        <div class="setting-row">
+          <div><div class="setting-label">Premium Mode</div><div class="setting-desc">Toggle free / paid features</div></div>
+          <button class="setting-toggle on" id="setting-tier"></button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Auto-reconnect</div><div class="setting-desc">Reconnect automatically on drop</div></div>
+          <button class="setting-toggle on" id="setting-auto-reconnect"></button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Show tips on connect</div><div class="setting-desc">Open the guide once on the laptop when you first connect</div></div>
+          <button class="setting-toggle on" id="setting-tips"></button>
+        </div>
+
+        <div class="setting-row" id="btn-guide" style="cursor:pointer;margin-top:24px;">
+          <div><div class="setting-label">See What You Can Do</div><div class="setting-desc">Features, themes, tips — all in one place</div></div>
+          <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:rgba(var(--accent-rgb),0.5);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </div>
+
+        <button class="btn-close-session" id="btn-close-session">
+          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          End Session
+        </button>
+
+        <div class="settings-about">
+          <div class="about-brand">Couch<span>Lock</span></div>
+          <div class="about-ver">V1.0.0 — NOTHING LEAVES YOUR NETWORK</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Sticker Editor Overlay -->
+  <div class="sticker-editor" id="sticker-editor">
+    <div class="sticker-editor-header">
+      <div class="sticker-editor-title">Trackpad Stickers</div>
+      <div class="sticker-editor-actions">
+        <button class="sticker-editor-cancel" id="sticker-cancel">Cancel</button>
+        <button class="sticker-editor-save" id="sticker-save">Save</button>
+      </div>
+    </div>
+    <div class="sticker-preview-wrap">
+      <div class="sticker-preview" id="sticker-preview">
+        <!-- Editor stickers rendered by JS -->
+      </div>
+    </div>
+    <div class="sticker-editor-panel">
+      <div class="sticker-panel-row">
+        <div class="sticker-panel-label">Sticker Pack</div>
+        <button class="sticker-paste-btn" id="sticker-paste">
+          <svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+          Paste
+        </button>
+      </div>
+      <div class="sticker-gallery" id="sticker-gallery">
+        <!-- Generated by JS -->
+      </div>
+      <div class="sticker-controls" id="sticker-controls">
+        <button class="sticker-ctrl-btn" id="sticker-bring-front">
+          <svg viewBox="0 0 24 24"><path d="M5 12l7-7 7 7"/></svg>
+          Front
+        </button>
+        <button class="sticker-ctrl-btn" id="sticker-send-back">
+          <svg viewBox="0 0 24 24"><path d="M19 12l-7 7-7-7"/></svg>
+          Back
+        </button>
+        <button class="sticker-ctrl-btn danger" id="sticker-remove">
+          <svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+          Remove
+        </button>
+        <div class="sticker-count" id="sticker-count">0 / 3</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keyboard Overlay (slides up over any mode) -->
+  <div class="kb-overlay" id="kb-overlay">
+    <input type="text" class="kb-native-input" id="kb-native-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" inputmode="text">
+    <div class="kb-overlay-header">
+      <div class="kb-overlay-preview" id="kb-preview"><span class="kb-cursor"></span></div>
+      <button class="kb-dismiss" id="kb-dismiss"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="kb-fallback" id="kb-fallback">
+      <div class="kb-row" id="kb-grid">
+        <!-- Generated by JS -->
+      </div>
+      <div class="kb-row">
+        <button class="kb-key kb-key-special kb-key-shift" data-action="shift" id="kb-shift">⇧</button>
+        <button class="kb-key kb-key-special kb-key-wide" data-key="Backspace" data-code="Backspace">⌫</button>
+        <button class="kb-key kb-key-special kb-key-space" data-key=" " data-code="Space">space</button>
+        <button class="kb-key kb-key-return" data-key="Enter" data-code="Enter">return</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottomnav">
+    <div class="nav-item active" data-mode="trackpad">
+      <button class="nav-btn active" data-mode="trackpad">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <span class="nav-label">Pad</span>
+    </div>
+    <div class="nav-item" data-mode="airmouse">
+      <button class="nav-btn" data-mode="airmouse">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <span class="nav-label">Air</span>
+    </div>
+    <div class="nav-item" data-mode="settings">
+      <button class="nav-btn" data-mode="settings">
+        <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <span class="nav-label">Settings</span>
+    </div>
+    <div class="nav-item" data-mode="media">
+      <button class="nav-btn" data-mode="media">
+        <svg viewBox="0 0 24 24"><polygon points="8,5 20,12 8,19"/></svg>
+      </button>
+      <span class="nav-label">Media</span>
+    </div>
+    <div class="nav-item" data-mode="tabs">
+      <button class="nav-btn" data-mode="tabs">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+      </button>
+      <span class="nav-label">Tabs</span>
+    </div>
+  </div>
+</div>
+
+<script src="transport.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ── Config ──
+  var MODES = ['trackpad', 'airmouse', 'media', 'tabs', 'settings'];
+  var PAID_MODES = ['airmouse', 'tabs'];
+  var KB_ROWS = [
+    ['q','w','e','r','t','y','u','i','o','p'],
+    ['a','s','d','f','g','h','j','k','l'],
+    ['z','x','c','v','b','n','m']
+  ];
+
+  // ── State ──
+  var isPaid = true; // Default paid for testing
+  var currentMode = 'trackpad';
+  var isConnected = false;
+  var isPaired = false;
+  var kbText = '';
+  var gyroActive = false;
+  var gyroLastGamma = null;
+  var gyroLastBeta = null;
+  var mediaState = { platform: '', title: '', playing: false, currentTime: 0, duration: 0, skipIntroAvailable: false };
+  var skipAdAvailable = false;
+  var kbShift = false;
+  var kbOverlayVisible = false;
+  var trackpadHintHidden = false;
+  var trackpadIdleTimer = null;
+  var cursorSize = 16;
+  var autoReconnect = true; // gate for auto/resume reconnect (persisted)
+  var tipsEnabled = true;   // "show tips on connect" pref (persisted, synced to extension)
+  var currentThemeId = 'dark';
+  var invertedState = {};
+  var kbMode = 'input'; // 'input' = remote field, 'search' = new tab search
+  var kbFocusTimer = null;
+
+  // ── Theme Definitions ──
+  // Curated set — every theme passes WCAG AA contrast and is legible under
+  // red-green colour deficiency. (Deep Blue uses the colourblind-safe blue↔orange
+  // axis; Acid/Night Indigo carry on luminance, not hue.)
+  var THEMES = [
+    // ── Base (free) ──
+    { id: 'dark',         name: 'Dark',         accent: '79,82,224',   voidHex: '#0A0B10', inkHex: '#0D0F1C', voidRgb: '10,11,16',    ui: '255,255,255', primaryHex: '#4F52E0', free: true },
+    { id: 'light',        name: 'Light',        accent: '13,13,13',    voidHex: '#FFFFFF', inkHex: '#F0F0F0', voidRgb: '255,255,255', ui: '13,13,13',    primaryHex: '#0D0D0D', free: true },
+    // ── Premium ──
+    { id: 'acid',         name: 'Acid',         accent: '200,244,0',   voidHex: '#0D0D0D', inkHex: '#C8F400', voidRgb: '13,13,13',    ui: '245,245,245', primaryHex: '#C8F400', free: false },
+    { id: 'deepblue',     name: 'Deep Blue',    accent: '240,96,30',   voidHex: '#0A3194', inkHex: '#F0601E', voidRgb: '10,49,148',   ui: '245,244,225', primaryHex: '#F0601E', free: false },
+    { id: 'nightindigo',  name: 'Night Indigo', accent: '255,64,129',  voidHex: '#1A237E', inkHex: '#FF4081', voidRgb: '26,35,126',   ui: '245,244,225', primaryHex: '#FF4081', free: false },
+    { id: 'emo',          name: 'Emo',          accent: '245,245,245', voidHex: '#3A0CA3', inkHex: '#1C1C1C', voidRgb: '58,12,163',   ui: '245,245,245', primaryHex: '#3A0CA3', free: false }
+  ];
+
+  // ── DOM ──
+  var $ = function (s) { return document.querySelector(s); };
+  var $$ = function (s) { return document.querySelectorAll(s); };
+
+  // ── Parse URL Params ──
+  var params = new URLSearchParams(window.location.search);
+  var token = params.get('t');
+  var sessionId = params.get('s');
+
+  // ── Transport ──
+  function connect() {
+    if (!token) {
+      $('#pairing-status').textContent = 'No connection params. Scan QR from extension.';
+      return;
+    }
+
+    $('#pairing-status').textContent = 'Connecting...';
+
+    CouchTransport.onStatus(function (status) {
+      if (status === 'connected') {
+        CouchTransport.send({ type: 'hello', token: token });
+        $('#pairing-status').textContent = 'Authenticating...';
+      } else if (status === 'disconnected' || status === 'failed') {
+        isConnected = false;
+        isPaired = false;
+        updateConnUI();
+        $('#pairing').classList.remove('hidden');
+        $('#pairing-status').textContent = status === 'failed' ? 'Connection failed' : 'Disconnected';
+      } else if (status === 'reconnecting') {
+        $('#pairing-status').textContent = 'Reconnecting...';
+      }
+    });
+
+    CouchTransport.onMessage(function (msg) {
+      if (!msg) return;
+
+      if (msg.type === 'ready') {
+        isPaired = true;
+        isConnected = true;
+        $('#pairing').classList.add('hidden');
+        updateConnUI();
+        CouchTransport.send({ type: 'tab_list' });
+
+        // Sync theme and stickers to extension on connect
+        var theme = getThemeById(currentThemeId);
+        if (theme) sendThemeToExtension(theme);
+        if (placedStickers.length > 0) {
+          send({ type: 'sticker_update', stickers: placedStickers });
+        }
+      }
+
+      if (msg.type === 'media_status') {
+        mediaState = {
+          platform: msg.platform || '',
+          title: msg.title || '—',
+          playing: msg.playing || false,
+          currentTime: msg.currentTime || 0,
+          duration: msg.duration || 0,
+          skipIntroAvailable: msg.skipIntroAvailable || false
+        };
+        updateMediaUI();
+      }
+
+      if (msg.type === 'skip_ad_available') {
+        skipAdAvailable = msg.available;
+        updateSkipAdButton();
+      }
+
+      if (msg.type === 'tab_list_result') {
+        renderTabs(msg.tabs || []);
+      }
+
+      if (msg.type === 'session_closed') {
+        resetToParingScreen();
+      }
+
+      if (msg.type === 'input_focused') {
+        // Debounce: wait 300ms before showing keyboard to avoid rapid focus/blur cycles
+        // that happen during page loads when sites auto-focus then blur inputs
+        clearTimeout(kbFocusTimer);
+        kbFocusTimer = setTimeout(function () {
+          showKeyboardOverlay(msg.value || '');
+        }, 300);
+      }
+
+      if (msg.type === 'input_blurred') {
+        clearTimeout(kbFocusTimer);
+        hideKeyboardOverlay();
+      }
+    });
+
+    CouchTransport.connect({ token: token, sessionId: sessionId });
+  }
+
+  function send(data) {
+    if (CouchTransport.isConnected()) {
+      CouchTransport.send(data);
+    }
+  }
+
+  // ── Resume: force-reconnect when the app returns to the foreground ──
+  // Phones suspend the page (and silently kill the WebSocket) when locked.
+  // Without this, the user waits for the next scheduled retry after unlocking.
+  // We tear down the stale socket and reconnect immediately instead.
+  function resumeReconnect() {
+    if (!autoReconnect || !token) return;
+    if (CouchTransport.isConnected()) return;
+    CouchTransport.reconnectNow();
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') resumeReconnect();
+  });
+  window.addEventListener('pageshow', resumeReconnect);
+  window.addEventListener('focus', resumeReconnect);
+  // Page Lifecycle API (Chrome/Android): fires when a frozen page resumes.
+  document.addEventListener('resume', resumeReconnect);
+
+  // ── Connection UI ──
+  function updateConnUI() {
+    var dot = $('#conn-dot');
+    var text = $('#conn-text');
+    if (isPaired) {
+      dot.classList.add('on');
+      text.textContent = 'Connected';
+    } else {
+      dot.classList.remove('on');
+      text.textContent = 'Disconnected';
+    }
+    updateNavButtons();
+  }
+
+  // ── Tier / Premium ──
+  function updateTierUI() {
+    var toggle = $('#setting-tier');
+    if (isPaid) {
+      toggle.classList.add('on');
+    } else {
+      toggle.classList.remove('on');
+    }
+    PAID_MODES.forEach(function (mode) {
+      var pw = $('#paywall-' + mode);
+      if (pw) {
+        if (isPaid) pw.classList.remove('active');
+        else pw.classList.add('active');
+      }
+    });
+    $$('.nav-btn').forEach(function (btn) {
+      var mode = btn.getAttribute('data-mode');
+      if (PAID_MODES.indexOf(mode) !== -1) {
+        if (isPaid) btn.classList.remove('locked');
+        else btn.classList.add('locked');
+      }
+    });
+  }
+
+  $('#setting-tier').addEventListener('click', function () {
+    isPaid = !isPaid;
+    updateTierUI();
+    updateThemeSwatchUI();
+    // If current theme is premium and user toggled to free, revert to dark
+    if (!isPaid) {
+      var theme = getThemeById(currentThemeId);
+      if (theme && !theme.free) {
+        applyTheme('dark');
+      }
+    }
+  });
+
+  // ── Guide page button ──
+  $('#btn-guide').addEventListener('click', function () {
+    window.open('success.html', '_blank');
+  });
+
+  // ── Close Session button ──
+  $('#btn-close-session').addEventListener('click', function () {
+    if (!isPaired) return;
+    send({ type: 'session_close' });
+    resetToParingScreen();
+  });
+
+  function resetToParingScreen() {
+    isPaired = false;
+    isConnected = false;
+    CouchTransport.disconnect();
+    updateConnUI();
+    $('#pairing').classList.remove('hidden');
+    $('#pairing-status').textContent = 'Session ended';
+    showToast('Session closed');
+  }
+
+  // ── Browser back/forward ──
+  $('#btn-back').addEventListener('click', function () {
+    send({ type: 'cmd', action: 'browserBack' });
+  });
+  $('#btn-forward').addEventListener('click', function () {
+    send({ type: 'cmd', action: 'browserForward' });
+  });
+  $('#btn-reload').addEventListener('click', function () {
+    send({ type: 'tab_reload', tabId: null });
+    showToast('Page reloaded');
+  });
+
+  function updateNavButtons() {
+    var back = $('#btn-back');
+    var fwd = $('#btn-forward');
+    var reload = $('#btn-reload');
+    if (isPaired) {
+      back.classList.remove('disabled');
+      fwd.classList.remove('disabled');
+      reload.classList.remove('disabled');
+    } else {
+      back.classList.add('disabled');
+      fwd.classList.add('disabled');
+      reload.classList.add('disabled');
+    }
+  }
+
+  // ── Mode Switching ──
+  function switchMode(mode) {
+    if (MODES.indexOf(mode) === -1) return;
+    currentMode = mode;
+
+    $$('.mode-view').forEach(function (v) { v.classList.remove('active'); });
+    $('#view-' + mode).classList.add('active');
+
+    $$('.nav-btn').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-mode') === mode);
+    });
+    $$('.nav-item').forEach(function (item) {
+      item.classList.toggle('active', item.getAttribute('data-mode') === mode);
+    });
+
+    // Show topbar nav buttons only on pad tab
+    var topNav = $('#topbar-nav');
+    if (mode === 'trackpad') {
+      topNav.classList.add('visible');
+    } else {
+      topNav.classList.remove('visible');
+    }
+
+    if (mode === 'airmouse' && isPaid) startGyro();
+    else stopGyro();
+
+    if (mode === 'tabs' && isPaired) {
+      send({ type: 'tab_list' });
+    }
+
+    // Entering media tab: request fresh status from active tab
+    if (mode === 'media' && isPaired) {
+      send({ type: 'request_media_status' });
+    }
+  }
+
+  $$('.nav-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var mode = btn.getAttribute('data-mode');
+      if (mode) switchMode(mode);
+    });
+  });
+
+
+  // ── Trackpad ──
+  // Improved: dead zone to filter touch sensor noise, velocity-based
+  // acceleration curve (small = precise, fast = amplified), and
+  // message batching via rAF to avoid flooding the transport.
+  (function () {
+    var surface = $('#trackpad-surface');
+    var lastX = 0, lastY = 0, touching = false;
+    var scrollMode = false;
+    var pendingDx = 0, pendingDy = 0, pendingScroll = 0;
+    var rafId = null;
+
+    function flushMove() {
+      rafId = null;
+
+      if (scrollMode) {
+        if (Math.abs(pendingScroll) > 0) {
+          send({ type: 'scroll', dx: 0, dy: Math.round(pendingScroll) });
+          pendingScroll = 0;
+        }
+        return;
+      }
+
+      // Dead zone: ignore sub-1px jitter
+      if (Math.abs(pendingDx) < 0.8 && Math.abs(pendingDy) < 0.8) {
+        pendingDx = 0;
+        pendingDy = 0;
+        return;
+      }
+
+      var sensitivity = parseFloat($('#setting-trackpad').value) || 1.5;
+
+      // Velocity-based acceleration: small movements stay precise,
+      // fast swipes get amplified. Uses a mild power curve.
+      var speed = Math.sqrt(pendingDx * pendingDx + pendingDy * pendingDy);
+      var accel = 1 + Math.min(speed / 15, 1.5); // 1x at rest → 2.5x at fast swipe
+
+      send({
+        type: 'mousemove',
+        dx: pendingDx * accel,
+        dy: pendingDy * accel,
+        sensitivity: sensitivity
+      });
+      pendingDx = 0;
+      pendingDy = 0;
+    }
+
+    surface.addEventListener('touchstart', function (e) {
+      e.preventDefault();
+      var t = e.touches[0];
+      lastX = t.clientX;
+      lastY = t.clientY;
+      touching = true;
+      scrollMode = e.touches.length >= 2;
+      pendingDx = 0;
+      pendingDy = 0;
+      pendingScroll = 0;
+
+      // Hide hint on touch
+      var hintEl = $('#trackpad-hint');
+      hintEl.classList.add('hidden');
+      trackpadHintHidden = true;
+
+      // Clear idle timer on touch
+      if (trackpadIdleTimer) {
+        clearTimeout(trackpadIdleTimer);
+        trackpadIdleTimer = null;
+      }
+    });
+
+    surface.addEventListener('touchmove', function (e) {
+      e.preventDefault();
+      if (!touching) return;
+      var t = e.touches[0];
+      var dx = t.clientX - lastX;
+      var dy = t.clientY - lastY;
+      lastX = t.clientX;
+      lastY = t.clientY;
+
+      if (scrollMode || e.touches.length >= 2) {
+        pendingScroll += -dy * 3;
+      } else {
+        pendingDx += dx;
+        pendingDy += dy;
+      }
+
+      // Batch sends to once per frame
+      if (rafId === null) {
+        rafId = requestAnimationFrame(flushMove);
+      }
+    });
+
+    surface.addEventListener('touchend', function (e) {
+      e.preventDefault();
+      touching = false;
+      scrollMode = false;
+      // Flush any remaining movement
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      flushMove();
+
+      // Start idle timer — show "Tap to wake" after 5s of no touch
+      trackpadIdleTimer = setTimeout(function () {
+        var hintEl = $('#trackpad-hint');
+        hintEl.textContent = 'Tap to wake';
+        hintEl.classList.remove('hidden');
+      }, 15000);
+    });
+
+    // Tap detection (single tap = click, double tap = double-click)
+    var tapTimer = null;
+    var lastTapTime = 0;
+    var DOUBLE_TAP_WINDOW = 300;
+
+    surface.addEventListener('touchstart', function (e) {
+      if (e.touches.length === 1) {
+        tapTimer = setTimeout(function () { tapTimer = null; }, 200);
+      }
+    });
+    surface.addEventListener('touchend', function (e) {
+      if (tapTimer !== null) {
+        clearTimeout(tapTimer);
+        tapTimer = null;
+
+        var now = Date.now();
+        if (now - lastTapTime < DOUBLE_TAP_WINDOW) {
+          // Second tap within window — double-click
+          send({ type: 'doubleclick' });
+          lastTapTime = 0; // Reset so a third tap starts fresh
+        } else {
+          send({ type: 'click' });
+          lastTapTime = now;
+        }
+      }
+    });
+
+    $('#btn-left-click').addEventListener('click', function () { send({ type: 'click' }); });
+    $('#btn-right-click').addEventListener('click', function () {
+      if (!isPaid) return;
+      send({ type: 'rightclick' });
+    });
+  })();
+
+  // ── Air Mouse (Gyroscope) ──
+  function startGyro() {
+    if (gyroActive) return;
+
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().then(function (state) {
+        if (state === 'granted') initGyro();
+      });
+    } else {
+      initGyro();
+    }
+  }
+
+  function initGyro() {
+    gyroActive = true;
+    gyroLastGamma = null;
+    gyroLastBeta = null;
+    window.addEventListener('deviceorientation', onGyro);
+  }
+
+  function stopGyro() {
+    gyroActive = false;
+    window.removeEventListener('deviceorientation', onGyro);
+  }
+
+  function onGyro(e) {
+    if (!gyroActive || currentMode !== 'airmouse') return;
+    if (gyroLastGamma === null) {
+      gyroLastGamma = e.gamma;
+      gyroLastBeta = e.beta;
+      return;
+    }
+
+    var dGamma = e.gamma - gyroLastGamma;
+    var dBeta = e.beta - gyroLastBeta;
+
+    var sensitivity = parseFloat($('#setting-gyro').value) || 1.5;
+    // Exponential curve for more perceptible range
+    var factor = sensitivity * sensitivity;
+
+    var invertX = $('#setting-invert-x').classList.contains('on') ? -1 : 1;
+    var invertY = $('#setting-invert-y').classList.contains('on') ? -1 : 1;
+
+    // Default: negate both for natural "point at screen" mapping
+    var dx = -dGamma * factor * 1.5 * invertX;
+    var dy = -dBeta * factor * 1.5 * invertY;
+
+    // Scale threshold with sensitivity (lower sens = lower threshold)
+    var threshold = 0.3 / Math.max(sensitivity, 0.5);
+    if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
+      send({ type: 'mousemove', dx: dx, dy: dy, sensitivity: 1 });
+    }
+
+    gyroLastGamma = e.gamma;
+    gyroLastBeta = e.beta;
+  }
+
+  function doRecalibrate() {
+    gyroLastGamma = null;
+    gyroLastBeta = null;
+
+    var btn = $('#btn-recalibrate');
+    var label = $('#airmouse-label');
+    btn.textContent = 'Recalibrated';
+    btn.classList.add('confirmed');
+    label.innerHTML = 'Recalibrated';
+
+    setTimeout(function () {
+      btn.textContent = 'Recalibrate';
+      btn.classList.remove('confirmed');
+      label.innerHTML = 'Air<br>Mouse<br><span>Active</span>';
+    }, 1500);
+  }
+
+  $('#btn-recalibrate').addEventListener('click', doRecalibrate);
+
+  var lastTap = 0;
+  $('#view-airmouse').addEventListener('touchend', function () {
+    var now = Date.now();
+    if (now - lastTap < 300) {
+      doRecalibrate();
+    }
+    lastTap = now;
+  });
+
+  // ── Media ──
+
+  var MEDIA_BUTTONS = {
+    netflix:   { skipAd: false, skipIntro: true,  nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
+    hbo:       { skipAd: false, skipIntro: true,  nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
+    disney:    { skipAd: false, skipIntro: true,  nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
+    hulu:      { skipAd: false, skipIntro: true,  nextEp: false, fullscreen: true,  volDown: true, volUp: true, mute: true },
+    youtube:   { skipAd: true,  skipIntro: false, nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
+    universal: { skipAd: false, skipIntro: false, nextEp: false, fullscreen: true,  volDown: true, volUp: true, mute: true },
+    unknown:   { skipAd: false, skipIntro: false, nextEp: false, fullscreen: true,  volDown: true, volUp: true, mute: true }
+  };
+
+  var PLATFORM_NAMES = {
+    netflix: 'Netflix', hbo: 'HBO Max', disney: 'Disney+',
+    hulu: 'Hulu', youtube: 'YouTube', universal: 'Video Player', unknown: ''
+  };
+
+  function updateMediaActions(p) {
+    p = p || 'unknown';
+    var cfg = MEDIA_BUTTONS[p] || MEDIA_BUTTONS.unknown;
+
+    $('#btn-skip-ad').style.display     = cfg.skipAd     ? '' : 'none';
+    $('#btn-skip-intro').style.display  = cfg.skipIntro  ? '' : 'none';
+    $('#btn-next-ep').style.display     = cfg.nextEp     ? '' : 'none';
+    $('#btn-fullscreen').style.display  = cfg.fullscreen ? '' : 'none';
+    $('#btn-vol-down').style.display    = cfg.volDown    ? '' : 'none';
+    $('#btn-vol-up').style.display      = cfg.volUp      ? '' : 'none';
+    $('#btn-mute').style.display        = cfg.mute       ? '' : 'none';
+
+    if (p === 'youtube') {
+      $('#btn-next-ep').textContent = 'Next Vid';
+    } else {
+      $('#btn-next-ep').textContent = 'Next Ep';
+    }
+  }
+
+  function updateSkipAdButton() {
+    var btn = $('#btn-skip-ad');
+    if (skipAdAvailable) {
+      btn.classList.remove('faded');
+      btn.classList.add('highlight');
+    } else {
+      btn.classList.add('faded');
+      btn.classList.remove('highlight');
+    }
+  }
+
+  function updateMediaUI() {
+    var pName = PLATFORM_NAMES[mediaState.platform] || '';
+    var isIdle = !mediaState.platform || mediaState.platform === 'unknown';
+    var mediaEl = document.querySelector('.media');
+
+    // Toggle idle state
+    if (mediaEl) {
+      if (isIdle) {
+        mediaEl.classList.add('media-idle');
+      } else {
+        mediaEl.classList.remove('media-idle');
+      }
+    }
+
+    $('#media-platform').textContent = pName ? pName.toUpperCase() : 'NO MEDIA DETECTED';
+    $('#media-title').textContent = mediaState.title || '—';
+
+    var pct = mediaState.duration > 0 ? (mediaState.currentTime / mediaState.duration * 100) : 0;
+    $('#media-progress').style.width = pct + '%';
+    $('#media-current').textContent = formatTime(mediaState.currentTime);
+    $('#media-duration').textContent = formatTime(mediaState.duration);
+
+    // Play/Pause icon toggle
+    if (mediaState.playing) {
+      $('#icon-play').style.display = 'none';
+      $('#icon-pause').style.display = '';
+    } else {
+      $('#icon-play').style.display = '';
+      $('#icon-pause').style.display = 'none';
+    }
+
+    // Skip Intro availability
+    var skipBtn = $('#btn-skip-intro');
+    if (mediaState.skipIntroAvailable) {
+      skipBtn.classList.remove('faded');
+      skipBtn.classList.add('highlight');
+    } else {
+      skipBtn.classList.add('faded');
+      skipBtn.classList.remove('highlight');
+    }
+
+    updateMediaActions(mediaState.platform);
+  }
+
+  function formatTime(s) {
+    if (!s || isNaN(s)) return '0:00';
+    var m = Math.floor(s / 60);
+    var sec = Math.floor(s % 60);
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  $('#btn-play-pause').addEventListener('click', function () { send({ type: 'cmd', action: 'playPause' }); });
+  $('#btn-seek-back').addEventListener('click', function () { send({ type: 'cmd', action: 'seekBack' }); });
+  $('#btn-seek-fwd').addEventListener('click', function () { send({ type: 'cmd', action: 'seekForward' }); });
+  $('#btn-skip-ad').addEventListener('click', function () { send({ type: 'cmd', action: 'skipAd' }); });
+  $('#btn-skip-intro').addEventListener('click', function () { send({ type: 'cmd', action: 'skipIntro' }); });
+  $('#btn-next-ep').addEventListener('click', function () { send({ type: 'cmd', action: 'nextEpisode' }); });
+  $('#btn-vol-down').addEventListener('click', function () { send({ type: 'cmd', action: 'volumeDown' }); });
+  $('#btn-vol-up').addEventListener('click', function () { send({ type: 'cmd', action: 'volumeUp' }); });
+  $('#btn-fullscreen').addEventListener('click', function () { send({ type: 'cmd', action: 'fullscreen' }); });
+  $('#btn-mute').addEventListener('click', function () { send({ type: 'cmd', action: 'mute' }); });
+
+  // ── Keyboard Overlay ──
+
+  var nativeInput = $('#kb-native-input');
+  var lastNativeVal = '';
+
+  function showKeyboardOverlay(initialValue) {
+    kbMode = 'input';
+    kbText = initialValue || '';
+    lastNativeVal = kbText;
+    nativeInput.value = kbText;
+    updateKbPreview();
+    $('#kb-overlay').classList.add('visible');
+    kbOverlayVisible = true;
+    setTimeout(function () { nativeInput.focus(); }, 100);
+  }
+
+  function hideKeyboardOverlay() {
+    $('#kb-overlay').classList.remove('visible');
+    kbOverlayVisible = false;
+    kbMode = 'input';
+    nativeInput.blur();
+  }
+
+  function updateKbPreview() {
+    var preview = $('#kb-preview');
+    var display = kbText || '';
+    if (display.length > 40) display = '…' + display.slice(-40);
+
+    var prefix = '';
+    if (kbMode === 'search' && display.length === 0) {
+      prefix = '<span style="opacity:0.3">Search or enter URL</span>';
+    }
+
+    preview.innerHTML = prefix + escapeHTML(display) + '<span class="kb-cursor"></span>';
+  }
+
+  // Dismiss button
+  $('#kb-dismiss').addEventListener('click', hideKeyboardOverlay);
+
+  // Swipe down to dismiss
+  (function () {
+    var startY = 0;
+    var overlay = $('#kb-overlay');
+    overlay.addEventListener('touchstart', function (e) {
+      startY = e.touches[0].clientY;
+    });
+    overlay.addEventListener('touchmove', function (e) {
+      var dy = e.touches[0].clientY - startY;
+      if (dy > 60) {
+        hideKeyboardOverlay();
+      }
+    });
+  })();
+
+  // Native keyboard input
+  nativeInput.addEventListener('input', function () {
+    var val = nativeInput.value;
+
+    if (kbMode === 'search') {
+      // Search mode: just accumulate text locally, don't send keystrokes
+      kbText = val;
+      lastNativeVal = val;
+      updateKbPreview();
+      return;
+    }
+
+    // Input mode: relay each keystroke to extension
+    if (val.length > lastNativeVal.length) {
+      var added = val.slice(lastNativeVal.length);
+      for (var i = 0; i < added.length; i++) {
+        send({ type: 'keychar', key: added[i], code: 'Key' + added[i].toUpperCase() });
+      }
+      kbText += added;
+    } else if (val.length < lastNativeVal.length) {
+      var count = lastNativeVal.length - val.length;
+      for (var i = 0; i < count; i++) {
+        send({ type: 'keychar', key: 'Backspace', code: 'Backspace' });
+      }
+      kbText = kbText.slice(0, -(count));
+    }
+    lastNativeVal = val;
+    updateKbPreview();
+  });
+
+  nativeInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+
+      if (kbMode === 'search' && kbText.length > 0) {
+        // Navigate the new tab to the search query
+        send({ type: 'tab_navigate', query: kbText });
+        hideKeyboardOverlay();
+        // Refresh tab list after navigation
+        setTimeout(function () { send({ type: 'tab_list' }); }, 500);
+        return;
+      }
+
+      send({ type: 'keychar', key: 'Enter', code: 'Enter' });
+      hideKeyboardOverlay();
+    }
+  });
+
+  // Fallback keyboard
+  function buildKeyboard() {
+    var grid = $('#kb-grid');
+    grid.innerHTML = '';
+    KB_ROWS.forEach(function (row) {
+      var rowEl = document.createElement('div');
+      rowEl.className = 'kb-row';
+      row.forEach(function (key) {
+        var btn = document.createElement('button');
+        btn.className = 'kb-key';
+        btn.textContent = key;
+        btn.setAttribute('data-key', key);
+        btn.setAttribute('data-code', 'Key' + key.toUpperCase());
+        rowEl.appendChild(btn);
+      });
+      grid.parentNode.insertBefore(rowEl, grid.nextSibling);
+    });
+    grid.remove(); // Remove the placeholder div
+  }
+
+  // Fallback key press handler
+  document.addEventListener('click', function (e) {
+    var key = e.target.closest('.kb-key');
+    if (!key) return;
+
+    if (key.getAttribute('data-action') === 'shift') {
+      kbShift = !kbShift;
+      $$('.kb-fallback .kb-key').forEach(function (k) {
+        var letter = k.getAttribute('data-key');
+        if (letter && letter.length === 1) {
+          k.textContent = kbShift ? letter.toUpperCase() : letter.toLowerCase();
+        }
+      });
+      return;
+    }
+
+    var keyVal = key.getAttribute('data-key');
+    var codeVal = key.getAttribute('data-code');
+    if (!keyVal) return;
+
+    if (kbShift && keyVal.length === 1) {
+      keyVal = keyVal.toUpperCase();
+      kbShift = false;
+      $$('.kb-fallback .kb-key').forEach(function (k) {
+        var letter = k.getAttribute('data-key');
+        if (letter && letter.length === 1) {
+          k.textContent = letter.toLowerCase();
+        }
+      });
+    }
+
+    if (keyVal === 'Backspace') {
+      kbText = kbText.slice(0, -1);
+    } else if (keyVal === 'Enter') {
+      if (kbMode === 'search' && kbText.length > 0) {
+        send({ type: 'tab_navigate', query: kbText });
+        hideKeyboardOverlay();
+        setTimeout(function () { send({ type: 'tab_list' }); }, 500);
+        return;
+      }
+      send({ type: 'keychar', key: 'Enter', code: 'Enter' });
+      hideKeyboardOverlay();
+      return;
+    } else if (keyVal.length === 1) {
+      kbText += keyVal;
+    }
+
+    updateKbPreview();
+    // In search mode, don't relay individual keystrokes
+    if (kbMode !== 'search') {
+      send({ type: 'keychar', key: keyVal, code: codeVal });
+    }
+  });
+
+  buildKeyboard();
+
+  // ── Tab Switcher ──
+  function renderTabs(tabs) {
+    var list = $('#tab-list');
+    list.innerHTML = '';
+
+    if (tabs.length === 0) {
+      list.innerHTML = '<div class="tabs-empty">No tabs found</div>';
+    } else {
+      tabs.forEach(function (tab) {
+        var el = document.createElement('div');
+        el.className = 'tab-item' + (tab.active ? ' active-tab' : '');
+
+        var content = document.createElement('div');
+        content.className = 'tab-item-content';
+
+        // Close button (left of title)
+        var closeBtn = document.createElement('button');
+        closeBtn.className = 'tab-close';
+        closeBtn.setAttribute('aria-label', 'Close tab');
+        closeBtn.innerHTML = '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+        closeBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          send({ type: 'tab_close', tabId: tab.id });
+          el.style.opacity = '0';
+          el.style.maxHeight = '0';
+          el.style.overflow = 'hidden';
+          el.style.transition = 'opacity 200ms, max-height 200ms';
+        });
+        content.appendChild(closeBtn);
+
+        // Tab info
+        var info = document.createElement('div');
+        info.className = 'tab-info';
+        info.innerHTML = '<div class="tab-title">' + escapeHTML(tab.title || 'Untitled') +
+          '</div><div class="tab-url">' + escapeHTML(tab.url || '') + '</div>';
+        content.appendChild(info);
+
+        // Reload button
+        var reloadBtn = document.createElement('button');
+        reloadBtn.className = 'tab-reload';
+        reloadBtn.setAttribute('aria-label', 'Reload tab');
+        reloadBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>';
+        reloadBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          send({ type: 'tab_reload', tabId: tab.id });
+        });
+        content.appendChild(reloadBtn);
+        el.appendChild(content);
+
+        el.addEventListener('click', function () {
+          send({ type: 'tab_switch', tabId: tab.id });
+        });
+        list.appendChild(el);
+      });
+    }
+
+    // "New Tab +" button at the bottom
+    var newTabEl = document.createElement('div');
+    newTabEl.className = 'tab-new';
+    newTabEl.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>New Tab</span>';
+    newTabEl.addEventListener('click', function () {
+      send({ type: 'tab_new' });
+      // Show keyboard overlay in search mode so user can type a URL/query
+      kbMode = 'search';
+      kbText = '';
+      lastNativeVal = '';
+      nativeInput.value = '';
+      updateKbPreview();
+      $('#kb-overlay').classList.add('visible');
+      kbOverlayVisible = true;
+      setTimeout(function () { nativeInput.focus(); }, 100);
+    });
+    list.appendChild(newTabEl);
+  }
+
+  function escapeHTML(s) {
+    var div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  // ── Settings Toggles ──
+  // Toggles with dedicated handlers (state + persistence) manage their own .on class.
+  var DEDICATED_TOGGLES = ['setting-tier', 'setting-auto-reconnect', 'setting-tips'];
+  $$('.setting-toggle').forEach(function (toggle) {
+    if (DEDICATED_TOGGLES.indexOf(toggle.id) !== -1) return;
+    toggle.addEventListener('click', function () {
+      toggle.classList.toggle('on');
+    });
+  });
+
+  // Auto-reconnect preference (gates the resume/auto-retry behavior)
+  $('#setting-auto-reconnect').addEventListener('click', function () {
+    autoReconnect = !autoReconnect;
+    this.classList.toggle('on', autoReconnect);
+    try { localStorage.setItem('couchlock-auto-reconnect', autoReconnect ? '1' : '0'); } catch (e) { /* ignore */ }
+  });
+
+  // Show-tips-on-connect preference (synced to the extension on change)
+  $('#setting-tips').addEventListener('click', function () {
+    tipsEnabled = !tipsEnabled;
+    this.classList.toggle('on', tipsEnabled);
+    try { localStorage.setItem('couchlock-tips-enabled', tipsEnabled ? '1' : '0'); } catch (e) { /* ignore */ }
+    send({ type: 'tips_pref', enabled: tipsEnabled });
+  });
+
+  // ── Cursor Settings ──
+  $('#setting-cursor-size').addEventListener('input', function () {
+    cursorSize = parseInt(this.value);
+    sendCursorSettings();
+  });
+
+  function sendCursorSettings() {
+    var theme = getThemeById(currentThemeId);
+    var color = theme ? theme.accent : '79,82,224';
+    send({ type: 'cursor_settings', size: cursorSize, color: color });
+  }
+
+  // ── Theme System ──
+
+  function rgbToHex(r, g, b) {
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+  }
+
+  function hexToRgbStr(hex) {
+    var h = hex.replace('#', '');
+    return parseInt(h.substring(0, 2), 16) + ',' + parseInt(h.substring(2, 4), 16) + ',' + parseInt(h.substring(4, 6), 16);
+  }
+
+  function getThemeById(id) {
+    for (var i = 0; i < THEMES.length; i++) {
+      if (THEMES[i].id === id) return THEMES[i];
+    }
+    return THEMES[0];
+  }
+
+  function applyTheme(themeId) {
+    var theme = getThemeById(themeId);
+    if (!theme) return;
+
+    var isFirstLoad = currentThemeId === themeId && !document.documentElement.style.getPropertyValue('--void');
+    currentThemeId = themeId;
+
+    // Resolve inversion: swap void ↔ ink when inverted
+    var inv = invertedState[themeId];
+    var voidHex = inv ? theme.inkHex : theme.voidHex;
+    var inkHex = inv ? theme.voidHex : theme.inkHex;
+    var voidRgb = inv ? hexToRgbStr(theme.inkHex) : theme.voidRgb;
+
+    var parts = theme.accent.split(',');
+    var r = parseInt(parts[0], 10);
+    var g = parseInt(parts[1], 10);
+    var b = parseInt(parts[2], 10);
+    var accentHex = rgbToHex(r, g, b);
+
+    // Lighter accent: shift each channel 20% toward 255
+    var lr = Math.round(r + (255 - r) * 0.2);
+    var lg = Math.round(g + (255 - g) * 0.2);
+    var lb = Math.round(b + (255 - b) * 0.2);
+    var accentLight = rgbToHex(lr, lg, lb);
+
+    var app = $('#app');
+    var overlay = $('#theme-fade-overlay');
+    var root = document.documentElement;
+
+    // Wireframe mode toggle
+    if (themeId === 'wireframe') {
+      root.classList.add('wireframe-mode');
+    } else {
+      root.classList.remove('wireframe-mode');
+    }
+
+    function setVars() {
+      root.style.setProperty('--void', voidHex);
+      root.style.setProperty('--void-rgb', voidRgb);
+      root.style.setProperty('--ink', inkHex);
+      root.style.setProperty('--accent', accentHex);
+      root.style.setProperty('--accent-rgb', theme.accent);
+      root.style.setProperty('--accent-light', accentLight);
+      root.style.setProperty('--ui-rgb', theme.ui);
+
+      var pH = theme.primaryHex.replace('#', '');
+      var pR = parseInt(pH.substring(0, 2), 16);
+      var pG = parseInt(pH.substring(2, 4), 16);
+      var pB = parseInt(pH.substring(4, 6), 16);
+      var pLum = (0.299 * pR + 0.587 * pG + 0.114 * pB) / 255;
+      root.style.setProperty('--primary', theme.primaryHex);
+      root.style.setProperty('--primary-rgb', pR + ',' + pG + ',' + pB);
+      root.style.setProperty('--primary-on', pLum > 0.5 ? '0,0,0' : '255,255,255');
+    }
+
+    if (isFirstLoad) {
+      setVars();
+    } else {
+      var oldVoid = getComputedStyle(root).getPropertyValue('--void').trim() || '#0A0B10';
+      overlay.style.background = oldVoid;
+      overlay.classList.add('active');
+      app.classList.add('theme-transitioning');
+
+      requestAnimationFrame(function () {
+        setVars();
+        requestAnimationFrame(function () {
+          overlay.classList.remove('active');
+        });
+      });
+
+      setTimeout(function () {
+        app.classList.remove('theme-transitioning');
+      }, 650);
+    }
+
+    // Update meta theme-color for mobile browser chrome
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', voidHex);
+
+    // Send cursor + theme to extension
+    sendCursorSettings();
+    sendThemeToExtension(theme);
+
+    // Persist selection + inversion state
+    try {
+      localStorage.setItem('couchlock-theme', themeId);
+      localStorage.setItem('couchlock-theme-inverted', JSON.stringify(invertedState));
+    } catch (e) { /* ignore */ }
+
+    // Update swatch active states
+    updateThemeSwatchUI();
+  }
+
+  // Send theme data to extension for popup sync
+  function sendThemeToExtension(theme) {
+    send({ type: 'theme_update', theme: {
+      id: theme.id,
+      voidHex: theme.voidHex,
+      voidRgb: theme.voidRgb,
+      inkHex: theme.inkHex,
+      accent: theme.accent,
+      ui: theme.ui
+    }});
+  }
+
+  function buildThemeSwatches() {
+    var container = $('#theme-swatches');
+    container.innerHTML = '';
+
+    THEMES.forEach(function (theme) {
+      var swatch = document.createElement('div');
+      swatch.className = 'theme-swatch' + (theme.id === currentThemeId ? ' active' : '');
+      swatch.setAttribute('data-theme', theme.id);
+
+      // The dot: diagonal split showing void + ink
+      var dot = document.createElement('div');
+      dot.className = 'theme-swatch-dot';
+      var inner = document.createElement('div');
+      inner.style.cssText = 'position:absolute;inset:-25%;width:150%;height:150%;background:linear-gradient(135deg, ' + theme.voidHex + ' 50%, ' + theme.inkHex + ' 50%);';
+      dot.appendChild(inner);
+
+      var name = document.createElement('span');
+      name.className = 'theme-swatch-name';
+      name.textContent = theme.name;
+
+      swatch.appendChild(dot);
+      swatch.appendChild(name);
+
+      // Premium lock indicator
+      if (!theme.free) {
+        var lock = document.createElement('div');
+        lock.className = 'theme-swatch-lock';
+        lock.innerHTML = '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>';
+        swatch.appendChild(lock);
+      }
+
+      swatch.addEventListener('click', function () {
+        if (!theme.free && !isPaid) return;
+        // Re-click active theme: toggle color inversion (swap void ↔ ink)
+        if (theme.id === currentThemeId && theme.voidHex !== theme.inkHex) {
+          invertedState[theme.id] = !invertedState[theme.id];
+        } else if (theme.id !== currentThemeId) {
+          // Switching to a new theme resets its inversion
+          invertedState[theme.id] = false;
+        }
+        applyTheme(theme.id);
+      });
+
+      container.appendChild(swatch);
+    });
+  }
+
+  function updateThemeSwatchUI() {
+    $$('.theme-swatch').forEach(function (swatch) {
+      var id = swatch.getAttribute('data-theme');
+      var theme = getThemeById(id);
+      swatch.classList.toggle('active', id === currentThemeId);
+
+      // Update swatch dot to reflect inversion state
+      if (theme) {
+        var inv = invertedState[id];
+        var dotInner = swatch.querySelector('.theme-swatch-dot > div');
+        if (dotInner) {
+          var c1 = inv ? theme.inkHex : theme.voidHex;
+          var c2 = inv ? theme.voidHex : theme.inkHex;
+          dotInner.style.background = 'linear-gradient(135deg, ' + c1 + ' 50%, ' + c2 + ' 50%)';
+        }
+      }
+
+      // Show/hide lock based on premium status
+      if (theme && !theme.free) {
+        swatch.classList.toggle('locked', !isPaid);
+      }
+    });
+  }
+
+  // ── Toast Notifications ──
+  var toastTimer = null;
+
+  function showToast(message) {
+    var container = $('#toast-container');
+    var toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    // Trigger reflow then animate in
+    void toast.offsetWidth;
+    toast.classList.add('visible');
+
+    setTimeout(function () {
+      toast.classList.remove('visible');
+      setTimeout(function () {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 300);
+    }, 2000);
+  }
+
+  // ── Scrubbable Progress Bar ──
+  (function () {
+    var bar = $('#media-progress-bar');
+    var fill = $('#media-progress');
+    var thumb = $('#media-thumb');
+    var scrubbing = false;
+
+    function scrubTo(clientX) {
+      var rect = bar.getBoundingClientRect();
+      var pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      fill.style.width = (pct * 100) + '%';
+      thumb.style.left = (pct * 100) + '%';
+      return pct;
+    }
+
+    bar.addEventListener('touchstart', function (e) {
+      if (!mediaState.duration) return;
+      e.preventDefault();
+      scrubbing = true;
+      bar.classList.add('scrubbing');
+      scrubTo(e.touches[0].clientX);
+    });
+
+    bar.addEventListener('touchmove', function (e) {
+      if (!scrubbing) return;
+      e.preventDefault();
+      scrubTo(e.touches[0].clientX);
+    });
+
+    bar.addEventListener('touchend', function (e) {
+      if (!scrubbing) return;
+      scrubbing = false;
+      bar.classList.remove('scrubbing');
+
+      // Calculate the final seek position
+      var rect = bar.getBoundingClientRect();
+      var lastTouch = e.changedTouches[0];
+      var pct = Math.max(0, Math.min(1, (lastTouch.clientX - rect.left) / rect.width));
+      var seekTime = pct * mediaState.duration;
+
+      send({ type: 'cmd', action: 'seek', data: { time: seekTime } });
+      showToast('Seeking to ' + formatTime(seekTime));
+    });
+
+    // Click (desktop fallback)
+    bar.addEventListener('click', function (e) {
+      if (!mediaState.duration) return;
+      var pct = scrubTo(e.clientX);
+      var seekTime = pct * mediaState.duration;
+      send({ type: 'cmd', action: 'seek', data: { time: seekTime } });
+    });
+  })();
+
+  // ── Trackpad Swipe Gesture (vertical swipe for reels/shorts) ──
+  (function () {
+    var surface = $('#trackpad-surface');
+    var swipeHint = $('#trackpad-swipe-hint');
+    var threeFingerStartY = null;
+    var threeFingerActive = false;
+    var SWIPE_THRESHOLD = 60;
+    var hintTimer = null;
+
+    surface.addEventListener('touchstart', function (e) {
+      if (e.touches.length === 3) {
+        threeFingerStartY = e.touches[0].clientY;
+        threeFingerActive = true;
+      } else {
+        threeFingerActive = false;
+      }
+    });
+
+    surface.addEventListener('touchmove', function (e) {
+      if (!threeFingerActive || e.touches.length < 3) {
+        threeFingerActive = false;
+        return;
+      }
+
+      var dy = e.touches[0].clientY - threeFingerStartY;
+
+      // Show directional hint while swiping
+      if (Math.abs(dy) > 20) {
+        swipeHint.textContent = dy < 0 ? 'Swipe Up' : 'Swipe Down';
+        swipeHint.classList.add('visible');
+      }
+    });
+
+    surface.addEventListener('touchend', function (e) {
+      if (!threeFingerActive) return;
+      threeFingerActive = false;
+      swipeHint.classList.remove('visible');
+
+      // Check if we had a valid swipe
+      if (threeFingerStartY === null) return;
+      var remaining = e.changedTouches[0];
+      var dy = remaining.clientY - threeFingerStartY;
+      threeFingerStartY = null;
+
+      if (Math.abs(dy) >= SWIPE_THRESHOLD) {
+        var direction = dy < 0 ? 'up' : 'down';
+        send({ type: 'swipe', direction: direction });
+        showToast('Swipe ' + direction);
+      }
+    });
+  })();
+
+  // ── Ping (keepalive) ──
+  setInterval(function () {
+    if (isPaired) {
+      send({ type: 'ping', ts: Date.now() });
+    }
+  }, 10000);
+
+  // ═══════════════════════════════════════════
+  //  TRACKPAD STICKERS
+  // ═══════════════════════════════════════════
+
+  var STICKER_GALLERY = [
+    { id: 'smile', src: 'stickers/smile.png', name: 'Smile Cat' },
+    { id: 'brownie', src: 'stickers/brownie.png', name: 'Brownie' },
+    { id: 'croissant', src: 'stickers/croissant.png', name: 'Croissant' }
+  ];
+
+  var MAX_STICKERS = 3;
+  // Each placed sticker: { id, src, x (%), y (%), width (% of container), zIndex }
+  var placedStickers = [];
+  var stickerIdCounter = 0;
+  var selectedStickerId = null;
+
+  // Load saved stickers from localStorage
+  function loadStickers() {
+    try {
+      var saved = localStorage.getItem('couchlock-stickers');
+      if (saved) {
+        placedStickers = JSON.parse(saved);
+        // Restore counter to avoid ID collisions
+        for (var i = 0; i < placedStickers.length; i++) {
+          if (placedStickers[i].id >= stickerIdCounter) {
+            stickerIdCounter = placedStickers[i].id + 1;
+          }
+        }
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  function saveStickers() {
+    try {
+      localStorage.setItem('couchlock-stickers', JSON.stringify(placedStickers));
+    } catch (e) { /* ignore */ }
+    // Sync stickers to extension
+    send({ type: 'sticker_update', stickers: placedStickers });
+  }
+
+  // Render stickers on the actual trackpad surface (non-interactive)
+  function renderTrackpadStickers() {
+    var layer = $('#sticker-layer');
+    layer.innerHTML = '';
+    for (var i = 0; i < placedStickers.length; i++) {
+      var s = placedStickers[i];
+      var wrap = document.createElement('div');
+      wrap.className = 'sticker-wrap';
+      wrap.style.left = s.x + '%';
+      wrap.style.top = s.y + '%';
+      wrap.style.width = s.width + '%';
+      wrap.style.zIndex = s.zIndex;
+
+      // Shadow layer (black duplicate behind)
+      var shadow = document.createElement('img');
+      shadow.className = 'sticker-shadow';
+      shadow.src = s.src;
+      shadow.alt = '';
+      shadow.draggable = false;
+      wrap.appendChild(shadow);
+
+      // Actual sticker image
+      var img = document.createElement('img');
+      img.src = s.src;
+      img.alt = '';
+      img.draggable = false;
+      img.style.position = 'relative';
+      img.style.zIndex = '1';
+      wrap.appendChild(img);
+
+      layer.appendChild(wrap);
+    }
+  }
+
+  // Render stickers inside the editor preview (interactive)
+  function renderEditorStickers() {
+    var preview = $('#sticker-preview');
+    // Remove old sticker items but keep the ::after pseudo
+    var old = preview.querySelectorAll('.sticker-editor-item');
+    for (var i = 0; i < old.length; i++) {
+      old[i].parentNode.removeChild(old[i]);
+    }
+
+    for (var j = 0; j < placedStickers.length; j++) {
+      var s = placedStickers[j];
+      var el = document.createElement('div');
+      el.className = 'sticker-editor-item';
+      if (s.id === selectedStickerId) el.classList.add('selected');
+      el.setAttribute('data-sticker-id', s.id);
+      el.style.left = s.x + '%';
+      el.style.top = s.y + '%';
+      el.style.width = s.width + '%';
+      el.style.zIndex = s.zIndex;
+
+      // Shadow
+      var shadow = document.createElement('img');
+      shadow.className = 'sticker-shadow';
+      shadow.src = s.src;
+      shadow.alt = '';
+      shadow.draggable = false;
+      el.appendChild(shadow);
+
+      // Image
+      var img = document.createElement('img');
+      img.src = s.src;
+      img.alt = '';
+      img.draggable = false;
+      img.style.position = 'relative';
+      img.style.zIndex = '1';
+      el.appendChild(img);
+
+      // Resize handle
+      var handle = document.createElement('div');
+      handle.className = 'sticker-resize-handle';
+      el.appendChild(handle);
+
+      preview.appendChild(el);
+    }
+
+    updateStickerControls();
+    updateGalleryState();
+  }
+
+  function updateStickerControls() {
+    var controls = $('#sticker-controls');
+    var countEl = $('#sticker-count');
+    countEl.textContent = placedStickers.length + ' / ' + MAX_STICKERS;
+
+    if (selectedStickerId !== null) {
+      controls.classList.add('active');
+    } else {
+      controls.classList.remove('active');
+    }
+  }
+
+  function updateGalleryState() {
+    var items = document.querySelectorAll('.sticker-gallery-item');
+    var atLimit = placedStickers.length >= MAX_STICKERS;
+    for (var i = 0; i < items.length; i++) {
+      if (atLimit) {
+        items[i].classList.add('disabled');
+      } else {
+        items[i].classList.remove('disabled');
+      }
+    }
+    updatePasteButton();
+  }
+
+  function getStickerById(id) {
+    for (var i = 0; i < placedStickers.length; i++) {
+      if (placedStickers[i].id === id) return placedStickers[i];
+    }
+    return null;
+  }
+
+  function getMaxZIndex() {
+    var max = 0;
+    for (var i = 0; i < placedStickers.length; i++) {
+      if (placedStickers[i].zIndex > max) max = placedStickers[i].zIndex;
+    }
+    return max;
+  }
+
+  function getMinZIndex() {
+    if (placedStickers.length === 0) return 1;
+    var min = placedStickers[0].zIndex;
+    for (var i = 1; i < placedStickers.length; i++) {
+      if (placedStickers[i].zIndex < min) min = placedStickers[i].zIndex;
+    }
+    return min;
+  }
+
+  // ── Clipboard paste sticker (premium) ──
+  function updatePasteButton() {
+    var btn = $('#sticker-paste');
+    if (!isPaid || placedStickers.length >= MAX_STICKERS) {
+      btn.classList.add('disabled');
+    } else {
+      btn.classList.remove('disabled');
+    }
+  }
+
+  $('#sticker-paste').addEventListener('click', function () {
+    if (!isPaid) {
+      showToast('Paste stickers is a premium feature');
+      return;
+    }
+    if (placedStickers.length >= MAX_STICKERS) {
+      showToast('Max ' + MAX_STICKERS + ' stickers');
+      return;
+    }
+
+    if (!navigator.clipboard || !navigator.clipboard.read) {
+      showToast('Clipboard not supported in this browser');
+      return;
+    }
+
+    navigator.clipboard.read().then(function (items) {
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var imageType = null;
+
+        for (var t = 0; t < item.types.length; t++) {
+          if (item.types[t].indexOf('image/') === 0) {
+            imageType = item.types[t];
+            break;
+          }
+        }
+
+        if (imageType) {
+          item.getType(imageType).then(function (blob) {
+            var reader = new FileReader();
+            reader.onload = function () {
+              var dataUrl = reader.result;
+              var newSticker = {
+                id: stickerIdCounter++,
+                src: dataUrl,
+                x: 25 + Math.random() * 25,
+                y: 15 + Math.random() * 35,
+                width: 25,
+                zIndex: getMaxZIndex() + 1
+              };
+              placedStickers.push(newSticker);
+              selectedStickerId = newSticker.id;
+              renderEditorStickers();
+              updatePasteButton();
+              showToast('Sticker pasted');
+            };
+            reader.readAsDataURL(blob);
+          });
+          return;
+        }
+      }
+      showToast('No image in clipboard');
+    }).catch(function () {
+      showToast('Could not read clipboard');
+    });
+  });
+
+  // Build the gallery inside the editor
+  function buildStickerGallery() {
+    var gallery = $('#sticker-gallery');
+    gallery.innerHTML = '';
+    for (var i = 0; i < STICKER_GALLERY.length; i++) {
+      var g = STICKER_GALLERY[i];
+      var item = document.createElement('div');
+      item.className = 'sticker-gallery-item';
+      item.setAttribute('data-src', g.src);
+
+      var img = document.createElement('img');
+      img.src = g.src;
+      img.alt = g.name;
+      img.draggable = false;
+      item.appendChild(img);
+
+      item.addEventListener('click', (function (src) {
+        return function () {
+          if (placedStickers.length >= MAX_STICKERS) return;
+          var newSticker = {
+            id: stickerIdCounter++,
+            src: src,
+            x: 30 + Math.random() * 20,
+            y: 20 + Math.random() * 30,
+            width: 25,
+            zIndex: getMaxZIndex() + 1
+          };
+          placedStickers.push(newSticker);
+          selectedStickerId = newSticker.id;
+          renderEditorStickers();
+        };
+      })(g.src));
+
+      gallery.appendChild(item);
+    }
+    updatePasteButton();
+  }
+
+  // ── Editor drag & resize via touch ──
+  (function () {
+    var preview = null;
+    var dragging = null;
+    var resizing = null;
+    var startTouchX = 0;
+    var startTouchY = 0;
+    var startLeft = 0;
+    var startTop = 0;
+    var startWidth = 0;
+
+    function getPreview() {
+      if (!preview) preview = $('#sticker-preview');
+      return preview;
+    }
+
+    function pxToPercent(px, dimension) {
+      var rect = getPreview().getBoundingClientRect();
+      if (dimension === 'x') return (px / rect.width) * 100;
+      if (dimension === 'y') return (px / rect.height) * 100;
+      return 0;
+    }
+
+    function onTouchStart(e) {
+      var target = e.target;
+      var previewEl = getPreview();
+
+      // Check if touching a resize handle
+      if (target.classList.contains('sticker-resize-handle')) {
+        e.preventDefault();
+        var stickerEl = target.parentNode;
+        var sid = parseInt(stickerEl.getAttribute('data-sticker-id'), 10);
+        var sticker = getStickerById(sid);
+        if (!sticker) return;
+
+        resizing = sticker;
+        var t = e.touches[0];
+        startTouchX = t.clientX;
+        startTouchY = t.clientY;
+        startWidth = sticker.width;
+        return;
+      }
+
+      // Check if touching a sticker
+      var stickerEl = target.closest('.sticker-editor-item');
+      if (stickerEl) {
+        e.preventDefault();
+        var sid = parseInt(stickerEl.getAttribute('data-sticker-id'), 10);
+        selectedStickerId = sid;
+        renderEditorStickers();
+
+        var sticker = getStickerById(sid);
+        if (!sticker) return;
+
+        dragging = sticker;
+        var t = e.touches[0];
+        startTouchX = t.clientX;
+        startTouchY = t.clientY;
+        startLeft = sticker.x;
+        startTop = sticker.y;
+        return;
+      }
+
+      // Tapped empty area — deselect
+      if (target === previewEl || target.parentNode === previewEl) {
+        selectedStickerId = null;
+        renderEditorStickers();
+      }
+    }
+
+    function onTouchMove(e) {
+      if (!dragging && !resizing) return;
+      e.preventDefault();
+      var t = e.touches[0];
+      var dx = t.clientX - startTouchX;
+      var dy = t.clientY - startTouchY;
+
+      if (dragging) {
+        var newX = startLeft + pxToPercent(dx, 'x');
+        var newY = startTop + pxToPercent(dy, 'y');
+        // Clamp within bounds (allow some overflow for partial off-edge)
+        dragging.x = Math.max(-10, Math.min(90, newX));
+        dragging.y = Math.max(-10, Math.min(90, newY));
+        renderEditorStickers();
+      }
+
+      if (resizing) {
+        var newWidth = startWidth + pxToPercent(dx, 'x');
+        // Clamp: min 10%, max 60%
+        resizing.width = Math.max(10, Math.min(60, newWidth));
+        renderEditorStickers();
+      }
+    }
+
+    function onTouchEnd() {
+      dragging = null;
+      resizing = null;
+    }
+
+    // Attach after editor opens — use event delegation on the preview
+    document.addEventListener('touchstart', function (e) {
+      if (!$('#sticker-editor').classList.contains('open')) return;
+      var previewEl = getPreview();
+      if (previewEl.contains(e.target)) {
+        onTouchStart(e);
+      }
+    }, { passive: false });
+
+    document.addEventListener('touchmove', function (e) {
+      if (dragging || resizing) onTouchMove(e);
+    }, { passive: false });
+
+    document.addEventListener('touchend', function () {
+      onTouchEnd();
+    });
+  })();
+
+  // ── Editor button handlers ──
+
+  // Snapshot of stickers before editing (for cancel/discard)
+  var stickersSnapshot = null;
+
+  // Open editor
+  $('#btn-open-sticker-editor').addEventListener('click', function () {
+    // Save snapshot for cancel
+    stickersSnapshot = JSON.stringify(placedStickers);
+    buildStickerGallery();
+    selectedStickerId = null;
+    renderEditorStickers();
+    $('#sticker-editor').classList.add('open');
+  });
+
+  // Save & close
+  $('#sticker-save').addEventListener('click', function () {
+    stickersSnapshot = null;
+    saveStickers();
+    renderTrackpadStickers();
+    $('#sticker-editor').classList.remove('open');
+    showToast('Stickers saved');
+  });
+
+  // Cancel — discard changes if any
+  $('#sticker-cancel').addEventListener('click', function () {
+    var currentState = JSON.stringify(placedStickers);
+    if (stickersSnapshot && currentState !== stickersSnapshot) {
+      if (!confirm('Discard sticker changes?')) return;
+      placedStickers = JSON.parse(stickersSnapshot);
+    }
+    stickersSnapshot = null;
+    selectedStickerId = null;
+    $('#sticker-editor').classList.remove('open');
+  });
+
+  // Bring to front
+  $('#sticker-bring-front').addEventListener('click', function () {
+    if (selectedStickerId === null) return;
+    var s = getStickerById(selectedStickerId);
+    if (s) {
+      s.zIndex = getMaxZIndex() + 1;
+      renderEditorStickers();
+    }
+  });
+
+  // Send to back
+  $('#sticker-send-back').addEventListener('click', function () {
+    if (selectedStickerId === null) return;
+    var s = getStickerById(selectedStickerId);
+    if (s) {
+      s.zIndex = getMinZIndex() - 1;
+      renderEditorStickers();
+    }
+  });
+
+  // Remove sticker
+  $('#sticker-remove').addEventListener('click', function () {
+    if (selectedStickerId === null) return;
+    for (var i = 0; i < placedStickers.length; i++) {
+      if (placedStickers[i].id === selectedStickerId) {
+        placedStickers.splice(i, 1);
+        break;
+      }
+    }
+    selectedStickerId = null;
+    renderEditorStickers();
+  });
+
+  // ── Multiple-tab guard ──
+  // Detects other open CouchLock tabs (same origin) via BroadcastChannel and keeps
+  // one established session in control. The newest duplicate steps aside; the
+  // established (oldest, paired) tab can dismiss the stragglers in one tap.
+  // NOTE: browsers block window.close() for tabs the user opened themselves
+  // (especially mobile Safari), so "closing" falls back to a parked state the user
+  // can close manually. We always have the most control over our own tab.
+  function setupTabGuard() {
+    if (typeof BroadcastChannel === 'undefined') return; // graceful no-op on old browsers
+
+    var myId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    var born = Date.now();
+    var parked = false;
+    var peers = {}; // id -> { born, paired, lastSeen }
+    var PEER_TTL = 5000;
+    var HEARTBEAT_MS = 2000;
+    var heartbeatTimer = null;
+    var chan = new BroadcastChannel('couchlock-tabs');
+
+    var banner = $('#tabguard');
+    var bannerText = $('#tabguard-text');
+    var bannerBtn = $('#tabguard-btn');
+    var parkedScreen = $('#tab-parked');
+
+    function broadcast(kind) {
+      try {
+        chan.postMessage({ kind: kind, id: myId, born: born, paired: isPaired });
+      } catch (e) { /* channel closed */ }
+    }
+
+    function livePeers() {
+      var now = Date.now();
+      var out = [];
+      for (var id in peers) {
+        if (!peers.hasOwnProperty(id)) continue;
+        if ((now - peers[id].lastSeen) < PEER_TTL) {
+          out.push({ id: id, born: peers[id].born, paired: peers[id].paired });
+        } else {
+          delete peers[id]; // prune stale
+        }
+      }
+      return out;
+    }
+
+    // Established tab = oldest paired tab; if none paired yet, oldest tab. Ties by id.
+    function isPrimary(others) {
+      var all = others.concat([{ id: myId, born: born, paired: isPaired }]);
+      var anyPaired = all.some(function (t) { return t.paired; });
+      var pool = anyPaired ? all.filter(function (t) { return t.paired; }) : all;
+      pool.sort(function (a, b) {
+        if (a.born !== b.born) return a.born - b.born;
+        return a.id < b.id ? -1 : 1;
+      });
+      return pool[0].id === myId;
+    }
+
+    function park() {
+      if (parked) return;
+      parked = true;
+      broadcast('bye');
+      banner.classList.remove('visible');
+      parkedScreen.classList.add('visible');
+      try { CouchTransport.disconnect(); } catch (e) { /* ignore */ }
+      isConnected = false;
+      isPaired = false;
+      if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+      try { chan.close(); } catch (e) { /* ignore */ }
+    }
+
+    function closeThisTab() {
+      // Try to close ourselves; if the browser blocks it, park instead.
+      window.close();
+      setTimeout(park, 250);
+    }
+
+    function render() {
+      if (parked) return;
+      var others = livePeers();
+      if (others.length === 0) {
+        banner.classList.remove('visible');
+        return;
+      }
+      if (isPrimary(others)) {
+        // We are the established session — offer to dismiss the others.
+        bannerText.textContent = others.length === 1
+          ? 'Another CouchLock tab is open'
+          : others.length + ' other CouchLock tabs are open';
+        bannerBtn.textContent = others.length === 1 ? 'Close it' : 'Close them';
+        bannerBtn.onclick = function () { broadcast('park-others'); };
+      } else {
+        // A duplicate — defer to the established session and step aside.
+        bannerText.textContent = 'CouchLock is already open in another tab';
+        bannerBtn.textContent = 'Close this tab';
+        bannerBtn.onclick = closeThisTab;
+      }
+      banner.classList.add('visible');
+    }
+
+    chan.onmessage = function (evt) {
+      var m = evt.data;
+      if (!m || m.id === myId) return;
+      if (m.kind === 'park-others') { closeThisTab(); return; }
+      if (m.kind === 'bye') { delete peers[m.id]; render(); return; }
+      // 'alive' or 'hello'
+      peers[m.id] = { born: m.born, paired: !!m.paired, lastSeen: Date.now() };
+      if (m.kind === 'hello') broadcast('alive'); // answer newcomers immediately
+      render();
+    };
+
+    heartbeatTimer = setInterval(function () {
+      broadcast('alive');
+      render(); // also prunes stale peers
+    }, HEARTBEAT_MS);
+
+    window.addEventListener('pagehide', function () { broadcast('bye'); });
+
+    broadcast('hello'); // announce arrival + request peers to respond
+    setTimeout(render, 300);
+  }
+
+  // ── Init ──
+
+  // Load stickers and render on trackpad
+  loadStickers();
+  renderTrackpadStickers();
+
+  // Restore saved theme before first paint
+  var savedTheme = null;
+  try {
+    savedTheme = localStorage.getItem('couchlock-theme');
+    var savedInverted = localStorage.getItem('couchlock-theme-inverted');
+    if (savedInverted) invertedState = JSON.parse(savedInverted);
+  } catch (e) { /* ignore */ }
+  // getThemeById falls back to THEMES[0], so compare ids to detect a removed theme.
+  if (savedTheme && getThemeById(savedTheme).id === savedTheme) {
+    currentThemeId = savedTheme;
+  }
+
+  // Restore auto-reconnect preference (default on)
+  try {
+    if (localStorage.getItem('couchlock-auto-reconnect') === '0') autoReconnect = false;
+  } catch (e) { /* ignore */ }
+  var arToggle = $('#setting-auto-reconnect');
+  if (arToggle) arToggle.classList.toggle('on', autoReconnect);
+
+  // Restore show-tips preference (default on)
+  try {
+    if (localStorage.getItem('couchlock-tips-enabled') === '0') tipsEnabled = false;
+  } catch (e) { /* ignore */ }
+  var tipsToggle = $('#setting-tips');
+  if (tipsToggle) tipsToggle.classList.toggle('on', tipsEnabled);
+
+  buildThemeSwatches();
+  applyTheme(currentThemeId);
+  updateTierUI();
+  updateMediaUI();
+  connect();
+  setupTabGuard();
+
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(function () {});
+}
+</script>
+</body>
+</html>
