@@ -19,6 +19,7 @@
   var pairedSession = document.getElementById('paired-session');
   var qrCanvas = document.getElementById('qr-canvas');
   var btnNewSession = document.getElementById('btn-new-session');
+  var btnCopyLink = document.getElementById('btn-copy-link');
   var btnDisconnect = document.getElementById('btn-disconnect');
 
   // ── State ──
@@ -221,6 +222,18 @@
 
   btnNewSession.addEventListener('click', function () {
     requestNewSession();
+  });
+
+  btnCopyLink.addEventListener('click', function () {
+    if (!currentSession) return;
+    var url = PWA_URL + '?t=' + currentSession.token + '&s=' + currentSession.id;
+    navigator.clipboard.writeText(url).then(function () {
+      btnCopyLink.textContent = 'Copied';
+      setTimeout(function () { btnCopyLink.textContent = 'Copy Pairing Link'; }, 1800);
+    }).catch(function () {
+      btnCopyLink.textContent = 'Copy failed';
+      setTimeout(function () { btnCopyLink.textContent = 'Copy Pairing Link'; }, 1800);
+    });
   });
 
   btnDisconnect.addEventListener('click', function () {

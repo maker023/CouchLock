@@ -5,7 +5,7 @@
  *
  * Public API:
  *   CouchTransport.connect(config)   → Promise
- *   CouchTransport.send(data)        → void
+ *   CouchTransport.send(data)        → Promise<boolean>
  *   CouchTransport.onMessage(fn)     → void
  *   CouchTransport.disconnect()      → void
  *   CouchTransport.isConnected()     → boolean
@@ -22,8 +22,7 @@ var CouchTransport = (function () {
   var BROKER_URL = 'wss://broker.hivemq.com:8884/mqtt';
   var KEEPALIVE = 30; // seconds
   var RECONNECT_BASE = 250;   // first retry fires fast (ms)
-  var RECONNECT_MAX = 8000;   // backoff ceiling (ms)
-  var MAX_RECONNECT = 20;     // backstop before latching 'failed'
+  var RECONNECT_MAX = 30000;  // keep retrying after longer outages
 
   var ws = null;
   var connected = false;
@@ -188,6 +187,8 @@ var CouchTransport = (function () {
       multiplier *= 128;
     } while ((b & 0x80) !== 0);
 
+    if (bytes.length < offset + len) return null;
+
     return {
       type: type,
       data: bytes.slice(offset, offset + len),
@@ -228,18 +229,14 @@ var CouchTransport = (function () {
 
   function reconnectDelay() {
     // Capped exponential backoff with jitter. reconnectCount 0 → ~250ms,
-    // then 500, 1000, 2000, 4000, 8000 (capped). Jitter avoids a thundering herd.
-    var exp = Math.min(reconnectCount, 6);
+    // then doubles up to 30 seconds. Jitter avoids a thundering herd.
+    var exp = Math.min(reconnectCount, 7);
     var delay = Math.min(RECONNECT_BASE * Math.pow(2, exp), RECONNECT_MAX);
     return delay + Math.floor(Math.random() * 250);
   }
 
   function scheduleReconnect() {
     if (destroyed) return;
-    if (reconnectCount >= MAX_RECONNECT) {
-      setStatus('failed');
-      return;
-    }
     setStatus('reconnecting');
     reconnectTimer = setTimeout(function () {
       doConnect();
@@ -303,11 +300,7 @@ var CouchTransport = (function () {
     switch (pkt.type) {
       case 2: // CONNACK
         if (pkt.data[1] === 0) {
-          connected = true;
-          reconnectCount = 0;
           ws.send(buildSubscribe(topic));
-          startPing();
-          setStatus('connected');
         } else {
           setStatus('auth_failed');
         }
@@ -330,7 +323,12 @@ var CouchTransport = (function () {
         }
         break;
 
-      case 9:  // SUBACK
+      case 9:  // SUBACK: publish the pairing hello only after we can receive ready.
+        connected = true;
+        reconnectCount = 0;
+        startPing();
+        setStatus('connected');
+        break;
       case 13: // PINGRESP
         break;
     }
@@ -353,12 +351,17 @@ var CouchTransport = (function () {
   }
 
   function send(data) {
-    if (!connected || !ws || !cryptoKey) return;
+    if (!connected || !ws || !cryptoKey) return Promise.resolve(false);
     var json = JSON.stringify(data);
-    encrypt(cryptoKey, json).then(function (encrypted) {
-      if (ws && ws.readyState === 1) {
-        ws.send(buildPublish(topic, encrypted));
+    var socket = ws;
+    var outgoingTopic = topic;
+    var key = cryptoKey;
+    return encrypt(key, json).then(function (encrypted) {
+      if (socket === ws && socket.readyState === 1) {
+        socket.send(buildPublish(outgoingTopic, encrypted));
+        return true;
       }
+      return false;
     });
   }
 
@@ -376,6 +379,7 @@ var CouchTransport = (function () {
     stopReconnect();
     if (ws) {
       try { ws.send(buildDisconnect()); } catch (e) { /* ignore */ }
+      ws.onopen = ws.onmessage = ws.onerror = ws.onclose = null;
       ws.close();
       ws = null;
     }

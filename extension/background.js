@@ -10,7 +10,7 @@
  *   - Active tab filtering for media status
  *   - Input focus relay for keyboard overlay
  *   - Cursor settings relay
- *   - Fullscreen toggle via chrome.windows API
+ *   - Route player fullscreen to the active media frame
  */
 importScripts('transport.js');
 
@@ -24,11 +24,17 @@ importScripts('transport.js');
   var session = null;   // { id, token, created }
   var paired = false;
   var activeTabId = null; // currently active tab
+  var mediaFrameId = null; // frame containing the active HTML media element
+  var mediaPlaying = false;
+  var mediaPlatform = 'unknown';
   var cursorX = 0;
   var cursorY = 0;
   var viewportW = 1920;
   var viewportH = 1080;
   var connStatus = 'disconnected';
+  var sessionReady;
+  var resolveSessionReady;
+  sessionReady = new Promise(function (resolve) { resolveSessionReady = resolve; });
 
   // ── Session Management ──
 
@@ -53,6 +59,7 @@ importScripts('transport.js');
   }
 
   function createSession() {
+    if (session) CouchTransport.disconnect();
     session = {
       id: generateSessionId(),
       token: generateToken(),
@@ -62,7 +69,8 @@ importScripts('transport.js');
     cursorX = Math.round(viewportW / 2);
     cursorY = Math.round(viewportH / 2);
 
-    chrome.storage.session.set({ session: session });
+    chrome.storage.local.set({ session: session });
+    startKeepalive();
 
     CouchTransport.connect({
       token: session.token,
@@ -88,9 +96,13 @@ importScripts('transport.js');
 
   chrome.tabs.onActivated.addListener(function (info) {
     activeTabId = info.tabId;
+    mediaFrameId = null;
+    mediaPlaying = false;
+    mediaPlatform = 'unknown';
     // Request viewport dimensions from the new active tab
     if (paired) {
       requestViewport();
+      sendToContentScript({ action: 'requestMediaStatus' }, null);
     }
   });
 
@@ -109,6 +121,9 @@ importScripts('transport.js');
   CouchTransport.onStatus(function (status) {
     connStatus = status;
     broadcastToPopup({ type: 'status', status: status, paired: paired });
+    if (status === 'connected' && session) {
+      CouchTransport.send({ type: 'session_available' });
+    }
   });
 
   CouchTransport.onMessage(function (msg) {
@@ -179,7 +194,7 @@ importScripts('transport.js');
         handleTipsPref(msg);
         break;
       case 'request_media_status':
-        sendToContentScript({ action: 'requestMediaStatus' });
+        sendToContentScript({ action: 'requestMediaStatus' }, null);
         break;
       case 'ping':
         CouchTransport.send({ type: 'pong', ts: Date.now() });
@@ -192,10 +207,10 @@ importScripts('transport.js');
 
   function handleSessionClose() {
     paired = false;
-    stopKeepalive();
     broadcastToPopup({ type: 'status', status: connStatus, paired: false });
-    CouchTransport.send({ type: 'session_closed' });
-    createSession();
+    CouchTransport.send({ type: 'session_closed' }).then(function () {
+      createSession();
+    }).catch(createSession);
   }
 
   // ── Service-worker keepalive ──
@@ -210,10 +225,6 @@ importScripts('transport.js');
     chrome.alarms.create(KEEPALIVE_ALARM, { periodInMinutes: 0.5 });
   }
 
-  function stopKeepalive() {
-    chrome.alarms.clear(KEEPALIVE_ALARM);
-  }
-
   function ensureConnected() {
     if (session && !CouchTransport.isConnected()) {
       CouchTransport.reconnectNow();
@@ -226,8 +237,17 @@ importScripts('transport.js');
     }
   });
 
+  chrome.runtime.onStartup.addListener(function () {
+    sessionReady.then(function () {
+      if (session) {
+        startKeepalive();
+        ensureConnected();
+      }
+    });
+  });
+
   function handleHello(msg) {
-    if (msg.token === session.token) {
+    if (session && msg.token === session.token) {
       paired = true;
       CouchTransport.send({ type: 'ready', ts: Date.now() });
       broadcastToPopup({ type: 'status', status: connStatus, paired: true });
@@ -385,31 +405,22 @@ importScripts('transport.js');
       return;
     }
 
-    // Fullscreen: toggle browser fullscreen via chrome.windows API
-    // This gives F11-equivalent fullscreen without the debugger bar.
-    // Also tell the content script to click the platform's fullscreen button
-    // for proper video-player fullscreen on sites that support it.
+    // Fullscreen belongs to the active player, not the Chrome window.
     if (command === 'fullscreen') {
-      chrome.windows.getCurrent(function (win) {
-        var newState = win.state === 'fullscreen' ? 'normal' : 'fullscreen';
-        chrome.windows.update(win.id, { state: newState }, function () {
-          if (chrome.runtime.lastError) { /* ignore */ }
-        });
-      });
-      // Also attempt platform-native fullscreen via content script
-      sendToContentScript({ action: 'cmd', command: 'fullscreen', data: msg.data });
+      sendToContentScript({ action: 'cmd', command: 'fullscreen', data: msg.data }, mediaFrameId === null ? 0 : mediaFrameId);
       return;
     }
 
     // Seek: set video.currentTime directly via content script
     if (command === 'seek') {
-      sendToContentScript({ action: 'seek', time: msg.data && msg.data.time !== undefined ? msg.data.time : 0 });
+      sendToContentScript({ action: 'seek', time: msg.data && msg.data.time !== undefined ? msg.data.time : 0 }, mediaFrameId === null ? 0 : mediaFrameId);
       return;
     }
 
     // Everything else (playPause, skipAd, skipIntro, nextEpisode, mute, volume, etc.)
     // goes straight to the content script which has per-platform selector strategies
-    sendToContentScript({ action: 'cmd', command: command, data: msg.data });
+    sendToContentScript({ action: 'cmd', command: command, data: msg.data },
+      command === 'nextEpisode' && mediaPlatform === 'star' ? 0 : (mediaFrameId === null ? 0 : mediaFrameId));
   }
 
   function handleTabList() {
@@ -426,6 +437,9 @@ importScripts('transport.js');
       chrome.tabs.update(msg.tabId, { active: true }, function () {
         if (chrome.runtime.lastError) return;
         activeTabId = msg.tabId;
+        mediaFrameId = null;
+        mediaPlaying = false;
+        mediaPlatform = 'unknown';
         setTimeout(handleTabList, 300);
       });
     }
@@ -506,10 +520,11 @@ importScripts('transport.js');
 
   // ── Content Script Communication ──
 
-  function sendToContentScript(msg) {
+  function sendToContentScript(msg, frameId) {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       if (tabs.length > 0) {
-        chrome.tabs.sendMessage(tabs[0].id, msg, function () {
+        var options = frameId === null ? {} : { frameId: frameId === undefined ? 0 : frameId };
+        chrome.tabs.sendMessage(tabs[0].id, msg, options, function () {
           if (chrome.runtime.lastError) { /* ignore */ }
         });
       }
@@ -519,16 +534,21 @@ importScripts('transport.js');
   // Listen for messages FROM content script
   chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     if (msg.type === 'getSession') {
-      sendResponse({ session: session, paired: paired, status: connStatus });
+      sessionReady.then(function () {
+        sendResponse({ session: session, paired: paired, status: connStatus });
+      });
       return true;
     }
 
     if (msg.type === 'newSession') {
-      if (paired) {
-        CouchTransport.send({ type: 'session_closed' });
-      }
-      createSession();
-      sendResponse({ session: session });
+      sessionReady.then(function () {
+        function finish() {
+          createSession();
+          sendResponse({ session: session });
+        }
+        if (paired) CouchTransport.send({ type: 'session_closed' }).then(finish).catch(finish);
+        else finish();
+      });
       return true;
     }
 
@@ -543,10 +563,30 @@ importScripts('transport.js');
 
     if (msg.type === 'mediaStatus') {
       if (sender.tab && sender.tab.id !== activeTabId) return;
+      var frameId = sender.frameId || 0;
+      var hasMedia = msg.platform && msg.platform !== 'unknown';
+      var reportedPlatform = msg.platform;
+      if (hasMedia && reportedPlatform === 'universal' && sender.tab &&
+          /^https:\/\/([^.]+\.)?star\.gr\//.test(sender.tab.url || '')) {
+        reportedPlatform = 'star';
+      }
+      if (hasMedia) {
+        // Keep a playing frame selected over an idle video in another frame.
+        if (mediaFrameId !== null && mediaFrameId !== frameId && mediaPlaying && !msg.playing) return;
+        mediaFrameId = frameId;
+        mediaPlaying = !!msg.playing;
+        mediaPlatform = reportedPlatform;
+      } else if (mediaFrameId === frameId) {
+        mediaFrameId = null;
+        mediaPlaying = false;
+        mediaPlatform = 'unknown';
+      } else if (mediaFrameId !== null || frameId !== 0) {
+        return;
+      }
 
       CouchTransport.send({
         type: 'media_status',
-        platform: msg.platform,
+        platform: reportedPlatform,
         title: msg.title,
         playing: msg.playing,
         currentTime: msg.currentTime,
@@ -603,6 +643,11 @@ importScripts('transport.js');
   });
 
   chrome.tabs.onUpdated.addListener(function (tabId, changeInfo) {
+    if (tabId === activeTabId && changeInfo.status === 'loading') {
+      mediaFrameId = null;
+      mediaPlaying = false;
+      mediaPlatform = 'unknown';
+    }
     if (paired && changeInfo.title) {
       setTimeout(handleTabList, 300);
     }
@@ -614,14 +659,25 @@ importScripts('transport.js');
 
   // ── Init ──
 
-  chrome.storage.session.get('session', function (data) {
+  chrome.storage.local.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' });
+  chrome.storage.local.get('session', function (data) {
     if (data && data.session) {
       session = data.session;
-      CouchTransport.connect({
-        token: session.token,
-        sessionId: session.id
-      });
+      CouchTransport.connect({ token: session.token, sessionId: session.id });
+      startKeepalive();
+      resolveSessionReady();
+      return;
     }
+    // Keep a pairing made before this update if Chrome has not restarted yet.
+    chrome.storage.session.get('session', function (legacy) {
+      if (legacy && legacy.session) {
+        session = legacy.session;
+        chrome.storage.local.set({ session: session });
+        CouchTransport.connect({ token: session.token, sessionId: session.id });
+        startKeepalive();
+      }
+      resolveSessionReady();
+    });
   });
 
 })();

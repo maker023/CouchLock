@@ -2,9 +2,9 @@
  * CouchLock — Service Worker
  *
  * Handles caching for offline PWA support.
- * Cache-first for static assets, network-first for transport.
+ * Network-first for navigations, cache-first for static assets.
  */
-var CACHE_NAME = 'couchlock-v2';
+var CACHE_NAME = 'couchlock-v3';
 var STATIC_ASSETS = [
   './',
   './index.html',
@@ -45,6 +45,19 @@ self.addEventListener('fetch', function (event) {
   // Skip non-GET and WebSocket requests
   if (event.request.method !== 'GET') return;
   if (url.protocol === 'wss:' || url.protocol === 'ws:') return;
+
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then(function (response) {
+        if (response.ok && url.origin === self.location.origin) {
+          var copy = response.clone();
+          caches.open(CACHE_NAME).then(function (cache) { cache.put('./index.html', copy); });
+        }
+        return response;
+      }).catch(function () { return caches.match('./index.html'); })
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then(function (cached) {

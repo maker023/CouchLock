@@ -234,7 +234,76 @@
   else if (host.indexOf('youtube.com') !== -1) platform = 'youtube';
   else if (host.indexOf('disneyplus.com') !== -1) platform = 'disney';
   else if (host.indexOf('hulu.com') !== -1) platform = 'hulu';
-  else if (document.querySelector('video')) platform = 'universal';
+  else if (host === 'star.gr' || host.endsWith('.star.gr')) platform = 'star';
+
+  // Players are often mounted after document_idle. Pick the playing, visible
+  // media element each time instead of locking onto the first video in the DOM.
+  function activeVideo() {
+    var videos = document.querySelectorAll('video');
+    var best = null;
+    var bestScore = 0;
+    for (var i = 0; i < videos.length; i++) {
+      var video = videos[i];
+      var rect = video.getBoundingClientRect();
+      var visible = rect.width > 0 && rect.height > 0 && getComputedStyle(video).visibility !== 'hidden';
+      var score = (visible ? 2 : 0) + (!video.paused && !video.ended ? 4 : 0) + (video.readyState > 0 ? 1 : 0);
+      if (score > bestScore) { best = video; bestScore = score; }
+    }
+    return best;
+  }
+
+  function currentPlatform() {
+    return platform === 'unknown' && activeVideo() ? 'universal' : platform;
+  }
+
+  var expandedPlayer = null;
+  var expandedPlayerStyle = null;
+
+  function restoreExpandedPlayer() {
+    if (!expandedPlayer) return;
+    if (expandedPlayerStyle === null) expandedPlayer.removeAttribute('style');
+    else expandedPlayer.setAttribute('style', expandedPlayerStyle);
+    expandedPlayer = null;
+    expandedPlayerStyle = null;
+  }
+
+  function expandPlayerInTab(player) {
+    expandedPlayer = player;
+    expandedPlayerStyle = player.getAttribute('style');
+    player.style.setProperty('position', 'fixed', 'important');
+    player.style.setProperty('inset', '0', 'important');
+    player.style.setProperty('width', '100vw', 'important');
+    player.style.setProperty('height', '100vh', 'important');
+    player.style.setProperty('max-width', 'none', 'important');
+    player.style.setProperty('max-height', 'none', 'important');
+    player.style.setProperty('padding', '0', 'important');
+    player.style.setProperty('z-index', '2147483645', 'important');
+    player.style.setProperty('background', 'black', 'important');
+  }
+
+  function togglePlayerFullscreen() {
+    var vid = activeVideo();
+    if (!vid) return false;
+    if (expandedPlayer) { restoreExpandedPlayer(); return true; }
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(function () {});
+      return true;
+    }
+    var player = vid.closest('.video_container, .live__playerContainer, #movie_player, .watch-video, .bmpui-ui-uicontainer, [data-testid="player"]') || vid.parentElement || vid;
+    if (player.requestFullscreen) {
+      try {
+        var attempt = player.requestFullscreen();
+        if (attempt && attempt.catch) attempt.catch(function () { expandPlayerInTab(player); });
+        return true;
+      } catch (e) { /* Some sites reject fullscreen from extension messages. */ }
+    }
+    expandPlayerInTab(player);
+    return true;
+  }
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && expandedPlayer) restoreExpandedPlayer();
+  });
 
   // ── Selector Strategies ──
 
@@ -407,6 +476,16 @@
       ]
     },
 
+    star: {
+      playPause: [{ type: 'video', value: 'toggle' }, { type: 'key', value: { key: ' ', code: 'Space' } }],
+      seekForward: [{ type: 'video', value: 'forward' }, { type: 'key', value: { key: 'ArrowRight', code: 'ArrowRight' } }],
+      seekBack: [{ type: 'video', value: 'back' }, { type: 'key', value: { key: 'ArrowLeft', code: 'ArrowLeft' } }],
+      skipIntro: [],
+      nextEpisode: [{ type: 'starNext' }],
+      fullscreen: [{ type: 'video', value: 'fullscreen' }, { type: 'key', value: { key: 'f', code: 'KeyF' } }],
+      mute: [{ type: 'video', value: 'mute' }, { type: 'key', value: { key: 'm', code: 'KeyM' } }]
+    },
+
     universal: {
       playPause: [
         { type: 'video', value: 'toggle' },
@@ -423,6 +502,7 @@
       skipIntro: [],
       nextEpisode: [],
       fullscreen: [
+        { type: 'video', value: 'fullscreen' },
         { type: 'key', value: { key: 'f', code: 'KeyF' } }
       ],
       mute: [
@@ -434,7 +514,7 @@
 
   // ── Strategy Executor ──
 
-  function execStrategy(strategies) {
+  function execStrategy(strategies, command) {
     if (!strategies) return false;
 
     for (var i = 0; i < strategies.length; i++) {
@@ -460,8 +540,17 @@
       }
 
       if (s.type === 'key') {
+        // A site's own controls may change. Use its active HTML video before
+        // falling back to synthetic keys, which many players ignore.
+        var fallbackVideo = activeVideo();
+        var fallbackAction = {
+          playPause: 'toggle', seekForward: 'forward', seekBack: 'back', mute: 'mute'
+        }[command];
+        if (fallbackVideo && fallbackAction) {
+          return execStrategy([{ type: 'video', value: fallbackAction }]);
+        }
         var target = document.activeElement || document.body;
-        var video = document.querySelector('video');
+        var video = activeVideo();
         if (video) target = video;
 
         var kd = new KeyboardEvent('keydown', {
@@ -487,15 +576,15 @@
       }
 
       if (s.type === 'video') {
-        var vid = document.querySelector('video');
+        var vid = activeVideo();
         if (!vid) continue;
 
         if (s.value === 'toggle') {
-          if (vid.paused) vid.play(); else vid.pause();
+          if (vid.paused) vid.play().catch(function () {}); else vid.pause();
           return true;
         }
         if (s.value === 'forward') {
-          vid.currentTime = Math.min(vid.duration, vid.currentTime + 10);
+          vid.currentTime = Math.min(Number.isFinite(vid.duration) ? vid.duration : vid.currentTime + 10, vid.currentTime + 10);
           return true;
         }
         if (s.value === 'back') {
@@ -506,6 +595,25 @@
           vid.muted = !vid.muted;
           return true;
         }
+        if (s.value === 'fullscreen') {
+          var player = vid.closest('.video_container, .live__playerContainer') || vid;
+          if (document.fullscreenElement) document.exitFullscreen();
+          else if (player.requestFullscreen) player.requestFullscreen().catch(function () {});
+          return true;
+        }
+      }
+
+      if (s.type === 'starNext') {
+        var container = document.querySelector('[data-plugin-kwik]');
+        if (!container) continue;
+        try {
+          var next = JSON.parse(container.getAttribute('data-plugin-kwik')).Kwik.NextVideo;
+          var url = new URL(next, window.location.href);
+          if (url.origin === window.location.origin && url.pathname.indexOf('/tv/') === 0) {
+            window.location.assign(url.href);
+            return true;
+          }
+        } catch (e) { /* No next episode in this player. */ }
       }
     }
 
@@ -545,7 +653,7 @@
   }
 
   function getStrategies() {
-    return S[platform] || S.universal;
+    return S[currentPlatform()] || S.universal;
   }
 
   // ── Skip Ad Availability Reporting (YouTube only, NOT automated) ──
@@ -604,8 +712,8 @@
   // ── Media Status Reporting ──
 
   function reportMediaStatus() {
-    var vid = document.querySelector('video');
-    if (!vid) return;
+    var vid = activeVideo();
+    var detectedPlatform = currentPlatform();
 
     var title = '';
     if (platform === 'netflix') {
@@ -625,11 +733,11 @@
 
     safeSendMessage({
       type: 'mediaStatus',
-      platform: platform,
+      platform: vid ? detectedPlatform : 'unknown',
       title: title.trim(),
-      playing: !vid.paused,
-      currentTime: vid.currentTime,
-      duration: vid.duration || 0,
+      playing: vid ? !vid.paused : false,
+      currentTime: vid ? vid.currentTime : 0,
+      duration: vid && Number.isFinite(vid.duration) ? vid.duration : 0,
       skipIntroAvailable: skipIntroAvailable
     });
   }
@@ -672,7 +780,7 @@
     }
 
     if (msg.action === 'seek') {
-      var vid = document.querySelector('video');
+      var vid = activeVideo();
       if (vid && msg.time !== undefined) {
         vid.currentTime = msg.time;
         safeSendMessage({ type: 'cmdResult', command: 'seek', success: true });
@@ -697,8 +805,11 @@
       var command = msg.command;
       var success = false;
 
-      if (strats[command]) {
-        success = execStrategy(strats[command]);
+      if (command === 'fullscreen') {
+        success = togglePlayerFullscreen();
+      }
+      if (!success && strats[command]) {
+        success = execStrategy(strats[command], command);
       }
 
       // Special: skipAd uses the skipAd strategy array
@@ -707,11 +818,11 @@
       }
 
       if (command === 'volumeUp') {
-        var vid = document.querySelector('video');
+        var vid = activeVideo();
         if (vid) { vid.volume = Math.min(1, vid.volume + 0.1); success = true; }
       }
       if (command === 'volumeDown') {
-        var vid2 = document.querySelector('video');
+        var vid2 = activeVideo();
         if (vid2) { vid2.volume = Math.max(0, vid2.volume - 0.1); success = true; }
       }
       if (command === 'brightness') {
@@ -766,6 +877,7 @@
   // ── Cleanup ──
 
   window.addEventListener('beforeunload', function () {
+    restoreExpandedPlayer();
     clearAllIntervals();
   });
 

@@ -285,6 +285,48 @@ html, body {
   letter-spacing: 1px;
   color: rgba(var(--accent-rgb),0.4);
 }
+.pairing-link {
+  width: min(100%, 320px);
+  display: flex;
+  gap: 8px;
+}
+.pairing-link input {
+  min-width: 0;
+  flex: 1;
+  padding: 12px;
+  border: 1px solid rgba(var(--accent-rgb),0.3);
+  border-radius: 12px;
+  background: var(--ink);
+  color: rgba(var(--ui-rgb),0.9);
+  font-size: 13px;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.pairing-link button, .install-cta button {
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: var(--accent);
+  color: white;
+  font: 700 13px var(--font-d);
+}
+.install-cta {
+  display: none;
+  position: fixed;
+  z-index: 60;
+  bottom: calc(var(--safe-bottom) + 88px);
+  left: 16px;
+  right: 16px;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(var(--accent-rgb),0.35);
+  border-radius: 18px;
+  background: var(--ink);
+  box-shadow: 0 8px 35px rgba(0,0,0,0.35);
+}
+.install-cta.visible { display: flex; }
+.install-cta span { flex: 1; font: 500 13px/1.4 var(--font-b); }
 
 /* ═══════════════════════════════════════════
    PAYWALL OVERLAY
@@ -1674,6 +1716,15 @@ html, body {
     <div class="pairing-title">Couch<span>Lock</span></div>
     <div class="pairing-sub">Scan the QR code from the extension to connect your phone.</div>
     <div class="pairing-status" id="pairing-status">Waiting for connection...</div>
+    <form class="pairing-link" id="pairing-link-form">
+      <input id="pairing-link-input" type="url" placeholder="Or paste the pairing link" aria-label="Pairing link" autocomplete="off">
+      <button type="submit">Connect</button>
+    </form>
+  </div>
+
+  <div class="install-cta" id="install-cta" role="status" aria-live="polite">
+    <span id="install-text">Add CouchLock to your Home Screen for quick access.</span>
+    <button id="install-add" type="button">Add</button>
   </div>
 
   <!-- Top Bar -->
@@ -1973,6 +2024,7 @@ html, body {
   var currentMode = 'trackpad';
   var isConnected = false;
   var isPaired = false;
+  var everPaired = false;
   var kbText = '';
   var gyroActive = false;
   var gyroLastGamma = null;
@@ -1990,6 +2042,13 @@ html, body {
   var invertedState = {};
   var kbMode = 'input'; // 'input' = remote field, 'search' = new tab search
   var kbFocusTimer = null;
+  var keyboardRequestedUntil = 0;
+  var hiddenAt = 0;
+  var lastResumeReconnect = Date.now();
+  var deferredInstallPrompt = null;
+  var installDismissed = false;
+  var sessionCloseTimer = null;
+  var handshakeTimer = null;
 
   // ── Theme Definitions ──
   // Curated set — every theme passes WCAG AA contrast and is legible under
@@ -2014,11 +2073,117 @@ html, body {
   var params = new URLSearchParams(window.location.search);
   var token = params.get('t');
   var sessionId = params.get('s');
+  var PAIRING_KEY = 'couchlock-pairing-v1';
+  var cookiePath = window.location.pathname.replace(/[^/]*$/, '');
+
+  function validPairing(pairing) {
+    return pairing && /^[a-f0-9]{64}$/i.test(pairing.token || '') &&
+      /^[a-z0-9]{1,24}$/i.test(pairing.sessionId || '');
+  }
+
+  function savePairing() {
+    var value = JSON.stringify({ token: token, sessionId: sessionId });
+    try { localStorage.setItem(PAIRING_KEY, value); } catch (e) { /* storage unavailable */ }
+    // Safari copies cookies when a Home Screen app is installed, but not localStorage.
+    document.cookie = PAIRING_KEY + '=' + encodeURIComponent(value) +
+      '; Max-Age=31536000; Path=' + cookiePath + '; SameSite=Strict; Secure';
+  }
+
+  function clearPairing() {
+    token = null;
+    sessionId = null;
+    try { localStorage.removeItem(PAIRING_KEY); } catch (e) { /* storage unavailable */ }
+    document.cookie = PAIRING_KEY + '=; Max-Age=0; Path=' + cookiePath + '; SameSite=Strict; Secure';
+    if (window.location.search) history.replaceState(null, '', window.location.pathname + window.location.hash);
+  }
+
+  function restorePairing() {
+    if (validPairing({ token: token, sessionId: sessionId })) return;
+    var stored = null;
+    try { stored = JSON.parse(localStorage.getItem(PAIRING_KEY)); } catch (e) { /* storage unavailable */ }
+    if (!validPairing(stored)) {
+      var match = document.cookie.match(new RegExp('(?:^|; )' + PAIRING_KEY + '=([^;]*)'));
+      try { stored = match ? JSON.parse(decodeURIComponent(match[1])) : null; } catch (e) { stored = null; }
+    }
+    if (validPairing(stored)) {
+      token = stored.token;
+      sessionId = stored.sessionId;
+      savePairing();
+    } else {
+      token = null;
+      sessionId = null;
+    }
+  }
+
+  restorePairing();
+
+  function isStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  }
+
+  function updateInstallCTA() {
+    var show = isPaired && !isStandalone() && !installDismissed &&
+      window.matchMedia('(pointer: coarse)').matches;
+    $('#install-cta').classList.toggle('visible', show);
+  }
+
+  window.addEventListener('beforeinstallprompt', function (event) {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    updateInstallCTA();
+  });
+
+  window.addEventListener('appinstalled', function () {
+    deferredInstallPrompt = null;
+    $('#install-text').textContent = 'Added! Open CouchLock from your Home Screen to continue.';
+    $('#install-add').textContent = 'Done';
+  });
+
+  $('#install-add').addEventListener('click', function () {
+    if (this.textContent === 'Done') {
+      installDismissed = true;
+      updateInstallCTA();
+      return;
+    }
+    if (deferredInstallPrompt) {
+      var prompt = deferredInstallPrompt;
+      deferredInstallPrompt = null;
+      prompt.prompt();
+      prompt.userChoice.then(function (choice) {
+        if (choice.outcome === 'accepted') {
+          $('#install-text').textContent = 'Added! Open CouchLock from your Home Screen to continue.';
+          $('#install-add').textContent = 'Done';
+        }
+      });
+      return;
+    }
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    $('#install-text').textContent = isIOS
+      ? 'Tap Share, then Add to Home Screen. Open the new icon to continue.'
+      : 'Use your browser menu and choose Install app or Add to Home Screen.';
+    this.textContent = 'Done';
+  });
+
+  $('#pairing-link-form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    try {
+      var link = new URL($('#pairing-link-input').value.trim());
+      var candidate = { token: link.searchParams.get('t'), sessionId: link.searchParams.get('s') };
+      if (link.origin !== window.location.origin || !validPairing(candidate)) throw new Error('Invalid link');
+      CouchTransport.disconnect();
+      token = candidate.token;
+      sessionId = candidate.sessionId;
+      connect();
+    } catch (e) {
+      $('#pairing-status').textContent = 'Paste a valid CouchLock pairing link.';
+    }
+  });
 
   // ── Transport ──
   function connect() {
-    if (!token) {
-      $('#pairing-status').textContent = 'No connection params. Scan QR from extension.';
+    if (!validPairing({ token: token, sessionId: sessionId })) {
+      $('#pairing-status').textContent = 'Scan the QR or paste a pairing link from the extension.';
       return;
     }
 
@@ -2028,13 +2193,27 @@ html, body {
       if (status === 'connected') {
         CouchTransport.send({ type: 'hello', token: token });
         $('#pairing-status').textContent = 'Authenticating...';
+        clearTimeout(handshakeTimer);
+        handshakeTimer = setTimeout(function () {
+          if (!isPaired) {
+            $('#pairing').classList.remove('hidden');
+            $('#pairing-status').textContent = 'No response. Scan the current QR or paste a new pairing link.';
+          }
+        }, 6000);
       } else if (status === 'disconnected' || status === 'failed') {
+        clearTimeout(handshakeTimer);
         isConnected = false;
         isPaired = false;
         updateConnUI();
-        $('#pairing').classList.remove('hidden');
+        updateInstallCTA();
+        if (!everPaired) $('#pairing').classList.remove('hidden');
         $('#pairing-status').textContent = status === 'failed' ? 'Connection failed' : 'Disconnected';
-      } else if (status === 'reconnecting') {
+      } else if (status === 'connecting' || status === 'reconnecting') {
+        if (everPaired) {
+          isPaired = false;
+          updateConnUI();
+          updateInstallCTA();
+        }
         $('#pairing-status').textContent = 'Reconnecting...';
       }
     });
@@ -2042,10 +2221,18 @@ html, body {
     CouchTransport.onMessage(function (msg) {
       if (!msg) return;
 
+      if (msg.type === 'session_available') {
+        CouchTransport.send({ type: 'hello', token: token });
+      }
+
       if (msg.type === 'ready') {
+        clearTimeout(handshakeTimer);
         isPaired = true;
         isConnected = true;
+        everPaired = true;
+        savePairing();
         $('#pairing').classList.add('hidden');
+        updateInstallCTA();
         updateConnUI();
         CouchTransport.send({ type: 'tab_list' });
 
@@ -2079,15 +2266,19 @@ html, body {
       }
 
       if (msg.type === 'session_closed') {
+        clearTimeout(sessionCloseTimer);
         resetToParingScreen();
       }
 
       if (msg.type === 'input_focused') {
+        if (document.visibilityState !== 'visible' || !isPaired || Date.now() > keyboardRequestedUntil) return;
         // Debounce: wait 300ms before showing keyboard to avoid rapid focus/blur cycles
         // that happen during page loads when sites auto-focus then blur inputs
         clearTimeout(kbFocusTimer);
         kbFocusTimer = setTimeout(function () {
-          showKeyboardOverlay(msg.value || '');
+          if (document.visibilityState === 'visible' && isPaired && Date.now() <= keyboardRequestedUntil) {
+            showKeyboardOverlay(msg.value || '');
+          }
         }, 300);
       }
 
@@ -2102,6 +2293,9 @@ html, body {
 
   function send(data) {
     if (CouchTransport.isConnected()) {
+      if (data && (data.type === 'click' || data.type === 'doubleclick')) {
+        keyboardRequestedUntil = Date.now() + 5000;
+      }
       CouchTransport.send(data);
     }
   }
@@ -2112,12 +2306,20 @@ html, body {
   // We tear down the stale socket and reconnect immediately instead.
   function resumeReconnect() {
     if (!autoReconnect || !token) return;
-    if (CouchTransport.isConnected()) return;
+    if (Date.now() - lastResumeReconnect < 1000) return;
+    if (CouchTransport.isConnected() && (!hiddenAt || Date.now() - hiddenAt < 1500)) return;
+    lastResumeReconnect = Date.now();
+    hiddenAt = 0;
     CouchTransport.reconnectNow();
   }
 
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') resumeReconnect();
+    if (document.visibilityState === 'hidden') {
+      hiddenAt = Date.now();
+      keyboardRequestedUntil = 0;
+      clearTimeout(kbFocusTimer);
+      hideKeyboardOverlay();
+    } else resumeReconnect();
   });
   window.addEventListener('pageshow', resumeReconnect);
   window.addEventListener('focus', resumeReconnect);
@@ -2133,7 +2335,7 @@ html, body {
       text.textContent = 'Connected';
     } else {
       dot.classList.remove('on');
-      text.textContent = 'Disconnected';
+      text.textContent = token && autoReconnect ? 'Reconnecting...' : 'Disconnected';
     }
     updateNavButtons();
   }
@@ -2183,14 +2385,22 @@ html, body {
   // ── Close Session button ──
   $('#btn-close-session').addEventListener('click', function () {
     if (!isPaired) return;
-    send({ type: 'session_close' });
-    resetToParingScreen();
+    CouchTransport.send({ type: 'session_close' }).then(function (sent) {
+      if (!sent) resetToParingScreen();
+    }).catch(resetToParingScreen);
+    sessionCloseTimer = setTimeout(resetToParingScreen, 2000);
   });
 
   function resetToParingScreen() {
+    clearTimeout(sessionCloseTimer);
+    clearTimeout(handshakeTimer);
     isPaired = false;
     isConnected = false;
+    everPaired = false;
+    clearPairing();
     CouchTransport.disconnect();
+    hideKeyboardOverlay();
+    updateInstallCTA();
     updateConnUI();
     $('#pairing').classList.remove('hidden');
     $('#pairing-status').textContent = 'Session ended';
@@ -2506,13 +2716,14 @@ html, body {
     disney:    { skipAd: false, skipIntro: true,  nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
     hulu:      { skipAd: false, skipIntro: true,  nextEp: false, fullscreen: true,  volDown: true, volUp: true, mute: true },
     youtube:   { skipAd: true,  skipIntro: false, nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
+    star:      { skipAd: false, skipIntro: false, nextEp: true,  fullscreen: true,  volDown: true, volUp: true, mute: true },
     universal: { skipAd: false, skipIntro: false, nextEp: false, fullscreen: true,  volDown: true, volUp: true, mute: true },
     unknown:   { skipAd: false, skipIntro: false, nextEp: false, fullscreen: true,  volDown: true, volUp: true, mute: true }
   };
 
   var PLATFORM_NAMES = {
     netflix: 'Netflix', hbo: 'HBO Max', disney: 'Disney+',
-    hulu: 'Hulu', youtube: 'YouTube', universal: 'Video Player', unknown: ''
+    hulu: 'Hulu', youtube: 'YouTube', star: 'Star TV', universal: 'Video Player', unknown: ''
   };
 
   function updateMediaActions(p) {
@@ -2611,6 +2822,14 @@ html, body {
 
   var nativeInput = $('#kb-native-input');
   var lastNativeVal = '';
+  var kbNativeFocusTimer = null;
+
+  function focusNativeKeyboard() {
+    clearTimeout(kbNativeFocusTimer);
+    kbNativeFocusTimer = setTimeout(function () {
+      if (kbOverlayVisible && document.visibilityState === 'visible') nativeInput.focus();
+    }, 100);
+  }
 
   function showKeyboardOverlay(initialValue) {
     kbMode = 'input';
@@ -2620,10 +2839,13 @@ html, body {
     updateKbPreview();
     $('#kb-overlay').classList.add('visible');
     kbOverlayVisible = true;
-    setTimeout(function () { nativeInput.focus(); }, 100);
+    focusNativeKeyboard();
   }
 
   function hideKeyboardOverlay() {
+    clearTimeout(kbFocusTimer);
+    clearTimeout(kbNativeFocusTimer);
+    keyboardRequestedUntil = 0;
     $('#kb-overlay').classList.remove('visible');
     kbOverlayVisible = false;
     kbMode = 'input';
@@ -2855,7 +3077,7 @@ html, body {
       updateKbPreview();
       $('#kb-overlay').classList.add('visible');
       kbOverlayVisible = true;
-      setTimeout(function () { nativeInput.focus(); }, 100);
+      focusNativeKeyboard();
     });
     list.appendChild(newTabEl);
   }
