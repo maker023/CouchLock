@@ -741,6 +741,7 @@ html, body {
   flex-direction: column;
   gap: 8px;
 }
+.kb-overlay[hidden] { display: none; }
 .kb-overlay.visible { transform: translateY(0); }
 .kb-overlay-header {
   display: flex;
@@ -807,9 +808,9 @@ html, body {
 }
 .kb-key {
   height: 44px;
-  min-width: 30px;
+  min-width: 0;
   flex: 1;
-  max-width: 38px;
+  max-width: none;
   border: none;
   border-radius: 12px;
   background: var(--ink);
@@ -848,6 +849,44 @@ html, body {
   font-size: 13px;
   font-weight: 700;
   box-shadow: 0 0 16px rgba(var(--accent-rgb),0.25);
+}
+
+/* On phones, use the familiar keyboard supplied by the device. */
+@media (pointer: coarse) {
+  .kb-overlay {
+    position: fixed;
+    top: calc(var(--safe-top) + 58px);
+    bottom: auto;
+    left: 12px;
+    right: 12px;
+    padding: 10px;
+    border: 1px solid rgba(var(--accent-rgb),0.3);
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+    transform: none;
+  }
+  .kb-overlay.visible { transform: none; }
+  .kb-native-input {
+    position: static;
+    width: 100%;
+    height: 44px;
+    opacity: 1;
+    border: 0;
+    border-radius: 10px;
+    padding: 0 52px 0 12px;
+    background: var(--ink);
+    color: rgba(var(--ui-rgb),0.9);
+    font: 16px var(--font-b);
+    user-select: text;
+    -webkit-user-select: text;
+  }
+  .kb-overlay-header {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    padding: 0;
+  }
+  .kb-overlay-preview, .kb-fallback { display: none; }
 }
 
 /* ═══════════════════════════════════════════
@@ -1951,8 +1990,8 @@ html, body {
   </div>
 
   <!-- Keyboard Overlay (slides up over any mode) -->
-  <div class="kb-overlay" id="kb-overlay">
-    <input type="text" class="kb-native-input" id="kb-native-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" inputmode="text">
+  <div class="kb-overlay" id="kb-overlay" hidden>
+    <input type="text" class="kb-native-input" id="kb-native-input" placeholder="Type here" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" inputmode="text">
     <div class="kb-overlay-header">
       <div class="kb-overlay-preview" id="kb-preview"><span class="kb-cursor"></span></div>
       <button class="kb-dismiss" id="kb-dismiss"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
@@ -2323,6 +2362,10 @@ html, body {
   });
   window.addEventListener('pageshow', resumeReconnect);
   window.addEventListener('focus', resumeReconnect);
+  window.addEventListener('pagehide', function () { hideKeyboardOverlay(); });
+  window.addEventListener('pageshow', function () {
+    if (kbOverlayVisible) hideKeyboardOverlay();
+  });
   // Page Lifecycle API (Chrome/Android): fires when a frozen page resumes.
   document.addEventListener('resume', resumeReconnect);
 
@@ -2822,13 +2865,12 @@ html, body {
 
   var nativeInput = $('#kb-native-input');
   var lastNativeVal = '';
-  var kbNativeFocusTimer = null;
 
   function focusNativeKeyboard() {
-    clearTimeout(kbNativeFocusTimer);
-    kbNativeFocusTimer = setTimeout(function () {
-      if (kbOverlayVisible && document.visibilityState === 'visible') nativeInput.focus();
-    }, 100);
+    if (kbOverlayVisible && document.visibilityState === 'visible') {
+      nativeInput.focus();
+      nativeInput.setSelectionRange(nativeInput.value.length, nativeInput.value.length);
+    }
   }
 
   function showKeyboardOverlay(initialValue) {
@@ -2836,7 +2878,9 @@ html, body {
     kbText = initialValue || '';
     lastNativeVal = kbText;
     nativeInput.value = kbText;
+    nativeInput.placeholder = 'Type here';
     updateKbPreview();
+    $('#kb-overlay').hidden = false;
     $('#kb-overlay').classList.add('visible');
     kbOverlayVisible = true;
     focusNativeKeyboard();
@@ -2844,9 +2888,9 @@ html, body {
 
   function hideKeyboardOverlay() {
     clearTimeout(kbFocusTimer);
-    clearTimeout(kbNativeFocusTimer);
     keyboardRequestedUntil = 0;
     $('#kb-overlay').classList.remove('visible');
+    $('#kb-overlay').hidden = true;
     kbOverlayVisible = false;
     kbMode = 'input';
     nativeInput.blur();
@@ -2946,7 +2990,7 @@ html, body {
         btn.setAttribute('data-code', 'Key' + key.toUpperCase());
         rowEl.appendChild(btn);
       });
-      grid.parentNode.insertBefore(rowEl, grid.nextSibling);
+      grid.parentNode.insertBefore(rowEl, grid);
     });
     grid.remove(); // Remove the placeholder div
   }
@@ -3074,7 +3118,9 @@ html, body {
       kbText = '';
       lastNativeVal = '';
       nativeInput.value = '';
+      nativeInput.placeholder = 'Search or enter URL';
       updateKbPreview();
+      $('#kb-overlay').hidden = false;
       $('#kb-overlay').classList.add('visible');
       kbOverlayVisible = true;
       focusNativeKeyboard();
