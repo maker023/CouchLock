@@ -238,6 +238,66 @@ body {
   color: rgba(var(--ui-rgb),0.06);
 }
 
+/* ── Nearby pairing ── */
+.pair-code {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 14px;
+  position: relative;
+  z-index: 2;
+}
+.pair-code-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.35);
+  text-align: center;
+  line-height: 1.5;
+}
+.pair-code-digits {
+  font-family: var(--font-m);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 6px;
+  color: rgba(var(--ui-rgb),0.9);
+}
+.request-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 20px;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+.request-code {
+  font-family: var(--font-d);
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: 8px;
+  color: rgba(var(--ui-rgb),0.95);
+  line-height: 1;
+}
+.request-hint {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.35);
+  line-height: 1.5;
+}
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 0 24px rgba(var(--accent-rgb),0.35);
+  position: relative;
+  z-index: 2;
+}
+.btn:focus-visible {
+  outline: 2px solid rgba(var(--ui-rgb),0.6);
+  outline-offset: 2px;
+}
+
 .hidden { display: none; }
 </style>
 </head>
@@ -254,6 +314,19 @@ body {
     </div>
   </div>
 
+  <!-- Pairing request from a nearby phone -->
+  <div id="request" class="hidden" role="alertdialog" aria-labelledby="request-title" aria-describedby="request-hint">
+    <div class="surface">
+      <div class="request-area">
+        <div class="paired-title" id="request-title">Phone wants to connect</div>
+        <div class="request-code" id="request-code" aria-live="polite">----</div>
+        <div class="request-hint" id="request-hint">Only allow if your phone shows the same code.</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="btn-allow" style="margin-top:12px">Allow</button>
+    <button class="btn btn-ghost" id="btn-decline" style="margin-top:8px">Decline</button>
+  </div>
+
   <!-- Unpaired state -->
   <div id="unpaired">
     <div class="surface">
@@ -263,7 +336,11 @@ body {
         <div class="qr-hint">Point your phone camera at this code.</div>
       </div>
     </div>
-    <button class="btn btn-ghost" id="btn-new-session" style="margin-top:12px">Generate New Code</button>
+    <div class="pair-code">
+      <div class="pair-code-label">Already have the app? Tap <strong>Find my laptop</strong>, or enter</div>
+      <div class="pair-code-digits pairing-code" aria-label="Pairing code">------</div>
+    </div>
+    <button class="btn btn-ghost" id="btn-new-session" style="margin-top:12px">New QR Code</button>
     <button class="btn btn-ghost" id="btn-copy-link" style="margin-top:8px">Copy Pairing Link</button>
   </div>
 
@@ -271,11 +348,16 @@ body {
   <div id="paired" class="hidden">
     <div class="surface">
       <div class="paired-area">
-        <div class="paired-title">Phone connected</div>
+        <div class="paired-title" id="paired-title">Phone connected</div>
         <div class="paired-detail" id="paired-session">Session: ---</div>
       </div>
     </div>
-    <button class="btn btn-ghost" id="btn-disconnect" style="margin-top:12px">Disconnect &amp; New Session</button>
+    <div class="pair-code">
+      <div class="pair-code-label">Add another phone: <strong>Find my laptop</strong>, or enter</div>
+      <div class="pair-code-digits pairing-code" aria-label="Pairing code">------</div>
+    </div>
+    <button class="btn btn-ghost" id="btn-disconnect" style="margin-top:12px">Disconnect Phone</button>
+    <button class="btn btn-ghost" id="btn-forget" style="margin-top:8px">Forget Phone</button>
   </div>
 
   <div class="popup-footer">
@@ -284,6 +366,8 @@ body {
 </div>
 
 <script src="qrcode.min.js"></script>
+<script src="transport.js"></script>
+<script src="discovery.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>

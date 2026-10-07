@@ -12,9 +12,23 @@
  *   - Cursor overlay rendering
  *   - Input focus detection (for keyboard overlay on PWA)
  *   - Skip Ad availability reporting (YouTube, manual only)
+ *   - Player fullscreen (lifted into the top layer above the page)
  */
 (function () {
   'use strict';
+
+  // ── Re-injection Guard ──
+  // The background injects this script into tabs that were open before the
+  // extension was installed or reloaded. Retire any earlier copy first so two
+  // instances never drive the same page.
+  if (typeof window.__couchlockTeardown === 'function') window.__couchlockTeardown();
+
+  var teardownTasks = [];
+
+  function listen(target, type, fn, capture) {
+    target.addEventListener(type, fn, capture);
+    teardownTasks.push(function () { target.removeEventListener(type, fn, capture); });
+  }
 
   // ── Context Guard ──
   // When the extension reloads, the content script's context is invalidated.
@@ -80,6 +94,8 @@
   // Uses left/top for position (proven reliable across all sites)
   // with transform: translate(-50%,-50%) for centering only.
   // Exponential lerp smooths the movement across frames.
+  // The cursor lives in the browser's top layer (a manual popover) so it stays
+  // visible above fullscreen and lifted players, which no z-index can beat.
 
   var cursorEl = null;
   var cursorRipple = null;
@@ -93,6 +109,9 @@
   var animating = false;
   var cursorVisible = false;
   var LERP = 0.35;
+
+  // Undo the UA popover styles (centred, bordered, opaque box).
+  var POPOVER_RESET = ['inset:auto', 'margin:0', 'padding:0', 'overflow:visible'];
 
   function createCursorOverlay() {
     cursorEl = document.createElement('div');
@@ -113,8 +132,27 @@
       'transform:translate(-50%,-50%) scale(0)',
       'opacity:0',
       'display:none'
-    ].join(';');
+    ].concat(POPOVER_RESET, ['background:transparent']).join(';');
     document.documentElement.appendChild(cursorRipple);
+    promoteCursor();
+  }
+
+  function supportsTopLayer() {
+    return typeof HTMLElement.prototype.showPopover === 'function';
+  }
+
+  // Re-open the cursor popovers so they sit above anything added to the top
+  // layer after them (a lifted player, a native fullscreen element).
+  function promoteCursor() {
+    if (!supportsTopLayer()) return;
+    [cursorEl, cursorRipple].forEach(function (el) {
+      if (!el || !el.isConnected) return;
+      try {
+        if (!el.hasAttribute('popover')) el.setAttribute('popover', 'manual');
+        if (el.matches(':popover-open')) el.hidePopover();
+        el.showPopover();
+      } catch (e) { /* Popover refused (e.g. element detached mid-call) — z-index still applies. */ }
+    });
   }
 
   function buildCursorCSS() {
@@ -128,10 +166,8 @@
       'pointer-events:none',
       'z-index:2147483647',
       'transform:translate(-50%,-50%)',
-      'display:none',
-      'left:0px',
-      'top:0px'
-    ].join(';');
+      'display:none'
+    ].concat(POPOVER_RESET, ['border:0', 'left:0px', 'top:0px']).join(';');
   }
 
   function renderCursor() {
@@ -256,54 +292,123 @@
     return platform === 'unknown' && activeVideo() ? 'universal' : platform;
   }
 
-  var expandedPlayer = null;
-  var expandedPlayerStyle = null;
+  // ── Player Fullscreen ──
+  // The background puts the browser window into fullscreen; here the player is
+  // lifted into the top layer (a manual popover). Top-layer elements are laid
+  // out against the viewport and painted above everything, so ancestors with
+  // transforms, overflow clipping or their own stacking contexts can't trap or
+  // cover the player — which is what left the old position:fixed version stuck
+  // behind the page. A player inside an iframe fills its frame, then each parent
+  // frame lifts the <iframe> holding it.
 
-  function restoreExpandedPlayer() {
-    if (!expandedPlayer) return;
-    if (expandedPlayerStyle === null) expandedPlayer.removeAttribute('style');
-    else expandedPlayer.setAttribute('style', expandedPlayerStyle);
-    expandedPlayer = null;
-    expandedPlayerStyle = null;
+  var KNOWN_PLAYERS = '.video_container, .live__playerContainer, #movie_player, .watch-video, [data-testid="player"]';
+  var LIFT_STYLES = [
+    ['position', 'fixed'], ['inset', '0'], ['width', '100vw'], ['height', '100vh'],
+    ['max-width', 'none'], ['max-height', 'none'], ['margin', '0'], ['padding', '0'],
+    ['border', '0'], ['transform', 'none'], ['z-index', '2147483645'], ['background', 'black']
+  ];
+  var FILL_STYLES = [
+    ['width', '100%'], ['height', '100%'], ['max-width', 'none'], ['max-height', 'none'],
+    ['left', '0'], ['top', '0'], ['object-fit', 'contain']
+  ];
+  var CONTAINER_GROWTH = 1.25; // an ancestor this much larger than the video is page layout, not player
+
+  var lifted = []; // [{ el, style, popover, open }] in lift order
+
+  function applyStyles(el, styles) {
+    var saved = { el: el, style: el.getAttribute('style') };
+    styles.forEach(function (p) { el.style.setProperty(p[0], p[1], 'important'); });
+    return saved;
   }
 
-  function expandPlayerInTab(player) {
-    expandedPlayer = player;
-    expandedPlayerStyle = player.getAttribute('style');
-    player.style.setProperty('position', 'fixed', 'important');
-    player.style.setProperty('inset', '0', 'important');
-    player.style.setProperty('width', '100vw', 'important');
-    player.style.setProperty('height', '100vh', 'important');
-    player.style.setProperty('max-width', 'none', 'important');
-    player.style.setProperty('max-height', 'none', 'important');
-    player.style.setProperty('padding', '0', 'important');
-    player.style.setProperty('z-index', '2147483645', 'important');
-    player.style.setProperty('background', 'black', 'important');
+  function restoreStyles(saved) {
+    if (saved.style === null) saved.el.removeAttribute('style');
+    else saved.el.setAttribute('style', saved.style);
   }
 
-  function togglePlayerFullscreen() {
-    var vid = activeVideo();
-    if (!vid) return false;
-    if (expandedPlayer) { restoreExpandedPlayer(); return true; }
+  function lift(el, styles, toTopLayer) {
+    var state = applyStyles(el, styles);
+    state.popover = el.getAttribute('popover');
+    if (toTopLayer && supportsTopLayer()) {
+      try {
+        if (state.popover === null) el.setAttribute('popover', 'manual');
+        el.showPopover();
+        state.open = true;
+      } catch (e) { /* Already open or refused — the fixed styles still cover most pages. */ }
+    }
+    lifted.push(state);
+  }
+
+  // Walk up from the video while the ancestor is about the video's size: that
+  // wrapper holds the site's own controls and overlays.
+  function playerContainer(video) {
+    var known = video.closest(KNOWN_PLAYERS);
+    if (known) return known;
+    var rect = video.getBoundingClientRect();
+    var area = Math.max(1, rect.width * rect.height);
+    var best = video;
+    var el = video.parentElement;
+    while (el && el !== document.body && el !== document.documentElement) {
+      var r = el.getBoundingClientRect();
+      if (r.width * r.height > area * CONTAINER_GROWTH) break;
+      best = el;
+      el = el.parentElement;
+    }
+    return best;
+  }
+
+  function isLifted() {
+    return lifted.length > 0;
+  }
+
+  function restorePlayer() {
+    while (lifted.length) {
+      var state = lifted.pop();
+      if (state.open) {
+        try { state.el.hidePopover(); } catch (e) { /* already closed */ }
+        if (state.popover === null) state.el.removeAttribute('popover');
+      }
+      restoreStyles(state);
+    }
+  }
+
+  function expandPlayer() {
+    // The user went native fullscreen on the laptop: the remote's press means "exit".
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(function () {});
-      return true;
+      safeSendMessage({ type: 'playerRestored' });
+      return;
     }
-    var player = vid.closest('.video_container, .live__playerContainer, #movie_player, .watch-video, .bmpui-ui-uicontainer, [data-testid="player"]') || vid.parentElement || vid;
-    if (player.requestFullscreen) {
-      try {
-        var attempt = player.requestFullscreen();
-        if (attempt && attempt.catch) attempt.catch(function () { expandPlayerInTab(player); });
-        return true;
-      } catch (e) { /* Some sites reject fullscreen from extension messages. */ }
-    }
-    expandPlayerInTab(player);
-    return true;
+    if (isLifted()) return;
+    var video = activeVideo();
+    if (!video) return;
+    var player = playerContainer(video);
+    lift(player, LIFT_STYLES, true);
+    if (player !== video) lift(video, FILL_STYLES, false);
+    promoteCursor();
+    if (window !== window.top) safeSendMessage({ type: 'expandMyFrame' });
   }
 
-  document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape' && expandedPlayer) restoreExpandedPlayer();
+  function expandChildFrame(frameId) {
+    if (typeof chrome.runtime.getFrameId !== 'function') return;
+    var frames = document.querySelectorAll('iframe, frame');
+    for (var i = 0; i < frames.length; i++) {
+      if (chrome.runtime.getFrameId(frames[i]) !== frameId) continue;
+      lift(frames[i], LIFT_STYLES, true);
+      promoteCursor();
+      if (window !== window.top) safeSendMessage({ type: 'expandMyFrame' });
+      return;
+    }
+  }
+
+  listen(document, 'keydown', function (event) {
+    if (event.key === 'Escape' && isLifted()) {
+      restorePlayer();
+      safeSendMessage({ type: 'playerRestored' });
+    }
   });
+
+  listen(document, 'fullscreenchange', promoteCursor);
 
   // ── Selector Strategies ──
 
@@ -329,10 +434,6 @@
       nextEpisode: [
         { type: 'selector', value: '[data-uia="next-episode-seamless-button"]' },
         { type: 'selector', value: '[data-uia="next-episode-seamless-button-draining"]' }
-      ],
-      fullscreen: [
-        { type: 'selector', value: '[data-uia="control-fullscreen-enter"], [data-uia="control-fullscreen-exit"]' },
-        { type: 'key', value: { key: 'f', code: 'KeyF' } }
       ],
       mute: [
         { type: 'selector', value: '[data-uia="control-mute-unmute"]' },
@@ -370,12 +471,6 @@
         { type: 'aria', value: 'Next Episode' },
         { type: 'aria', value: 'Up Next' }
       ],
-      fullscreen: [
-        { type: 'selector', value: '[data-testid="player-ux-fullscreen-button"]' },
-        { type: 'aria', value: 'Full Screen' },
-        { type: 'aria', value: 'Exit Full Screen' },
-        { type: 'key', value: { key: 'f', code: 'KeyF' } }
-      ],
       mute: [
         { type: 'selector', value: '[data-testid="player-ux-volume-button"]' },
         { type: 'aria', value: 'Mute' },
@@ -408,10 +503,6 @@
         { type: 'selector', value: '.ytp-next-button' },
         { type: 'key', value: { key: 'N', code: 'KeyN', modifiers: 1 } }
       ],
-      fullscreen: [
-        { type: 'selector', value: '.ytp-fullscreen-button' },
-        { type: 'key', value: { key: 'f', code: 'KeyF' } }
-      ],
       mute: [
         { type: 'selector', value: '.ytp-mute-button' },
         { type: 'key', value: { key: 'm', code: 'KeyM' } }
@@ -439,11 +530,6 @@
       nextEpisode: [
         { type: 'aria', value: 'Next Episode' }
       ],
-      fullscreen: [
-        { type: 'aria', value: 'Full screen' },
-        { type: 'aria', value: 'Exit full screen' },
-        { type: 'key', value: { key: 'f', code: 'KeyF' } }
-      ],
       mute: [
         { type: 'aria', value: 'Mute' },
         { type: 'aria', value: 'Unmute' }
@@ -467,10 +553,6 @@
         { type: 'selector', value: 'button[class*="skip"]' }
       ],
       nextEpisode: [],
-      fullscreen: [
-        { type: 'selector', value: '[data-automationid="fullscreen-button"]' },
-        { type: 'key', value: { key: 'f', code: 'KeyF' } }
-      ],
       mute: [
         { type: 'key', value: { key: 'm', code: 'KeyM' } }
       ]
@@ -482,7 +564,6 @@
       seekBack: [{ type: 'video', value: 'back' }, { type: 'key', value: { key: 'ArrowLeft', code: 'ArrowLeft' } }],
       skipIntro: [],
       nextEpisode: [{ type: 'starNext' }],
-      fullscreen: [{ type: 'video', value: 'fullscreen' }, { type: 'key', value: { key: 'f', code: 'KeyF' } }],
       mute: [{ type: 'video', value: 'mute' }, { type: 'key', value: { key: 'm', code: 'KeyM' } }]
     },
 
@@ -501,10 +582,6 @@
       ],
       skipIntro: [],
       nextEpisode: [],
-      fullscreen: [
-        { type: 'video', value: 'fullscreen' },
-        { type: 'key', value: { key: 'f', code: 'KeyF' } }
-      ],
       mute: [
         { type: 'video', value: 'mute' },
         { type: 'key', value: { key: 'm', code: 'KeyM' } }
@@ -541,13 +618,15 @@
 
       if (s.type === 'key') {
         // A site's own controls may change. Use its active HTML video before
-        // falling back to synthetic keys, which many players ignore.
+        // falling back to synthetic keys, which many players ignore. Netflix's
+        // player errors out when its video is seeked directly, so it keeps keys.
         var fallbackVideo = activeVideo();
         var fallbackAction = {
           playPause: 'toggle', seekForward: 'forward', seekBack: 'back', mute: 'mute'
         }[command];
+        if (platform === 'netflix' && (command === 'seekForward' || command === 'seekBack')) fallbackAction = null;
         if (fallbackVideo && fallbackAction) {
-          return execStrategy([{ type: 'video', value: fallbackAction }]);
+          return execStrategy([{ type: 'video', value: fallbackAction }], command);
         }
         var target = document.activeElement || document.body;
         var video = activeVideo();
@@ -580,7 +659,8 @@
         if (!vid) continue;
 
         if (s.value === 'toggle') {
-          if (vid.paused) vid.play().catch(function () {}); else vid.pause();
+          if (vid.paused) playVideo(vid, command);
+          else vid.pause();
           return true;
         }
         if (s.value === 'forward') {
@@ -593,12 +673,6 @@
         }
         if (s.value === 'mute') {
           vid.muted = !vid.muted;
-          return true;
-        }
-        if (s.value === 'fullscreen') {
-          var player = vid.closest('.video_container, .live__playerContainer') || vid;
-          if (document.fullscreenElement) document.exitFullscreen();
-          else if (player.requestFullscreen) player.requestFullscreen().catch(function () {});
           return true;
         }
       }
@@ -618,6 +692,16 @@
     }
 
     return false;
+  }
+
+  // Browsers refuse unmuted play() until the page has had a real click or key
+  // press, and the remote's synthetic events don't count. Tell the phone so
+  // the user knows what to do instead of the button silently doing nothing.
+  function playVideo(vid, command) {
+    vid.play().catch(function (err) {
+      var blocked = err && err.name === 'NotAllowedError';
+      safeSendMessage({ type: 'cmdResult', command: command, success: false, reason: blocked ? 'blocked' : 'no_control' });
+    });
   }
 
   // Check if a strategy's target exists (without clicking)
@@ -684,7 +768,7 @@
 
   var lastFocusedInput = false;
 
-  document.addEventListener('focusin', function (e) {
+  listen(document, 'focusin', function (e) {
     var el = e.target;
     var tag = el.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable) {
@@ -698,7 +782,7 @@
     }
   }, true);
 
-  document.addEventListener('focusout', function (e) {
+  listen(document, 'focusout', function (e) {
     var el = e.target;
     var tag = el.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable) {
@@ -746,9 +830,26 @@
 
   // ── Message Handler ──
 
-  chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
+  var MEDIA_COMMANDS = ['playPause', 'seekForward', 'seekBack', 'mute', 'volumeUp', 'volumeDown'];
+
+  function onMessage(msg, sender, sendResponse) {
     if (!contextValid) return;
     if (!msg || !msg.action) return;
+
+    if (msg.action === 'playerExpand') {
+      expandPlayer();
+      return;
+    }
+
+    if (msg.action === 'playerRestore') {
+      restorePlayer();
+      return;
+    }
+
+    if (msg.action === 'expandChildFrame') {
+      expandChildFrame(msg.frameId);
+      return;
+    }
 
     if (msg.action === 'cursorMove') {
       moveCursor(msg.x, msg.y);
@@ -781,7 +882,9 @@
 
     if (msg.action === 'seek') {
       var vid = activeVideo();
-      if (vid && msg.time !== undefined) {
+      if (platform === 'netflix') {
+        safeSendMessage({ type: 'cmdResult', command: 'seek', success: false, reason: 'unsupported' });
+      } else if (vid && msg.time !== undefined) {
         vid.currentTime = msg.time;
         safeSendMessage({ type: 'cmdResult', command: 'seek', success: true });
       } else {
@@ -804,17 +907,10 @@
       var strats = getStrategies();
       var command = msg.command;
       var success = false;
+      var reason;
 
-      if (command === 'fullscreen') {
-        success = togglePlayerFullscreen();
-      }
-      if (!success && strats[command]) {
+      if (strats[command]) {
         success = execStrategy(strats[command], command);
-      }
-
-      // Special: skipAd uses the skipAd strategy array
-      if (command === 'skipAd') {
-        success = execStrategy(strats.skipAd);
       }
 
       if (command === 'volumeUp') {
@@ -831,7 +927,10 @@
         success = true;
       }
 
-      safeSendMessage({ type: 'cmdResult', command: command, success: success });
+      if (!success) {
+        reason = MEDIA_COMMANDS.indexOf(command) !== -1 && !activeVideo() ? 'no_media' : 'no_control';
+      }
+      safeSendMessage({ type: 'cmdResult', command: command, success: success, reason: reason });
       sendResponse({ success: success });
       return true;
     }
@@ -845,7 +944,7 @@
       }
       if (msg.mouseType === 'mouseReleased') {
         target.dispatchEvent(new MouseEvent('mouseup', { clientX: msg.x, clientY: msg.y, button: btnCode, bubbles: true, cancelable: true }));
-        // Use element.click() for trusted click — works on buttons, links, Next Episode, etc.
+        // element.click() runs the target's click handlers — works on buttons, links, Next Episode, etc.
         // Fall back to dispatchEvent for right-clicks (context menu)
         if (btnCode === 0) {
           target.click();
@@ -872,13 +971,27 @@
       });
       kTarget.dispatchEvent(kEvt);
     }
-  });
+  }
+
+  chrome.runtime.onMessage.addListener(onMessage);
 
   // ── Cleanup ──
 
-  window.addEventListener('beforeunload', function () {
-    restoreExpandedPlayer();
+  listen(window, 'beforeunload', function () {
+    restorePlayer();
     clearAllIntervals();
   });
+
+  window.__couchlockTeardown = function () {
+    restorePlayer();
+    clearAllIntervals();
+    teardownTasks.forEach(function (task) { task(); });
+    teardownTasks = [];
+    [cursorEl, cursorRipple].forEach(function (el) {
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
+    try { chrome.runtime.onMessage.removeListener(onMessage); } catch (e) { /* context already gone */ }
+    contextValid = false;
+  };
 
 })();

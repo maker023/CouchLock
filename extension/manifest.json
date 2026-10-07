@@ -11,13 +11,7 @@
     "alarms"
   ],
   "host_permissions": [
-    "https://www.netflix.com/*",
-    "https://play.max.com/*",
-    "https://www.youtube.com/*",
-    "https://www.disneyplus.com/*",
-    "https://www.hulu.com/*",
-    "*://localhost/*",
-    "*://127.0.0.1/*"
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js"

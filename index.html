@@ -86,6 +86,9 @@ html, body {
   background: var(--teal);
   box-shadow: 0 0 6px rgba(var(--teal-rgb),0.5);
 }
+.conn-dot.offline {
+  background: rgba(var(--ui-rgb),0.4);
+}
 /* Topbar nav — right-aligned, visible only on pad tab */
 .topbar-nav {
   display: flex;
@@ -301,6 +304,59 @@ html, body {
   font-size: 13px;
   user-select: text;
   -webkit-user-select: text;
+}
+.pairing-group {
+  width: min(100%, 320px);
+  display: none;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+.pairing[data-mode="pair"] .pairing-group-pair,
+.pairing[data-mode="paused"] .pairing-group-paused,
+.pairing[data-mode="confirm"] .pairing-group-confirm { display: flex; }
+.pairing-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 16px 24px;
+  background: var(--accent);
+  color: white;
+  font: 700 15px var(--font-d);
+  box-shadow: 0 0 32px rgba(var(--accent-rgb),0.35);
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
+}
+.pairing-btn:active { opacity: 0.85; }
+.pairing-btn:disabled { opacity: 0.4; }
+.pairing-btn-ghost {
+  background: rgba(var(--ui-rgb),0.04);
+  border: 1px solid rgba(var(--ui-rgb),0.08);
+  color: rgba(var(--ui-rgb),0.7);
+  box-shadow: none;
+}
+.pairing-btn:focus-visible, .pairing-link input:focus-visible, .pairing-link button:focus-visible {
+  outline: 2px solid rgba(var(--ui-rgb),0.6);
+  outline-offset: 2px;
+}
+.pairing-found {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pairing-found:empty { display: none; }
+.pairing-confirm-code {
+  font-family: var(--font-d);
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: 10px;
+  color: rgba(var(--ui-rgb),0.95);
+  line-height: 1;
+}
+.pairing-confirm-hint {
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(var(--ui-rgb),0.4);
+  line-height: 1.4;
 }
 .pairing-link button, .install-cta button {
   border: 0;
@@ -1134,34 +1190,6 @@ html, body {
   opacity: 0.5;
 }
 
-/* ── Wireframe Mode ── */
-.wireframe-mode body { background: #000; }
-.wireframe-mode .app { background: transparent; }
-.wireframe-mode .topbar { background: transparent; border-bottom: 1px solid #C8F400; }
-.wireframe-mode .conn-dot { background: #C8F400; }
-.wireframe-mode .topbar-nav-btn { background: transparent; border: 1px solid #C8F400; }
-.wireframe-mode .nav-btn { background: transparent; border: 1px solid #C8F400; opacity: 0.4; }
-.wireframe-mode .nav-btn.active { opacity: 1; }
-.wireframe-mode .nav-btn svg { stroke: #C8F400; }
-.wireframe-mode .trackpad-surface { background: transparent; border: 1px solid #C8F400; }
-.wireframe-mode .trackpad-surface::before { background-image: none; }
-.wireframe-mode .trackpad-surface::after { background-image: none; }
-.wireframe-mode .trackpad-btn { background: transparent; border: 1px solid #C8F400; color: #C8F400; }
-.wireframe-mode .trackpad-hint { color: #C8F400; opacity: 0.5; }
-.wireframe-mode .media-now { background: transparent; border: 1px solid #C8F400; }
-.wireframe-mode .media-btn { background: transparent; border: 1px solid #C8F400; }
-.wireframe-mode .media-btn svg { stroke: #C8F400; }
-.wireframe-mode .media-btn-play { background: transparent; }
-.wireframe-mode .media-btn-play svg { stroke: #C8F400; }
-.wireframe-mode .media-action { background: transparent; border: 1px solid #C8F400; color: #C8F400; }
-.wireframe-mode .media-action.highlight { background: #C8F400; color: #000; }
-.wireframe-mode .media-progress-track { background: transparent; border: 1px solid #C8F400; }
-.wireframe-mode .media-progress-fill { background: #C8F400; }
-.wireframe-mode .setting-row { background: transparent; border: 1px solid #C8F400; }
-.wireframe-mode .setting-toggle { background: transparent; border: 1px solid #C8F400; }
-.wireframe-mode .setting-toggle.on::after { background: #C8F400; opacity: 1; }
-.wireframe-mode .theme-swatch-dot { box-shadow: none; }
-
 /* ── Tab Actions ── */
 .tab-reload {
   width: 36px; height: 36px;
@@ -1234,6 +1262,17 @@ html, body {
   color: rgba(224,79,95,0.7);
 }
 .btn-close-session:active { opacity: 0.7; }
+.btn-close-session + .btn-close-session { margin-top: 12px; }
+.btn-disconnect-session {
+  background: rgba(var(--ui-rgb),0.04);
+  border-color: rgba(var(--ui-rgb),0.08);
+  color: rgba(var(--ui-rgb),0.7);
+}
+.btn-disconnect-session svg { stroke: rgba(var(--ui-rgb),0.4); }
+.btn-close-session:focus-visible {
+  outline: 2px solid rgba(var(--ui-rgb),0.6);
+  outline-offset: 2px;
+}
 .btn-close-session svg {
   width: 16px; height: 16px;
   stroke: rgba(224,79,95,0.7);
@@ -1750,15 +1789,30 @@ html, body {
   </div>
 
   <!-- Pairing Screen -->
-  <div class="pairing" id="pairing">
-    <div class="pairing-orb"></div>
+  <div class="pairing" id="pairing" data-mode="pair">
+    <div class="pairing-orb" aria-hidden="true"></div>
     <div class="pairing-title">Couch<span>Lock</span></div>
-    <div class="pairing-sub">Scan the QR code from the extension to connect your phone.</div>
-    <div class="pairing-status" id="pairing-status">Waiting for connection...</div>
-    <form class="pairing-link" id="pairing-link-form">
-      <input id="pairing-link-input" type="url" placeholder="Or paste the pairing link" aria-label="Pairing link" autocomplete="off">
-      <button type="submit">Connect</button>
-    </form>
+    <div class="pairing-sub" id="pairing-sub">Open the CouchLock extension on your laptop, then find it from here.</div>
+    <div class="pairing-status" id="pairing-status" role="status" aria-live="polite">Waiting for connection...</div>
+
+    <div class="pairing-group pairing-group-pair">
+      <button class="pairing-btn" id="btn-find-laptop" type="button">Find my laptop</button>
+      <div class="pairing-found" id="pairing-found" aria-label="Laptops found nearby"></div>
+      <form class="pairing-link" id="pairing-link-form">
+        <input id="pairing-link-input" type="text" inputmode="numeric" placeholder="Or enter the code" aria-label="Pairing code or link" autocomplete="off">
+        <button type="submit">Pair</button>
+      </form>
+    </div>
+
+    <div class="pairing-group pairing-group-paused">
+      <button class="pairing-btn" id="btn-reconnect" type="button">Reconnect</button>
+    </div>
+
+    <div class="pairing-group pairing-group-confirm">
+      <div class="pairing-confirm-code" id="pairing-confirm-code" aria-live="polite">----</div>
+      <div class="pairing-confirm-hint">Check your laptop shows the same code, then click Allow there.</div>
+      <button class="pairing-btn pairing-btn-ghost" id="btn-pair-cancel" type="button">Cancel</button>
+    </div>
   </div>
 
   <div class="install-cta" id="install-cta" role="status" aria-live="polite">
@@ -1932,9 +1986,13 @@ html, body {
           <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:rgba(var(--accent-rgb),0.5);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </div>
 
-        <button class="btn-close-session" id="btn-close-session">
-          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          End Session
+        <button class="btn-close-session btn-disconnect-session" id="btn-disconnect-session" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Disconnect
+        </button>
+        <button class="btn-close-session" id="btn-close-session" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+          <span id="btn-close-session-label">Forget This Laptop</span>
         </button>
 
         <div class="settings-about">
@@ -2044,7 +2102,8 @@ html, body {
   </div>
 </div>
 
-<script src="transport.js"></script>
+<script src="transport.js?v=2"></script>
+<script src="discovery.js?v=1"></script>
 <script>
 (function () {
   'use strict';
@@ -2088,6 +2147,13 @@ html, body {
   var installDismissed = false;
   var sessionCloseTimer = null;
   var handshakeTimer = null;
+  var helloTimer = null;
+  var laptopPresence = null;   // '1' online, '0' offline, 'x' pairing revoked, null unknown
+  var sessionPaused = false;   // the laptop disconnected this phone; wait for Reconnect
+  var lastLaptopSeen = 0;
+  var finder = null;           // CouchDiscovery search in progress
+  var findTimer = null;
+  var lastFailureToast = { reason: '', at: 0 };
 
   // ── Theme Definitions ──
   // Curated set — every theme passes WCAG AA contrast and is legible under
@@ -2155,6 +2221,9 @@ html, body {
   }
 
   restorePairing();
+  // A saved pairing opens straight into the remote; the pairing screen is only
+  // for phones that have never paired or whose pairing was reset.
+  everPaired = validPairing({ token: token, sessionId: sessionId });
 
   function isStandalone() {
     return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -2204,83 +2273,288 @@ html, body {
     this.textContent = 'Done';
   });
 
+  // ── Pairing screen ──
+  // Modes: 'pair' (find laptop / enter code), 'paused' (laptop disconnected us),
+  // 'confirm' (showing the code to compare with the laptop).
+  function showPairing(mode, status) {
+    $('#pairing').setAttribute('data-mode', mode);
+    $('#pairing').classList.remove('hidden');
+    if (status) $('#pairing-status').textContent = status;
+  }
+
+  function hidePairing() {
+    $('#pairing').classList.add('hidden');
+  }
+
+  function usePairing(candidate) {
+    stopFinding();
+    CouchTransport.disconnect();
+    token = candidate.token;
+    sessionId = candidate.sessionId;
+    laptopPresence = null;
+    sessionPaused = false;
+    connect();
+  }
+
+  // ── Find my laptop ──
+
+  var PAIR_ERRORS = {
+    denied: 'Pairing was declined on the laptop.',
+    timeout: 'Pairing timed out. Try again.',
+    mismatch: 'Pairing failed. Try again.',
+    network: 'Can’t search from this network. Enter the code from the extension instead.'
+  };
+  var FIND_TIMEOUT = 8000;
+
+  function phoneName() {
+    if (/iPhone/.test(navigator.userAgent)) return 'iPhone';
+    if (/iPad/.test(navigator.userAgent)) return 'iPad';
+    if (/Android/.test(navigator.userAgent)) return 'Android phone';
+    return 'Phone';
+  }
+
+  function stopFinding() {
+    clearTimeout(findTimer);
+    if (finder) finder.stop();
+    finder = null;
+    $('#pairing-found').innerHTML = '';
+    $('#btn-find-laptop').disabled = false;
+  }
+
+  function pairWith(hostId) {
+    var active = finder;
+    showPairing('pair', 'Asking your laptop...');
+    active.pair(hostId, function (code) {
+      $('#pairing-confirm-code').textContent = code;
+      showPairing('confirm', 'Confirm on your laptop');
+    }).then(function (payload) {
+      if (active !== finder) return;
+      if (!validPairing(payload)) throw new Error('mismatch');
+      usePairing(payload);
+    }).catch(function (err) {
+      if (active !== finder) return;
+      stopFinding();
+      showPairing('pair', PAIR_ERRORS[err.message] || PAIR_ERRORS.mismatch);
+    });
+  }
+
+  function startFinding(code) {
+    stopFinding();
+    $('#btn-find-laptop').disabled = true;
+    showPairing('pair', code ? 'Looking for that code...' : 'Looking for your laptop...');
+    var found = 0;
+    var active = CouchDiscovery.find({
+      name: phoneName(),
+      code: code,
+      onHost: function (host) {
+        if (active !== finder) return;
+        found++;
+        clearTimeout(findTimer);
+        // A code identifies exactly one laptop, so pair straight away.
+        if (code) {
+          pairWith(host.id);
+          return;
+        }
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'pairing-btn pairing-btn-ghost';
+        btn.textContent = host.name;
+        btn.addEventListener('click', function () { pairWith(host.id); });
+        $('#pairing-found').appendChild(btn);
+        $('#pairing-status').textContent = 'Tap your laptop to pair';
+      },
+      onError: function (reason) {
+        if (active !== finder) return;
+        stopFinding();
+        showPairing('pair', PAIR_ERRORS[reason] || PAIR_ERRORS.network);
+      }
+    });
+    finder = active;
+    findTimer = setTimeout(function () {
+      if (active !== finder || found) return;
+      stopFinding();
+      showPairing('pair', code
+        ? 'No laptop found for that code. Check the code in the extension.'
+        : 'No laptop found. Open the CouchLock extension on your laptop, or enter its code.');
+    }, FIND_TIMEOUT);
+  }
+
+  $('#btn-find-laptop').addEventListener('click', function () { startFinding(null); });
+
+  $('#btn-pair-cancel').addEventListener('click', function () {
+    stopFinding();
+    showPairing('pair', 'Pairing cancelled.');
+  });
+
+  $('#btn-reconnect').addEventListener('click', function () {
+    sessionPaused = false;
+    showPairing('paused', 'Reconnecting...');
+    startHello();
+  });
+
+  // The field takes the 6-digit code from the popup, or a full pairing link.
   $('#pairing-link-form').addEventListener('submit', function (event) {
     event.preventDefault();
+    var value = $('#pairing-link-input').value.trim();
+    var digits = value.replace(/\s/g, '');
+    if (/^\d{6}$/.test(digits)) {
+      startFinding(digits);
+      return;
+    }
     try {
-      var link = new URL($('#pairing-link-input').value.trim());
+      var link = new URL(value);
       var candidate = { token: link.searchParams.get('t'), sessionId: link.searchParams.get('s') };
       if (link.origin !== window.location.origin || !validPairing(candidate)) throw new Error('Invalid link');
-      CouchTransport.disconnect();
-      token = candidate.token;
-      sessionId = candidate.sessionId;
-      connect();
+      usePairing(candidate);
     } catch (e) {
-      $('#pairing-status').textContent = 'Paste a valid CouchLock pairing link.';
+      $('#pairing-status').textContent = 'Enter the 6-digit code shown in the extension.';
     }
   });
+
+  // ── Handshake ──
+  // MQTT here is fire-and-forget: a hello sent while the laptop is offline is
+  // simply lost. Keep re-sending until the laptop answers, unless we know it's
+  // offline (its presence flag will say when it's back) or it disconnected us.
+  var HELLO_RETRY = 3000;
+  var HANDSHAKE_TIMEOUT = 6000;
+  var LAPTOP_SILENCE = 25000;
+
+  function sendHello() {
+    if (CouchTransport.isConnected() && token) CouchTransport.send({ type: 'hello', token: token });
+  }
+
+  function stopHello() {
+    clearInterval(helloTimer);
+    helloTimer = null;
+  }
+
+  function startHello() {
+    stopHello();
+    if (sessionPaused || laptopPresence === 'x') return;
+    sendHello();
+    helloTimer = setInterval(function () {
+      if (isPaired || sessionPaused || !CouchTransport.isConnected()) { stopHello(); return; }
+      if (laptopPresence !== '0') sendHello();
+    }, HELLO_RETRY);
+  }
+
+  function pairingRevoked() {
+    stopHello();
+    clearPairing();
+    everPaired = false;
+    isPaired = false;
+    CouchTransport.disconnect();
+    updateConnUI();
+    updateInstallCTA();
+    showPairing('pair', 'This pairing was reset on your laptop. Find it again to reconnect.');
+  }
+
+  // Runs once the first hello has had time to land. Explains what's going on
+  // instead of pointing at the QR code when the pairing itself is fine.
+  function checkHandshake() {
+    if (isPaired || sessionPaused) return;
+    if (laptopPresence === '0') {
+      if (!everPaired) showPairing('pair', 'Your laptop is asleep or Chrome is closed. This will connect when it’s back.');
+    } else if (laptopPresence === '1') {
+      $('#pairing-status').textContent = 'Laptop found, waiting for it to answer...';
+    } else {
+      showPairing('pair', 'Can’t find this laptop’s pairing. Find your laptop again.');
+    }
+  }
 
   // ── Transport ──
   function connect() {
     if (!validPairing({ token: token, sessionId: sessionId })) {
-      $('#pairing-status').textContent = 'Scan the QR or paste a pairing link from the extension.';
+      showPairing('pair', 'Find your laptop, or enter the code shown in the extension.');
       return;
     }
 
-    $('#pairing-status').textContent = 'Connecting...';
+    if (everPaired) hidePairing();
+    else $('#pairing-status').textContent = 'Connecting...';
 
     CouchTransport.onStatus(function (status) {
       if (status === 'connected') {
-        CouchTransport.send({ type: 'hello', token: token });
+        startHello();
         $('#pairing-status').textContent = 'Authenticating...';
         clearTimeout(handshakeTimer);
-        handshakeTimer = setTimeout(function () {
-          if (!isPaired) {
-            $('#pairing').classList.remove('hidden');
-            $('#pairing-status').textContent = 'No response. Scan the current QR or paste a new pairing link.';
-          }
-        }, 6000);
+        handshakeTimer = setTimeout(checkHandshake, HANDSHAKE_TIMEOUT);
       } else if (status === 'disconnected' || status === 'failed') {
         clearTimeout(handshakeTimer);
+        stopHello();
         isConnected = false;
         isPaired = false;
         updateConnUI();
         updateInstallCTA();
-        if (!everPaired) $('#pairing').classList.remove('hidden');
-        $('#pairing-status').textContent = status === 'failed' ? 'Connection failed' : 'Disconnected';
+        if (!everPaired && !finder) showPairing('pair', status === 'failed' ? 'Connection failed' : 'Disconnected');
       } else if (status === 'connecting' || status === 'reconnecting') {
         if (everPaired) {
           isPaired = false;
           updateConnUI();
           updateInstallCTA();
         }
-        $('#pairing-status').textContent = 'Reconnecting...';
+        if (!finder) $('#pairing-status').textContent = 'Reconnecting...';
+      }
+    });
+
+    CouchTransport.onPresence(function (state) {
+      laptopPresence = state;
+      if (state === 'x') {
+        pairingRevoked();
+        return;
+      }
+      if (state === '0') {
+        isPaired = false;
+        updateConnUI();
+        updateInstallCTA();
+      } else if (state === '1' && !isPaired) {
+        startHello();
       }
     });
 
     CouchTransport.onMessage(function (msg) {
       if (!msg) return;
+      lastLaptopSeen = Date.now();
 
       if (msg.type === 'session_available') {
-        CouchTransport.send({ type: 'hello', token: token });
+        if (!sessionPaused) startHello();
       }
 
       if (msg.type === 'ready') {
         clearTimeout(handshakeTimer);
+        stopHello();
+        stopFinding();
         isPaired = true;
         isConnected = true;
         everPaired = true;
+        sessionPaused = false;
+        laptopPresence = '1';
         savePairing();
-        $('#pairing').classList.add('hidden');
+        hidePairing();
         updateInstallCTA();
         updateConnUI();
         CouchTransport.send({ type: 'tab_list' });
 
-        // Sync theme and stickers to extension on connect
+        // Sync theme, cursor and stickers to extension on connect
         var theme = getThemeById(currentThemeId);
         if (theme) sendThemeToExtension(theme);
+        sendCursorSettings();
         if (placedStickers.length > 0) {
           send({ type: 'sticker_update', stickers: placedStickers });
         }
+      }
+
+      if (msg.type === 'session_paused') {
+        sessionPaused = true;
+        isPaired = false;
+        stopHello();
+        hideKeyboardOverlay();
+        updateConnUI();
+        updateInstallCTA();
+        showPairing('paused', 'Your laptop disconnected this phone.');
+      }
+
+      if (msg.type === 'cmd_result' && msg.success === false) {
+        showCommandFailure(msg.reason);
       }
 
       if (msg.type === 'media_status') {
@@ -2327,7 +2601,27 @@ html, body {
       }
     });
 
-    CouchTransport.connect({ token: token, sessionId: sessionId });
+    CouchTransport.connect({ token: token, sessionId: sessionId, presence: 'watch' });
+  }
+
+  // ── Command failures ──
+  // The laptop reports why a command did nothing; say so instead of failing silently.
+  var COMMAND_FAILURES = {
+    blocked: 'Click the laptop once to allow playback',
+    no_media: 'No video found on this page',
+    unreachable: 'This page can’t be controlled',
+    unsupported: 'Seeking isn’t available here',
+    no_control: 'That control isn’t available right now'
+  };
+  var FAILURE_TOAST_GAP = 3000;
+
+  function showCommandFailure(reason) {
+    var message = COMMAND_FAILURES[reason];
+    if (!message) return;
+    var now = Date.now();
+    if (lastFailureToast.reason === reason && now - lastFailureToast.at < FAILURE_TOAST_GAP) return;
+    lastFailureToast = { reason: reason, at: now };
+    showToast(message);
   }
 
   function send(data) {
@@ -2373,11 +2667,16 @@ html, body {
   function updateConnUI() {
     var dot = $('#conn-dot');
     var text = $('#conn-text');
+    var offline = !isPaired && laptopPresence === '0' && !sessionPaused;
+    dot.classList.toggle('on', isPaired);
+    dot.classList.toggle('offline', offline);
     if (isPaired) {
-      dot.classList.add('on');
       text.textContent = 'Connected';
+    } else if (sessionPaused) {
+      text.textContent = 'Disconnected';
+    } else if (offline) {
+      text.textContent = 'Laptop offline';
     } else {
-      dot.classList.remove('on');
       text.textContent = token && autoReconnect ? 'Reconnecting...' : 'Disconnected';
     }
     updateNavButtons();
@@ -2425,9 +2724,37 @@ html, body {
     window.open('success.html', '_blank');
   });
 
-  // ── Close Session button ──
+  // ── Disconnect: step away, keep the pairing ──
+  $('#btn-disconnect-session').addEventListener('click', function () {
+    if (!token) return;
+    send({ type: 'session_pause' });
+    sessionPaused = true;
+    isPaired = false;
+    stopHello();
+    hideKeyboardOverlay();
+    updateConnUI();
+    updateInstallCTA();
+    showPairing('paused', 'Disconnected. Your laptop is still paired.');
+  });
+
+  // ── Forget: reset the pairing on both sides (asks for a second tap) ──
+  var FORGET_CONFIRM_MS = 3000;
+  var forgetArmedUntil = 0;
+  var forgetLabelTimer = null;
+
   $('#btn-close-session').addEventListener('click', function () {
     if (!isPaired) return;
+    var label = $('#btn-close-session-label');
+    if (Date.now() > forgetArmedUntil) {
+      forgetArmedUntil = Date.now() + FORGET_CONFIRM_MS;
+      label.textContent = 'Tap again to forget';
+      clearTimeout(forgetLabelTimer);
+      forgetLabelTimer = setTimeout(function () { label.textContent = 'Forget This Laptop'; }, FORGET_CONFIRM_MS);
+      return;
+    }
+    forgetArmedUntil = 0;
+    clearTimeout(forgetLabelTimer);
+    label.textContent = 'Forget This Laptop';
     CouchTransport.send({ type: 'session_close' }).then(function (sent) {
       if (!sent) resetToParingScreen();
     }).catch(resetToParingScreen);
@@ -2437,17 +2764,18 @@ html, body {
   function resetToParingScreen() {
     clearTimeout(sessionCloseTimer);
     clearTimeout(handshakeTimer);
+    stopHello();
     isPaired = false;
     isConnected = false;
     everPaired = false;
+    sessionPaused = false;
     clearPairing();
     CouchTransport.disconnect();
     hideKeyboardOverlay();
     updateInstallCTA();
     updateConnUI();
-    $('#pairing').classList.remove('hidden');
-    $('#pairing-status').textContent = 'Session ended';
-    showToast('Session closed');
+    showPairing('pair', 'Pairing removed. Find your laptop to pair again.');
+    showToast('Laptop forgotten');
   }
 
   // ── Browser back/forward ──
@@ -2531,13 +2859,20 @@ html, body {
     var scrollMode = false;
     var pendingDx = 0, pendingDy = 0, pendingScroll = 0;
     var rafId = null;
+    var SCROLL_GAIN = 3; // page pixels per finger pixel
 
     function flushMove() {
       rafId = null;
 
       if (scrollMode) {
         if (Math.abs(pendingScroll) > 0) {
-          send({ type: 'scroll', dx: 0, dy: Math.round(pendingScroll) });
+          // Same curve as the cursor: slow swipes scroll 1:1, quick flicks up to 2.5x.
+          var scrollAccel = 1;
+          if ($('#setting-scroll-accel').classList.contains('on')) {
+            var fingerSpeed = Math.abs(pendingScroll) / SCROLL_GAIN;
+            scrollAccel = 1 + Math.min(fingerSpeed / 15, 1.5);
+          }
+          send({ type: 'scroll', dx: 0, dy: Math.round(pendingScroll * scrollAccel) });
           pendingScroll = 0;
         }
         return;
@@ -2600,7 +2935,7 @@ html, body {
       lastY = t.clientY;
 
       if (scrollMode || e.touches.length >= 2) {
-        pendingScroll += -dy * 3;
+        pendingScroll += -dy * SCROLL_GAIN;
       } else {
         pendingDx += dx;
         pendingDy += dy;
@@ -3159,9 +3494,51 @@ html, body {
     send({ type: 'tips_pref', enabled: tipsEnabled });
   });
 
+  // ── Control preferences (persisted) ──
+  // Sliders, scroll acceleration and air-mouse invert toggles survive relaunches. Range inputs clamp
+  // any out-of-range saved value to their own min/max.
+  var PREF_SLIDERS = {
+    'setting-cursor-size': 'couchlock-cursor-size',
+    'setting-trackpad': 'couchlock-trackpad-sensitivity',
+    'setting-gyro': 'couchlock-gyro-sensitivity'
+  };
+  var PREF_TOGGLES = {
+    'setting-scroll-accel': 'couchlock-scroll-accel',
+    'setting-invert-x': 'couchlock-invert-x',
+    'setting-invert-y': 'couchlock-invert-y'
+  };
+
+  function savePref(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) { /* storage unavailable */ }
+  }
+
+  function restoreControlPrefs() {
+    Object.keys(PREF_SLIDERS).forEach(function (id) {
+      var saved = null;
+      try { saved = localStorage.getItem(PREF_SLIDERS[id]); } catch (e) { /* storage unavailable */ }
+      if (saved !== null && !isNaN(parseFloat(saved))) $('#' + id).value = saved;
+    });
+    Object.keys(PREF_TOGGLES).forEach(function (id) {
+      var saved = null;
+      try { saved = localStorage.getItem(PREF_TOGGLES[id]); } catch (e) { /* storage unavailable */ }
+      if (saved !== null) $('#' + id).classList.toggle('on', saved === '1');
+    });
+    cursorSize = parseInt($('#setting-cursor-size').value, 10);
+  }
+
+  Object.keys(PREF_SLIDERS).forEach(function (id) {
+    $('#' + id).addEventListener('change', function () { savePref(PREF_SLIDERS[id], this.value); });
+  });
+  // Registered after the generic toggle handler above, so the class is already flipped.
+  Object.keys(PREF_TOGGLES).forEach(function (id) {
+    $('#' + id).addEventListener('click', function () {
+      savePref(PREF_TOGGLES[id], this.classList.contains('on') ? '1' : '0');
+    });
+  });
+
   // ── Cursor Settings ──
   $('#setting-cursor-size').addEventListener('input', function () {
-    cursorSize = parseInt(this.value);
+    cursorSize = parseInt(this.value, 10);
     sendCursorSettings();
   });
 
@@ -3217,13 +3594,6 @@ html, body {
     var app = $('#app');
     var overlay = $('#theme-fade-overlay');
     var root = document.documentElement;
-
-    // Wireframe mode toggle
-    if (themeId === 'wireframe') {
-      root.classList.add('wireframe-mode');
-    } else {
-      root.classList.remove('wireframe-mode');
-    }
 
     function setVars() {
       root.style.setProperty('--void', voidHex);
@@ -3493,10 +3863,19 @@ html, body {
   })();
 
   // ── Ping (keepalive) ──
+  // The laptop answers every ping. If it goes quiet, stop showing "Connected",
+  // check our own socket, and start knocking again.
   setInterval(function () {
-    if (isPaired) {
-      send({ type: 'ping', ts: Date.now() });
+    if (!isPaired) return;
+    if (Date.now() - lastLaptopSeen > LAPTOP_SILENCE) {
+      isPaired = false;
+      updateConnUI();
+      updateInstallCTA();
+      CouchTransport.checkAlive();
+      startHello();
+      return;
     }
+    send({ type: 'ping', ts: Date.now() });
   }, 10000);
 
   // ═══════════════════════════════════════════
@@ -4114,6 +4493,7 @@ html, body {
   var tipsToggle = $('#setting-tips');
   if (tipsToggle) tipsToggle.classList.toggle('on', tipsEnabled);
 
+  restoreControlPrefs();
   buildThemeSwatches();
   applyTheme(currentThemeId);
   updateTierUI();

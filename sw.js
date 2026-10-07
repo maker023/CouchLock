@@ -4,12 +4,16 @@
  * Handles caching for offline PWA support.
  * Network-first for navigations, cache-first for static assets.
  */
-var CACHE_NAME = 'couchlock-v4';
+var CACHE_NAME = 'couchlock-v5';
+// Scripts are cache-first, so index.html loads them with a ?v= version. Bump it
+// (here and in index.html) whenever a script changes, or an installed app can
+// pair a new page with an old cached script.
 var STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './transport.js'
+  './transport.js?v=2',
+  './discovery.js?v=1'
 ];
 
 // Install — pre-cache static assets

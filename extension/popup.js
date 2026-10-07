@@ -2,6 +2,8 @@
  * CouchLock — Popup Script (IIFE)
  *
  * Renders QR code for pairing, displays connection status.
+ * While open, makes this laptop discoverable to nearby phones (CouchDiscovery)
+ * and asks the user to confirm each pairing request.
  * Syncs theme and stickers from PWA.
  * Communicates with background.js via chrome.runtime.
  */
@@ -21,26 +23,63 @@
   var btnNewSession = document.getElementById('btn-new-session');
   var btnCopyLink = document.getElementById('btn-copy-link');
   var btnDisconnect = document.getElementById('btn-disconnect');
+  var btnForget = document.getElementById('btn-forget');
+  var pairedTitle = document.getElementById('paired-title');
+  var requestEl = document.getElementById('request');
+  var requestTitle = document.getElementById('request-title');
+  var requestCode = document.getElementById('request-code');
+  var btnAllow = document.getElementById('btn-allow');
+  var btnDecline = document.getElementById('btn-decline');
 
   // ── State ──
   var currentSession = null;
+  var lastStatus = 'disconnected';
+  var lastPaired = false;
+  var pendingRequest = null;
+  var discoveryHost = null;
 
   // ── Status Display ──
 
   function setStatus(status, isPaired) {
+    lastStatus = status;
+    lastPaired = isPaired;
     statusDot.className = 'status-dot';
 
-    if (isPaired) {
-      statusDot.classList.add('connected');
-      statusText.textContent = 'Connected';
+    // A pairing request takes over the popup until it's answered.
+    if (pendingRequest) {
+      requestEl.classList.remove('hidden');
       unpairedEl.classList.add('hidden');
-      pairedEl.classList.remove('hidden');
-      if (currentSession) {
-        pairedSession.textContent = 'Session: ' + currentSession.id;
+      pairedEl.classList.add('hidden');
+    } else {
+      requestEl.classList.add('hidden');
+    }
+
+    var hasPhone = !!(currentSession && currentSession.pairedAt);
+    var paused = !!(currentSession && currentSession.paused);
+
+    if (hasPhone) {
+      if (!pendingRequest) {
+        unpairedEl.classList.add('hidden');
+        pairedEl.classList.remove('hidden');
+      }
+      pairedSession.textContent = paused ? 'Tap Reconnect on your phone to continue' : 'Session: ' + currentSession.id;
+      pairedTitle.textContent = paused ? 'Phone disconnected' : (isPaired ? 'Phone connected' : 'Phone paired');
+      btnDisconnect.classList.toggle('hidden', paused);
+
+      if (status !== 'connected') {
+        statusDot.classList.add('connecting');
+        statusText.textContent = 'Connecting to relay...';
+      } else if (isPaired) {
+        statusDot.classList.add('connected');
+        statusText.textContent = 'Connected';
+      } else {
+        statusText.textContent = paused ? 'Disconnected' : 'Waiting for phone...';
       }
     } else {
-      unpairedEl.classList.remove('hidden');
-      pairedEl.classList.add('hidden');
+      if (!pendingRequest) {
+        unpairedEl.classList.remove('hidden');
+        pairedEl.classList.add('hidden');
+      }
 
       if (status === 'connected') {
         statusDot.classList.add('connecting');
@@ -186,6 +225,50 @@
     }
   }
 
+  // ── Nearby Pairing ──
+
+  function deviceName() {
+    var os = navigator.userAgentData && navigator.userAgentData.platform
+      ? navigator.userAgentData.platform
+      : navigator.platform;
+    return os ? 'Chrome on ' + os : 'Chrome';
+  }
+
+  function startDiscovery() {
+    var code = CouchDiscovery.newCode();
+    var codeText = code.slice(0, 3) + ' ' + code.slice(3);
+    Array.prototype.forEach.call(document.querySelectorAll('.pairing-code'), function (el) {
+      el.textContent = codeText;
+    });
+
+    discoveryHost = CouchDiscovery.host({
+      name: deviceName(),
+      code: code,
+      onRequest: function (request) {
+        pendingRequest = request;
+        requestTitle.textContent = request.name + ' wants to connect';
+        requestCode.textContent = request.code;
+        setStatus(lastStatus, lastPaired);
+        btnAllow.focus();
+      }
+    });
+    window.addEventListener('pagehide', function () {
+      if (pendingRequest) pendingRequest.decline();
+      discoveryHost.stop();
+    });
+  }
+
+  function answerRequest(allow) {
+    if (!pendingRequest) return;
+    if (allow && currentSession) {
+      pendingRequest.accept({ token: currentSession.token, sessionId: currentSession.id });
+    } else {
+      pendingRequest.decline();
+    }
+    pendingRequest = null;
+    setStatus(lastStatus, lastPaired);
+  }
+
   // ── Init ──
 
   function init() {
@@ -206,6 +289,7 @@
         requestNewSession();
       }
     });
+    startDiscovery();
   }
 
   function requestNewSession() {
@@ -236,13 +320,31 @@
     });
   });
 
+  // Disconnect keeps the pairing; the phone can come back with one tap.
   btnDisconnect.addEventListener('click', function () {
+    chrome.runtime.sendMessage({ type: 'pausePhone' }, function (response) {
+      if (response && response.session) {
+        currentSession = response.session;
+        setStatus(lastStatus, false);
+      }
+    });
+  });
+
+  // Forget rotates the token: every paired phone has to pair again.
+  btnForget.addEventListener('click', function () {
     requestNewSession();
   });
+
+  btnAllow.addEventListener('click', function () { answerRequest(true); });
+  btnDecline.addEventListener('click', function () { answerRequest(false); });
 
   // Listen for status, theme, and sticker updates from background
   chrome.runtime.onMessage.addListener(function (msg) {
     if (msg.type === 'status') {
+      if (msg.session) {
+        if (!currentSession || msg.session.token !== currentSession.token) renderQR(msg.session);
+        currentSession = msg.session;
+      }
       setStatus(msg.status, msg.paired);
     }
     if (msg.type === 'theme_update') {

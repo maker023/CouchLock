@@ -2,15 +2,17 @@
  * CouchLock — Background Service Worker (MV3)
  *
  * Responsibilities:
- *   - Session generation (token + session ID)
- *   - WebSocket relay connection via CouchTransport
+ *   - Session generation (token + session ID), persisted pairing state
+ *   - WebSocket relay connection via CouchTransport (+ online/offline presence)
  *   - Message routing: phone → content script, content script → phone
+ *   - Content script (re-)injection for tabs opened before install/reload
  *   - Cursor state tracking (x, y position)
  *   - Tab management commands
  *   - Active tab filtering for media status
  *   - Input focus relay for keyboard overlay
  *   - Cursor settings relay
- *   - Route player fullscreen to the active media frame
+ *   - Player fullscreen (window fullscreen + player lifted above the page)
+ *   - Netflix seeking through the page's own player API
  */
 importScripts('transport.js');
 
@@ -21,7 +23,7 @@ importScripts('transport.js');
   var PWA_URL = 'https://maker023.github.io/CouchLock/';
 
   // ── Session State ──
-  var session = null;   // { id, token, created }
+  var session = null;   // { id, token, created, pairedAt, paused }
   var paired = false;
   var activeTabId = null; // currently active tab
   var mediaFrameId = null; // frame containing the active HTML media element
@@ -32,9 +34,14 @@ importScripts('transport.js');
   var viewportW = 1920;
   var viewportH = 1080;
   var connStatus = 'disconnected';
+  var fullscreenTab = null; // { tabId, windowId, prevState } while the remote holds fullscreen
+  var injecting = {};       // tabId → Promise<boolean>
   var sessionReady;
   var resolveSessionReady;
   sessionReady = new Promise(function (resolve) { resolveSessionReady = resolve; });
+
+  var RECEIVER_MISSING = 'Receiving end does not exist';
+  var MEDIA_COMMANDS = ['playPause', 'seekForward', 'seekBack', 'mute', 'volumeUp', 'volumeDown'];
 
   // ── Session Management ──
 
@@ -58,8 +65,18 @@ importScripts('transport.js');
     return id.slice(0, 12);
   }
 
+  function connectSession() {
+    CouchTransport.connect({ token: session.token, sessionId: session.id, presence: 'announce' });
+    startKeepalive();
+  }
+
+  function saveSession() {
+    chrome.storage.local.set({ session: session });
+  }
+
+  // Replaces the pairing. Phones holding the old token see it as revoked.
   function createSession() {
-    if (session) CouchTransport.disconnect();
+    if (session) CouchTransport.disconnect('x');
     session = {
       id: generateSessionId(),
       token: generateToken(),
@@ -69,45 +86,51 @@ importScripts('transport.js');
     cursorX = Math.round(viewportW / 2);
     cursorY = Math.round(viewportH / 2);
 
-    chrome.storage.local.set({ session: session });
-    startKeepalive();
+    saveSession();
+    connectSession();
+    broadcastToPopup({ type: 'status', status: connStatus, paired: false, session: session });
 
-    CouchTransport.connect({
-      token: session.token,
-      sessionId: session.id
-    });
-
-    return session;
-  }
-
-  function getSession() {
     return session;
   }
 
   // ── Active Tab Tracking ──
+  // The remote drives the active tab of the window the user last focused (a
+  // laptop + TV setup is two windows). Commands and media status follow the same
+  // rule, so status never comes from one tab while commands land on another.
+  var TARGET_TAB = { active: true, lastFocusedWindow: true };
 
-  function updateActiveTab() {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      if (tabs.length > 0) {
-        activeTabId = tabs[0].id;
+  function withActiveTab(fn) {
+    chrome.tabs.query(TARGET_TAB, function (tabs) {
+      if (tabs.length > 0) fn(tabs[0]);
+    });
+  }
+
+  function retarget() {
+    withActiveTab(function (tab) {
+      if (tab.id === activeTabId) return;
+      activeTabId = tab.id;
+      mediaFrameId = null;
+      mediaPlaying = false;
+      mediaPlatform = 'unknown';
+      if (paired) {
+        requestViewport();
+        sendToContentScript({ action: 'requestMediaStatus' }, null);
+        setTimeout(handleTabList, 300);
       }
     });
   }
 
   chrome.tabs.onActivated.addListener(function (info) {
-    activeTabId = info.tabId;
-    mediaFrameId = null;
-    mediaPlaying = false;
-    mediaPlatform = 'unknown';
-    // Request viewport dimensions from the new active tab
-    if (paired) {
-      requestViewport();
-      sendToContentScript({ action: 'requestMediaStatus' }, null);
-    }
+    if (fullscreenTab && info.windowId === fullscreenTab.windowId && info.tabId !== fullscreenTab.tabId) exitFullscreen();
+    retarget();
   });
 
-  // Init active tab
-  updateActiveTab();
+  chrome.windows.onFocusChanged.addListener(function (windowId) {
+    // NONE means Chrome lost focus to another app: keep driving the last window.
+    if (windowId !== chrome.windows.WINDOW_ID_NONE) retarget();
+  });
+
+  retarget();
 
   // ── Viewport ──
   // Content script reports viewport dimensions so cursor stays in bounds.
@@ -120,7 +143,7 @@ importScripts('transport.js');
 
   CouchTransport.onStatus(function (status) {
     connStatus = status;
-    broadcastToPopup({ type: 'status', status: status, paired: paired });
+    broadcastToPopup({ type: 'status', status: status, paired: paired, session: session });
     if (status === 'connected' && session) {
       CouchTransport.send({ type: 'session_available' });
     }
@@ -128,6 +151,9 @@ importScripts('transport.js');
 
   CouchTransport.onMessage(function (msg) {
     if (!msg || !msg.type) return;
+
+    // A disconnected phone may only ask to come back.
+    if (session && session.paused && msg.type !== 'hello') return;
 
     switch (msg.type) {
       case 'hello':
@@ -202,38 +228,45 @@ importScripts('transport.js');
       case 'session_close':
         handleSessionClose();
         break;
+      case 'session_pause':
+        pausePhone(false);
+        break;
     }
   });
 
   function handleSessionClose() {
     paired = false;
-    broadcastToPopup({ type: 'status', status: connStatus, paired: false });
     CouchTransport.send({ type: 'session_closed' }).then(function () {
       createSession();
     }).catch(createSession);
   }
 
+  // "Disconnect" (popup or phone): the phone keeps its pairing but stays idle
+  // until the user taps Reconnect on it. Only a popup disconnect tells the phone.
+  function pausePhone(notifyPhone) {
+    if (!session) return;
+    paired = false;
+    session.paused = true;
+    saveSession();
+    if (notifyPhone) CouchTransport.send({ type: 'session_paused' });
+    broadcastToPopup({ type: 'status', status: connStatus, paired: false, session: session });
+  }
+
   // ── Service-worker keepalive ──
   // MV3 service workers are killed after ~30s idle, which drops the broker
   // connection. While a session is active we keep a periodic alarm so the worker
-  // is woken and the connection re-established promptly. (Active WebSocket traffic
-  // — the ~24s MQTT ping — is the primary keepalive on modern Chrome; the alarm is
-  // the safety net for when the worker was terminated anyway.)
+  // is woken and the connection re-established promptly. The alarm also pings
+  // the broker: after sleep/wake a socket can claim to be open while dead, and
+  // the transport replaces it when the ping goes unanswered.
   var KEEPALIVE_ALARM = 'couchlock-keepalive';
 
   function startKeepalive() {
     chrome.alarms.create(KEEPALIVE_ALARM, { periodInMinutes: 0.5 });
   }
 
-  function ensureConnected() {
-    if (session && !CouchTransport.isConnected()) {
-      CouchTransport.reconnectNow();
-    }
-  }
-
   chrome.alarms.onAlarm.addListener(function (alarm) {
-    if (alarm.name === KEEPALIVE_ALARM) {
-      ensureConnected();
+    if (alarm.name === KEEPALIVE_ALARM && session) {
+      CouchTransport.checkAlive();
     }
   });
 
@@ -241,7 +274,7 @@ importScripts('transport.js');
     sessionReady.then(function () {
       if (session) {
         startKeepalive();
-        ensureConnected();
+        CouchTransport.checkAlive();
       }
     });
   });
@@ -249,8 +282,13 @@ importScripts('transport.js');
   function handleHello(msg) {
     if (session && msg.token === session.token) {
       paired = true;
+      if (!session.pairedAt || session.paused) {
+        session.pairedAt = session.pairedAt || Date.now();
+        session.paused = false;
+        saveSession();
+      }
       CouchTransport.send({ type: 'ready', ts: Date.now() });
-      broadcastToPopup({ type: 'status', status: connStatus, paired: true });
+      broadcastToPopup({ type: 'status', status: connStatus, paired: true, session: session });
       requestViewport();
       startKeepalive();
       maybeOpenTips();
@@ -384,47 +422,134 @@ importScripts('transport.js');
 
   // ── Command Router ──
 
+  function reportCommand(command, success, reason) {
+    CouchTransport.send({ type: 'cmd_result', command: command, success: success, reason: reason });
+  }
+
+  function mediaFrame() {
+    return mediaFrameId === null ? 0 : mediaFrameId;
+  }
+
   function handleCommand(msg) {
     var command = msg.action;
+    var unreachable = function () { reportCommand(command, false, 'unreachable'); };
 
     // Browser back/forward: use chrome.tabs.goBack/goForward
     if (command === 'browserBack') {
-      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        if (tabs.length > 0) {
-          chrome.tabs.goBack(tabs[0].id);
-        }
-      });
+      withActiveTab(function (tab) { chrome.tabs.goBack(tab.id); });
       return;
     }
     if (command === 'browserForward') {
-      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        if (tabs.length > 0) {
-          chrome.tabs.goForward(tabs[0].id);
-        }
-      });
+      withActiveTab(function (tab) { chrome.tabs.goForward(tab.id); });
       return;
     }
 
-    // Fullscreen belongs to the active player, not the Chrome window.
     if (command === 'fullscreen') {
-      sendToContentScript({ action: 'cmd', command: 'fullscreen', data: msg.data }, mediaFrameId === null ? 0 : mediaFrameId);
+      if (fullscreenTab) exitFullscreen();
+      else enterFullscreen();
+      return;
+    }
+
+    // Netflix's player breaks when its <video> is seeked directly, so seek
+    // through the page's own player API and fall back to its buttons.
+    if (mediaPlatform === 'netflix' && (command === 'seek' || command === 'seekForward' || command === 'seekBack')) {
+      var time = msg.data && msg.data.time !== undefined ? msg.data.time : 0;
+      var seekArgs = command === 'seek' ? ['absolute', time] : ['relative', command === 'seekForward' ? 10 : -10];
+      withActiveTab(function (tab) {
+        netflixSeek(tab.id, mediaFrame(), seekArgs[0], seekArgs[1]).then(function (ok) {
+          if (ok) reportCommand(command, true);
+          else if (command === 'seek') reportCommand(command, false, 'unsupported');
+          else sendToContentScript({ action: 'cmd', command: command, data: msg.data }, mediaFrame(), unreachable);
+        });
+      });
       return;
     }
 
     // Seek: set video.currentTime directly via content script
     if (command === 'seek') {
-      sendToContentScript({ action: 'seek', time: msg.data && msg.data.time !== undefined ? msg.data.time : 0 }, mediaFrameId === null ? 0 : mediaFrameId);
+      sendToContentScript({ action: 'seek', time: msg.data && msg.data.time !== undefined ? msg.data.time : 0 }, mediaFrame(), unreachable);
       return;
     }
 
     // Everything else (playPause, skipAd, skipIntro, nextEpisode, mute, volume, etc.)
     // goes straight to the content script which has per-platform selector strategies
     sendToContentScript({ action: 'cmd', command: command, data: msg.data },
-      command === 'nextEpisode' && mediaPlatform === 'star' ? 0 : (mediaFrameId === null ? 0 : mediaFrameId));
+      command === 'nextEpisode' && mediaPlatform === 'star' ? 0 : mediaFrame(), unreachable);
   }
 
+  // ── Fullscreen ──
+  // requestFullscreen() needs a real user gesture, which a remote can't provide.
+  // Instead the browser window goes fullscreen (no gesture needed) and the
+  // content script lifts the player into the top layer so it covers the page.
+
+  function saveFullscreenTab() {
+    chrome.storage.session.set({ fullscreenTab: fullscreenTab });
+  }
+
+  function enterFullscreen() {
+    withActiveTab(function (tab) {
+      chrome.windows.get(tab.windowId, function (win) {
+        if (chrome.runtime.lastError) return;
+        fullscreenTab = { tabId: tab.id, windowId: tab.windowId, prevState: win.state };
+        saveFullscreenTab();
+        if (win.state !== 'fullscreen') chrome.windows.update(tab.windowId, { state: 'fullscreen' });
+        deliver(tab.id, { action: 'playerExpand' }, mediaFrame(), function () {
+          reportCommand('fullscreen', false, 'unreachable');
+        }, true);
+      });
+    });
+  }
+
+  function exitFullscreen() {
+    if (!fullscreenTab) return;
+    var fs = fullscreenTab;
+    fullscreenTab = null;
+    saveFullscreenTab();
+    chrome.tabs.sendMessage(fs.tabId, { action: 'playerRestore' }, function () {
+      if (chrome.runtime.lastError) { /* tab gone or not scriptable */ }
+    });
+    if (fs.prevState !== 'fullscreen') {
+      chrome.windows.update(fs.windowId, { state: fs.prevState }, function () {
+        if (chrome.runtime.lastError) { /* window closed */ }
+      });
+    }
+  }
+
+  // ── Netflix ──
+
+  function netflixSeek(tabId, frameId, mode, seconds) {
+    return chrome.scripting.executeScript({
+      target: { tabId: tabId, frameIds: [frameId] },
+      world: 'MAIN',
+      func: netflixPlayerSeek,
+      args: [mode, seconds]
+    }).then(function (results) {
+      return !!(results && results[0] && results[0].result);
+    }, function () {
+      return false;
+    });
+  }
+
+  // Runs inside the Netflix page (serialised by executeScript): keep it self-contained.
+  function netflixPlayerSeek(mode, seconds) {
+    try {
+      var videoPlayer = window.netflix.appContext.state.playerApp.getAPI().videoPlayer;
+      var ids = videoPlayer.getAllPlayerSessionIds();
+      var id = ids.filter(function (s) { return s.indexOf('watch') === 0; })[0] || ids[ids.length - 1];
+      if (!id) return false;
+      var player = videoPlayer.getVideoPlayerBySessionId(id);
+      var target = mode === 'absolute' ? seconds * 1000 : player.getCurrentTime() + seconds * 1000;
+      player.seek(Math.max(0, Math.min(player.getDuration(), target)));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ── Tabs ──
+
   function handleTabList() {
-    chrome.tabs.query({ currentWindow: true }, function (tabs) {
+    chrome.tabs.query({ lastFocusedWindow: true }, function (tabs) {
       var list = tabs.map(function (t) {
         return { id: t.id, title: t.title, url: t.url, active: t.active };
       });
@@ -486,13 +611,11 @@ importScripts('transport.js');
       url = 'https://www.google.com/search?q=' + encodeURIComponent(query);
     }
 
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      if (tabs.length > 0) {
-        chrome.tabs.update(tabs[0].id, { url: url }, function () {
-          if (chrome.runtime.lastError) return;
-          setTimeout(handleTabList, 500);
-        });
-      }
+    withActiveTab(function (tab) {
+      chrome.tabs.update(tab.id, { url: url }, function () {
+        if (chrome.runtime.lastError) return;
+        setTimeout(handleTabList, 500);
+      });
     });
   }
 
@@ -520,18 +643,60 @@ importScripts('transport.js');
 
   // ── Content Script Communication ──
 
-  function sendToContentScript(msg, frameId) {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      if (tabs.length > 0) {
-        var options = frameId === null ? {} : { frameId: frameId === undefined ? 0 : frameId };
-        chrome.tabs.sendMessage(tabs[0].id, msg, options, function () {
-          if (chrome.runtime.lastError) { /* ignore */ }
-        });
+  // Chrome doesn't re-inject declared content scripts into tabs that were open
+  // before the extension was installed or reloaded, so those tabs silently
+  // ignore the remote. Inject on demand; pages Chrome won't let us script
+  // (chrome://, the Web Store) resolve false.
+  function injectContentScript(tabId) {
+    if (!injecting[tabId]) {
+      injecting[tabId] = chrome.scripting.executeScript({
+        target: { tabId: tabId, allFrames: true },
+        files: ['content.js']
+      }).then(function () {
+        return true;
+      }, function () {
+        return false;
+      }).then(function (ok) {
+        // Forget failures quickly so a navigation to a scriptable page can retry.
+        setTimeout(function () { delete injecting[tabId]; }, ok ? 0 : 3000);
+        return ok;
+      });
+    }
+    return injecting[tabId];
+  }
+
+  function deliver(tabId, msg, frameId, onUnreachable, retry) {
+    var options = frameId === null ? {} : { frameId: frameId === undefined ? 0 : frameId };
+    chrome.tabs.sendMessage(tabId, msg, options, function () {
+      var error = chrome.runtime.lastError;
+      // "Message port closed" just means the content script didn't reply.
+      if (!error || (error.message || '').indexOf(RECEIVER_MISSING) === -1) return;
+      if (!retry) {
+        if (onUnreachable) onUnreachable();
+        return;
       }
+      injectContentScript(tabId).then(function (ok) {
+        if (ok) deliver(tabId, msg, frameId, onUnreachable, false);
+        else if (onUnreachable) onUnreachable();
+      });
     });
   }
 
-  // Listen for messages FROM content script
+  function sendToContentScript(msg, frameId, onUnreachable) {
+    withActiveTab(function (tab) {
+      deliver(tab.id, msg, frameId, onUnreachable, true);
+    });
+  }
+
+  chrome.runtime.onInstalled.addListener(function () {
+    chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] }, function (tabs) {
+      tabs.forEach(function (tab) {
+        if (!tab.discarded) injectContentScript(tab.id);
+      });
+    });
+  });
+
+  // Listen for messages FROM content script and popup
   chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     if (msg.type === 'getSession') {
       sessionReady.then(function () {
@@ -552,6 +717,14 @@ importScripts('transport.js');
       return true;
     }
 
+    if (msg.type === 'pausePhone') {
+      sessionReady.then(function () {
+        pausePhone(true);
+        sendResponse({ session: session });
+      });
+      return true;
+    }
+
     if (msg.type === 'viewport') {
       if (msg.w && msg.h) {
         viewportW = msg.w;
@@ -559,6 +732,18 @@ importScripts('transport.js');
         cursorX = Math.round(viewportW / 2);
         cursorY = Math.round(viewportH / 2);
       }
+    }
+
+    if (msg.type === 'playerRestored') {
+      // The user left fullscreen on the laptop (Esc); give the window back too.
+      if (fullscreenTab && sender.tab && sender.tab.id === fullscreenTab.tabId) exitFullscreen();
+    }
+
+    // A frame asks its parent frame to lift the <iframe> holding it.
+    if (msg.type === 'expandMyFrame' && sender.tab && sender.frameId) {
+      chrome.tabs.sendMessage(sender.tab.id, { action: 'expandChildFrame', frameId: sender.frameId }, function () {
+        if (chrome.runtime.lastError) { /* frame went away */ }
+      });
     }
 
     if (msg.type === 'mediaStatus') {
@@ -616,11 +801,7 @@ importScripts('transport.js');
     }
 
     if (msg.type === 'cmdResult') {
-      CouchTransport.send({
-        type: 'cmd_result',
-        command: msg.command,
-        success: msg.success
-      });
+      reportCommand(msg.command, msg.success, msg.reason);
     }
   });
 
@@ -638,7 +819,8 @@ importScripts('transport.js');
     if (paired) setTimeout(handleTabList, 300);
   });
 
-  chrome.tabs.onRemoved.addListener(function () {
+  chrome.tabs.onRemoved.addListener(function (tabId) {
+    if (fullscreenTab && fullscreenTab.tabId === tabId) exitFullscreen();
     if (paired) setTimeout(handleTabList, 300);
   });
 
@@ -653,18 +835,17 @@ importScripts('transport.js');
     }
   });
 
-  chrome.tabs.onActivated.addListener(function () {
-    if (paired) setTimeout(handleTabList, 300);
-  });
-
   // ── Init ──
 
   chrome.storage.local.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' });
+  chrome.storage.session.get('fullscreenTab', function (data) {
+    if (data && data.fullscreenTab) fullscreenTab = data.fullscreenTab;
+  });
   chrome.storage.local.get('session', function (data) {
     if (data && data.session) {
       session = data.session;
-      CouchTransport.connect({ token: session.token, sessionId: session.id });
-      startKeepalive();
+      paired = !!session.pairedAt && !session.paused;
+      connectSession();
       resolveSessionReady();
       return;
     }
@@ -672,9 +853,8 @@ importScripts('transport.js');
     chrome.storage.session.get('session', function (legacy) {
       if (legacy && legacy.session) {
         session = legacy.session;
-        chrome.storage.local.set({ session: session });
-        CouchTransport.connect({ token: session.token, sessionId: session.id });
-        startKeepalive();
+        saveSession();
+        connectSession();
       }
       resolveSessionReady();
     });
