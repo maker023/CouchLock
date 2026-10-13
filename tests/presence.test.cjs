@@ -43,6 +43,29 @@ test('phone sees the laptop come online, vanish, and get revoked', async () => {
   laptop.disconnect();
 });
 
+test('a retired token is revoked later, for phones that missed the first revoke', async () => {
+  const broker = new Broker();
+  const OLD = 'cd'.repeat(32);
+
+  const oldLaptop = loadContext(broker).CouchTransport;
+  await oldLaptop.connect({ token: OLD, sessionId: 'l', presence: 'announce' });
+  await waitFor(() => oldLaptop.isConnected());
+  oldLaptop.disconnect(); // pairing reset while the revoke couldn't land: the old topic still says '0'
+
+  const laptop = loadContext(broker).CouchTransport;
+  await laptop.connect({ token: TOKEN, sessionId: 'l2', presence: 'announce' });
+  await waitFor(() => laptop.isConnected());
+  assert.equal(await laptop.revokeToken(OLD), true);
+
+  const phone = loadContext(broker).CouchTransport;
+  const presence = [];
+  phone.onPresence((state) => presence.push(state));
+  await phone.connect({ token: OLD, sessionId: 'p', presence: 'watch' });
+  await waitFor(() => presence.at(-1) === 'x');
+  phone.disconnect();
+  laptop.disconnect();
+});
+
 test('encrypted messages still flow alongside presence', async () => {
   const broker = new Broker();
   const { laptop, phone, messages } = laptopAndPhone(broker);

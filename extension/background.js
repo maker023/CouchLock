@@ -24,6 +24,7 @@ importScripts('transport.js');
 
   // ── Session State ──
   var session = null;   // { id, token, created, pairedAt, paused }
+  var retiredTokens = []; // previous tokens, newest first: kept marked as revoked
   var paired = false;
   var activeTabId = null; // currently active tab
   var mediaFrameId = null; // frame containing the active HTML media element
@@ -41,6 +42,7 @@ importScripts('transport.js');
   sessionReady = new Promise(function (resolve) { resolveSessionReady = resolve; });
 
   var RECEIVER_MISSING = 'Receiving end does not exist';
+  var MAX_RETIRED = 5;
   var MEDIA_COMMANDS = ['playPause', 'seekForward', 'seekBack', 'mute', 'volumeUp', 'volumeDown'];
 
   // ── Session Management ──
@@ -76,7 +78,10 @@ importScripts('transport.js');
 
   // Replaces the pairing. Phones holding the old token see it as revoked.
   function createSession() {
-    if (session) CouchTransport.disconnect('x');
+    if (session) {
+      retireToken(session.token);
+      CouchTransport.disconnect('x');
+    }
     session = {
       id: generateSessionId(),
       token: generateToken(),
@@ -91,6 +96,22 @@ importScripts('transport.js');
     broadcastToPopup({ type: 'status', status: connStatus, paired: false, session: session });
 
     return session;
+  }
+
+  // The 'x' sent while disconnecting only lands if the relay is up at that
+  // moment. Re-send it to every retired token on each connect, so a phone that
+  // missed it is told its pairing is gone rather than seeing "offline" forever.
+  function retireToken(token) {
+    retiredTokens = [token].concat(retiredTokens.filter(function (t) {
+      return t !== token;
+    })).slice(0, MAX_RETIRED);
+    chrome.storage.local.set({ retiredTokens: retiredTokens });
+  }
+
+  function revokeRetired() {
+    retiredTokens.forEach(function (t) {
+      if (session && t !== session.token) CouchTransport.revokeToken(t);
+    });
   }
 
   // ── Active Tab Tracking ──
@@ -146,6 +167,7 @@ importScripts('transport.js');
     broadcastToPopup({ type: 'status', status: status, paired: paired, session: session });
     if (status === 'connected' && session) {
       CouchTransport.send({ type: 'session_available' });
+      revokeRetired();
     }
   });
 
@@ -841,7 +863,8 @@ importScripts('transport.js');
   chrome.storage.session.get('fullscreenTab', function (data) {
     if (data && data.fullscreenTab) fullscreenTab = data.fullscreenTab;
   });
-  chrome.storage.local.get('session', function (data) {
+  chrome.storage.local.get(['session', 'retiredTokens'], function (data) {
+    if (data && data.retiredTokens) retiredTokens = data.retiredTokens;
     if (data && data.session) {
       session = data.session;
       paired = !!session.pairedAt && !session.paused;

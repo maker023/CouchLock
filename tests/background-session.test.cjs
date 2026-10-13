@@ -11,6 +11,7 @@ function boot(localSession, legacySession) {
   const disconnects = [];
   const sent = [];
   const tabMessages = [];
+  const revoked = [];
   const local = { session: localSession };
   const on = (name) => ({ addListener(fn) { listeners[name] = fn; } });
   const chrome = {
@@ -39,7 +40,9 @@ function boot(localSession, legacySession) {
     storage: {
       local: {
         setAccessLevel() { return Promise.resolve(); },
-        get(_key, callback) { queueMicrotask(() => callback({ session: local.session })); },
+        get(_key, callback) {
+          queueMicrotask(() => callback({ session: local.session, retiredTokens: local.retiredTokens }));
+        },
         set(value) { Object.assign(local, value); return Promise.resolve(); }
       },
       session: {
@@ -54,7 +57,8 @@ function boot(localSession, legacySession) {
     isConnected() { return true; },
     checkAlive() {},
     send(msg) { sent.push(msg); return Promise.resolve(true); },
-    onStatus() {},
+    revokeToken(token) { revoked.push(token); return Promise.resolve(true); },
+    onStatus(fn) { listeners.status = fn; },
     onMessage(fn) { listeners.transport = fn; },
     onPresence() {}
   };
@@ -65,7 +69,8 @@ function boot(localSession, legacySession) {
     return new Promise((resolve) => listeners.message({ type }, {}, resolve));
   }
   return {
-    local, connected, disconnects, sent, tabMessages, message,
+    local, connected, disconnects, sent, tabMessages, revoked, message,
+    relay: (status) => listeners.status(status),
     phone: (msg) => listeners.transport(msg),
     fromTab: (tabId, msg) => listeners.message(msg, { tab: { id: tabId, url: 'https://example.com/' }, frameId: 0 }, () => {})
   };
@@ -139,4 +144,20 @@ test('disconnecting from the phone keeps the pairing without echoing back', asyn
   assert.equal(app.sent.some((m) => m.type === 'session_paused'), false);
   app.phone({ type: 'hello', token: saved.token });
   assert.equal(app.local.session.paused, false);
+});
+
+test('forgotten tokens are revoked again every time the relay connects', async () => {
+  const saved = { id: 'saved123', token: 'aa'.repeat(32), created: 1, pairedAt: 5 };
+  const app = boot(saved, null);
+  await app.message('getSession');
+  const renewed = await app.message('newSession');
+  assert.deepEqual(Array.from(app.local.retiredTokens), [saved.token]);
+
+  app.relay('connected');
+  assert.deepEqual(app.revoked, [saved.token]);
+  assert.ok(!app.revoked.includes(renewed.session.token), 'the live pairing is never revoked');
+
+  app.revoked.length = 0;
+  app.relay('connected'); // e.g. after laptop sleep
+  assert.deepEqual(app.revoked, [saved.token]);
 });

@@ -71,12 +71,40 @@ html, body {
   display: flex;
   align-items: center;
   gap: 6px;
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
   font-family: var(--font-m);
   font-size: 9px;
   font-weight: 500;
   color: rgba(var(--ui-rgb),0.15);
   letter-spacing: 1px;
+  cursor: pointer;
+  transition: opacity 150ms var(--ease-mag);
 }
+/* Grows the tap target to ~44px without moving the layout. */
+.conn::after {
+  content: '';
+  position: absolute;
+  inset: -14px -12px;
+}
+.conn:disabled { cursor: default; }
+.conn:not(:disabled):active { opacity: 0.85; }
+.conn:focus-visible {
+  outline: 2px solid rgba(var(--ui-rgb),0.6);
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+.conn-chevron {
+  width: 10px; height: 10px;
+  stroke: rgba(var(--ui-rgb),0.4);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.conn:disabled .conn-chevron { display: none; }
 .conn-dot {
   width: 6px; height: 6px;
   border-radius: 50%;
@@ -383,6 +411,25 @@ html, body {
 }
 .install-cta.visible { display: flex; }
 .install-cta span { flex: 1; font: 500 13px/1.4 var(--font-b); }
+.install-cta .cta-dismiss {
+  display: flex;
+  padding: 10px;
+  margin: -6px -6px -6px -4px;
+  background: none;
+  border-radius: 999px;
+}
+.install-cta .cta-dismiss svg {
+  width: 16px; height: 16px;
+  stroke: rgba(var(--ui-rgb),0.4);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.install-cta button:focus-visible {
+  outline: 2px solid rgba(var(--ui-rgb),0.6);
+  outline-offset: 2px;
+}
 
 /* ═══════════════════════════════════════════
    PAYWALL OVERLAY
@@ -1802,10 +1849,12 @@ html, body {
         <input id="pairing-link-input" type="text" inputmode="numeric" placeholder="Or enter the code" aria-label="Pairing code or link" autocomplete="off">
         <button type="submit">Pair</button>
       </form>
+      <button class="pairing-btn pairing-btn-ghost" id="btn-pair-close" type="button" hidden>Back to remote</button>
     </div>
 
     <div class="pairing-group pairing-group-paused">
       <button class="pairing-btn" id="btn-reconnect" type="button">Reconnect</button>
+      <button class="pairing-btn pairing-btn-ghost" id="btn-paused-repair" type="button">Pair again</button>
     </div>
 
     <div class="pairing-group pairing-group-confirm">
@@ -1820,12 +1869,21 @@ html, body {
     <button id="install-add" type="button">Add</button>
   </div>
 
+  <div class="install-cta" id="repair-nudge" role="status" aria-live="polite">
+    <span>Laptop not answering? If CouchLock was reset there, pair it again.</span>
+    <button id="repair-nudge-btn" type="button">Pair again</button>
+    <button class="cta-dismiss" id="repair-nudge-dismiss" type="button" aria-label="Dismiss">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
   <!-- Top Bar -->
   <div class="topbar">
-    <div class="conn">
-      <div class="conn-dot" id="conn-dot"></div>
+    <button class="conn" id="conn" type="button" disabled>
+      <span class="conn-dot" id="conn-dot"></span>
       <span id="conn-text">Disconnected</span>
-    </div>
+      <svg class="conn-chevron" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
     <div class="topbar-nav visible" id="topbar-nav">
       <button class="topbar-nav-btn disabled" id="btn-back" aria-label="Browser Back">
         <svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
@@ -1986,6 +2044,10 @@ html, body {
           <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:rgba(var(--accent-rgb),0.5);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </div>
 
+        <button class="btn-close-session btn-disconnect-session" id="btn-pair-again" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          Pair Again
+        </button>
         <button class="btn-close-session btn-disconnect-session" id="btn-disconnect-session" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           Disconnect
@@ -2102,7 +2164,7 @@ html, body {
   </div>
 </div>
 
-<script src="transport.js?v=2"></script>
+<script src="transport.js?v=3"></script>
 <script src="discovery.js?v=1"></script>
 <script>
 (function () {
@@ -2153,6 +2215,8 @@ html, body {
   var lastLaptopSeen = 0;
   var finder = null;           // CouchDiscovery search in progress
   var findTimer = null;
+  var nudgeTimer = null;       // counts down to the "pair again?" suggestion
+  var nudgeDismissed = false;
   var lastFailureToast = { reason: '', at: 0 };
 
   // ── Theme Definitions ──
@@ -2277,6 +2341,9 @@ html, body {
   // Modes: 'pair' (find laptop / enter code), 'paused' (laptop disconnected us),
   // 'confirm' (showing the code to compare with the laptop).
   function showPairing(mode, status) {
+    hideRepairNudge();
+    // With a saved pairing the remote is still underneath: let the user go back.
+    $('#btn-pair-close').hidden = !(token && everPaired);
     $('#pairing').setAttribute('data-mode', mode);
     $('#pairing').classList.remove('hidden');
     if (status) $('#pairing-status').textContent = status;
@@ -2386,6 +2453,50 @@ html, body {
     showPairing('pair', 'Pairing cancelled.');
   });
 
+  // ── Pair again ──
+  // A saved pairing can point at a token the laptop no longer uses (extension
+  // reinstalled, or reset while this phone was away). From here that looks the
+  // same as a sleeping laptop, so re-pairing is always one tap away. The saved
+  // pairing is only replaced once a new one answers.
+  var NUDGE_AFTER = 120000;
+
+  function openRepair() {
+    stopFinding();
+    showPairing('pair', 'Find your laptop, or enter the code shown in the extension.');
+  }
+
+  function hideRepairNudge() {
+    clearTimeout(nudgeTimer);
+    nudgeTimer = null;
+    $('#repair-nudge').classList.remove('visible');
+  }
+
+  // Counts only while the relay is up and the laptop stays silent, so a phone
+  // without signal isn't told to re-pair.
+  function startRepairNudge() {
+    if (nudgeTimer || nudgeDismissed || isPaired || sessionPaused || !token) return;
+    nudgeTimer = setTimeout(function () {
+      nudgeTimer = null;
+      if (isPaired || sessionPaused || !CouchTransport.isConnected()) return;
+      if (!$('#pairing').classList.contains('hidden')) return;
+      $('#repair-nudge').classList.add('visible');
+    }, NUDGE_AFTER);
+  }
+
+  $('#conn').addEventListener('click', openRepair);
+  $('#btn-pair-again').addEventListener('click', openRepair);
+  $('#btn-paused-repair').addEventListener('click', openRepair);
+  $('#repair-nudge-btn').addEventListener('click', openRepair);
+  $('#repair-nudge-dismiss').addEventListener('click', function () {
+    nudgeDismissed = true;
+    hideRepairNudge();
+  });
+
+  $('#btn-pair-close').addEventListener('click', function () {
+    stopFinding();
+    hidePairing();
+  });
+
   $('#btn-reconnect').addEventListener('click', function () {
     sessionPaused = false;
     showPairing('paused', 'Reconnecting...');
@@ -2475,12 +2586,14 @@ html, body {
     CouchTransport.onStatus(function (status) {
       if (status === 'connected') {
         startHello();
+        startRepairNudge();
         $('#pairing-status').textContent = 'Authenticating...';
         clearTimeout(handshakeTimer);
         handshakeTimer = setTimeout(checkHandshake, HANDSHAKE_TIMEOUT);
       } else if (status === 'disconnected' || status === 'failed') {
         clearTimeout(handshakeTimer);
         stopHello();
+        hideRepairNudge();
         isConnected = false;
         isPaired = false;
         updateConnUI();
@@ -2523,6 +2636,8 @@ html, body {
         clearTimeout(handshakeTimer);
         stopHello();
         stopFinding();
+        hideRepairNudge();
+        nudgeDismissed = false;
         isPaired = true;
         isConnected = true;
         everPaired = true;
@@ -2649,10 +2764,15 @@ html, body {
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'hidden') {
       hiddenAt = Date.now();
+      hideRepairNudge();
       keyboardRequestedUntil = 0;
       clearTimeout(kbFocusTimer);
       hideKeyboardOverlay();
-    } else resumeReconnect();
+    } else {
+      resumeReconnect();
+      // A quick glance away doesn't reconnect, so restart the countdown here.
+      if (CouchTransport.isConnected()) startRepairNudge();
+    }
   });
   window.addEventListener('pageshow', resumeReconnect);
   window.addEventListener('focus', resumeReconnect);
@@ -2670,6 +2790,7 @@ html, body {
     var offline = !isPaired && laptopPresence === '0' && !sessionPaused;
     dot.classList.toggle('on', isPaired);
     dot.classList.toggle('offline', offline);
+    $('#conn').disabled = isPaired;
     if (isPaired) {
       text.textContent = 'Connected';
     } else if (sessionPaused) {
@@ -2679,6 +2800,8 @@ html, body {
     } else {
       text.textContent = token && autoReconnect ? 'Reconnecting...' : 'Disconnected';
     }
+    if (isPaired) $('#conn').removeAttribute('aria-label');
+    else $('#conn').setAttribute('aria-label', text.textContent + ' (tap to pair again)');
     updateNavButtons();
   }
 
@@ -2742,8 +2865,9 @@ html, body {
   var forgetArmedUntil = 0;
   var forgetLabelTimer = null;
 
+  // Works offline too: the pairing is cleared here even if the laptop can't hear it.
   $('#btn-close-session').addEventListener('click', function () {
-    if (!isPaired) return;
+    if (!token) return;
     var label = $('#btn-close-session-label');
     if (Date.now() > forgetArmedUntil) {
       forgetArmedUntil = Date.now() + FORGET_CONFIRM_MS;

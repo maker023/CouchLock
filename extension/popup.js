@@ -19,7 +19,11 @@
   var unpairedEl = document.getElementById('unpaired');
   var pairedEl = document.getElementById('paired');
   var pairedSession = document.getElementById('paired-session');
+  var qrBlock = document.getElementById('qr-block');
+  var qrLabel = document.getElementById('qr-label');
+  var qrHint = document.getElementById('qr-hint');
   var qrCanvas = document.getElementById('qr-canvas');
+  var btnShowQr = document.getElementById('btn-show-qr');
   var btnNewSession = document.getElementById('btn-new-session');
   var btnCopyLink = document.getElementById('btn-copy-link');
   var btnDisconnect = document.getElementById('btn-disconnect');
@@ -37,6 +41,7 @@
   var lastPaired = false;
   var pendingRequest = null;
   var discoveryHost = null;
+  var qrRevealed = false;
 
   // ── Status Display ──
 
@@ -56,6 +61,18 @@
 
     var hasPhone = !!(currentSession && currentSession.pairedAt);
     var paused = !!(currentSession && currentSession.paused);
+
+    // Once paired, the QR stays tucked away until asked for. It carries the same
+    // token, so scanning it reconnects a phone without breaking other pairings.
+    if (!hasPhone) qrRevealed = false;
+    var showQr = !pendingRequest && (!hasPhone || qrRevealed);
+    qrBlock.classList.toggle('hidden', !showQr);
+    qrLabel.textContent = hasPhone ? 'Scan to reconnect' : 'Scan to connect';
+    qrHint.textContent = hasPhone
+      ? 'Same pairing: phones already paired stay paired.'
+      : 'Point your phone camera at this code.';
+    btnShowQr.textContent = qrRevealed ? 'Hide QR Code' : 'Show QR Code';
+    btnShowQr.setAttribute('aria-expanded', qrRevealed ? 'true' : 'false');
 
     if (hasPhone) {
       if (!pendingRequest) {
@@ -333,6 +350,11 @@
   // Forget rotates the token: every paired phone has to pair again.
   btnForget.addEventListener('click', function () {
     requestNewSession();
+  });
+
+  btnShowQr.addEventListener('click', function () {
+    qrRevealed = !qrRevealed;
+    setStatus(lastStatus, lastPaired);
   });
 
   btnAllow.addEventListener('click', function () { answerRequest(true); });

@@ -248,6 +248,8 @@ body {
   position: relative;
   z-index: 2;
 }
+/* Follows the QR block, which the popup's own gap already spaces. */
+#unpaired .pair-code { margin-top: 0; }
 .pair-code-label {
   font-size: 12px;
   font-weight: 500;
@@ -327,15 +329,19 @@ body {
     <button class="btn btn-ghost" id="btn-decline" style="margin-top:8px">Decline</button>
   </div>
 
-  <!-- Unpaired state -->
-  <div id="unpaired">
+  <!-- QR: always shown before pairing; on demand once a phone is paired -->
+  <div id="qr-block" class="hidden">
     <div class="surface">
       <div class="qr-area">
-        <div class="qr-label">Scan to connect</div>
-        <canvas id="qr-canvas" width="160" height="160"></canvas>
-        <div class="qr-hint">Point your phone camera at this code.</div>
+        <div class="qr-label" id="qr-label">Scan to connect</div>
+        <canvas id="qr-canvas" width="160" height="160" role="img" aria-label="Pairing QR code"></canvas>
+        <div class="qr-hint" id="qr-hint">Point your phone camera at this code.</div>
       </div>
     </div>
+  </div>
+
+  <!-- Unpaired state -->
+  <div id="unpaired">
     <div class="pair-code">
       <div class="pair-code-label">Already have the app? Tap <strong>Find my laptop</strong>, or enter</div>
       <div class="pair-code-digits pairing-code" aria-label="Pairing code">------</div>
@@ -356,7 +362,8 @@ body {
       <div class="pair-code-label">Add another phone: <strong>Find my laptop</strong>, or enter</div>
       <div class="pair-code-digits pairing-code" aria-label="Pairing code">------</div>
     </div>
-    <button class="btn btn-ghost" id="btn-disconnect" style="margin-top:12px">Disconnect Phone</button>
+    <button class="btn btn-ghost" id="btn-show-qr" style="margin-top:12px" aria-expanded="false" aria-controls="qr-block">Show QR Code</button>
+    <button class="btn btn-ghost" id="btn-disconnect" style="margin-top:8px">Disconnect Phone</button>
     <button class="btn btn-ghost" id="btn-forget" style="margin-top:8px">Forget Phone</button>
   </div>
 

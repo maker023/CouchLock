@@ -11,6 +11,7 @@
  *   CouchTransport.onPresence(fn)        → void  ('1' online, '0' offline, 'x' revoked)
  *   CouchTransport.disconnect(presence)  → void  (announcers publish presence first, default '0')
  *   CouchTransport.reconnectNow()        → void
+ *   CouchTransport.revokeToken(token)    → Promise<boolean>  (retained 'x' on that token's presence topic)
  *   CouchTransport.checkAlive()          → void  (ping now; a silent socket is replaced)
  *   CouchTransport.isConnected()         → boolean
  *   CouchTransport.createClient()        → independent client with the same API
@@ -487,6 +488,19 @@ var CouchTransport = (function () {
       doConnect();
     }
 
+    // Mark another (retired) pairing as revoked: a retained 'x' on its presence
+    // topic, sent over this connection. Phones still holding that token see it
+    // the moment they connect, instead of a stale "offline" flag forever.
+    function revokeToken(oldToken) {
+      if (!connected || !ws) return Promise.resolve(false);
+      var socket = ws;
+      return hashTopic(oldToken).then(function (t) {
+        if (socket !== ws || socket.readyState !== 1) return false;
+        socket.send(buildPublish(t + '/p', encodeUTF8('x'), true));
+        return true;
+      });
+    }
+
     // Prove the socket is alive right now. Used after sleep/wake, when a socket
     // can report "open" long after the network under it has gone.
     function checkAlive() {
@@ -507,6 +521,7 @@ var CouchTransport = (function () {
       onPresence: onPresence,
       disconnect: disconnect,
       reconnectNow: reconnectNow,
+      revokeToken: revokeToken,
       checkAlive: checkAlive,
       isConnected: isConnected
     };
