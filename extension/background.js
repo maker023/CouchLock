@@ -312,6 +312,9 @@ importScripts('transport.js');
       CouchTransport.send({ type: 'ready', ts: Date.now() });
       broadcastToPopup({ type: 'status', status: connStatus, paired: true, session: session });
       requestViewport();
+      // A reconnect may happen while the media view is already open. Fetch a
+      // snapshot from every frame without waiting for a playback interaction.
+      sendToContentScript({ action: 'requestMediaStatus' }, null);
       startKeepalive();
       maybeOpenTips();
     }
@@ -794,7 +797,7 @@ importScripts('transport.js');
       CouchTransport.send({
         type: 'media_status',
         platform: reportedPlatform,
-        title: msg.title,
+        title: (msg.title || '').trim() || (sender.tab && sender.tab.title) || '',
         playing: msg.playing,
         currentTime: msg.currentTime,
         duration: msg.duration,

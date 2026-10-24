@@ -114,9 +114,19 @@
 
   // ── Theme Sync ──
 
+  function onColor(hex) {
+    var channels = [1, 3, 5].map(function (start) {
+      var c = parseInt(hex.substring(start, start + 2), 16) / 255;
+      return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    var luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    return (luminance + 0.05) / 0.05 >= 1.05 / (luminance + 0.05) ? '0,0,0' : '255,255,255';
+  }
+
   function applyTheme(theme) {
     if (!theme) return;
     var root = document.documentElement;
+    root.setAttribute('data-appearance', theme.appearance || 'aura');
 
     // Compute hex from accent RGB
     var parts = theme.accent.split(',');
@@ -131,6 +141,13 @@
     root.style.setProperty('--accent', accentHex);
     root.style.setProperty('--accent-rgb', theme.accent);
     root.style.setProperty('--ui-rgb', theme.ui);
+    root.style.setProperty('--accent-light', '#' + [r, g, b].map(function (c) {
+      return Math.round(c + (255 - c) * 0.2).toString(16).padStart(2, '0');
+    }).join(''));
+    root.style.setProperty('--accent-on', onColor(accentHex));
+    // Older stored payloads have no primaryHex; their accent remains the CTA.
+    root.style.setProperty('--primary', theme.primaryHex || accentHex);
+    root.style.setProperty('--primary-on', onColor(theme.primaryHex || accentHex));
   }
 
   function loadTheme() {

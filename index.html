@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0A0B10">
+<meta name="theme-color" content="#080A12">
 <title>CouchLock</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -13,16 +13,18 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --void: #0A0B10;
-  --void-rgb: 10,11,16;
-  --ink: #0D0F1C;
-  --accent: #4F52E0;
-  --accent-rgb: 79,82,224;
-  --accent-light: #6366F1;
-  --primary: #4F52E0;
-  --primary-rgb: 79,82,224;
-  --primary-on: 255,255,255;
-  --ui-rgb: 255,255,255;
+  --void: #080A12;
+  --void-rgb: 8,10,18;
+  --ink: #20263D;
+  --accent: #9B9EFF;
+  --accent-rgb: 155,158,255;
+  --accent-light: #AFB1FF;
+  --accent-on: 0,0,0;
+  --glow-strength: 1;
+  --primary: #9B9EFF;
+  --primary-rgb: 155,158,255;
+  --primary-on: 0,0,0;
+  --ui-rgb: 245,246,255;
   --teal: #16A37F;
   --teal-rgb: 22,163,127;
   --amber: #D97706;
@@ -78,7 +80,7 @@ html, body {
   font-family: var(--font-m);
   font-size: 9px;
   font-weight: 500;
-  color: rgba(var(--ui-rgb),0.15);
+  color: rgba(var(--ui-rgb),0.72);
   letter-spacing: 1px;
   cursor: pointer;
   transition: opacity 150ms var(--ease-mag);
@@ -98,7 +100,7 @@ html, body {
 }
 .conn-chevron {
   width: 10px; height: 10px;
-  stroke: rgba(var(--ui-rgb),0.4);
+  stroke: rgba(var(--ui-rgb),0.82);
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
@@ -152,7 +154,7 @@ html, body {
 }
 .topbar-nav-btn svg {
   width: 18px; height: 18px;
-  stroke: rgba(var(--ui-rgb),0.3);
+  stroke: rgba(var(--ui-rgb),0.82);
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
@@ -230,7 +232,7 @@ html, body {
 }
 .nav-btn svg {
   width: 20px; height: 20px;
-  stroke: rgba(var(--ui-rgb),0.3);
+  stroke: rgba(var(--ui-rgb),0.82);
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
@@ -242,12 +244,12 @@ html, body {
   font-weight: 500;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: rgba(var(--ui-rgb),0.6);
+  color: rgba(var(--ui-rgb),0.82);
   position: relative;
 }
 .nav-item.active .nav-label {
   font-weight: 700;
-  color: rgba(var(--ui-rgb),0.4);
+  color: var(--accent);
 }
 .nav-item.active .nav-label::after {
   content: '';
@@ -262,12 +264,12 @@ html, body {
   border-bottom: 4px solid rgba(var(--ui-rgb),0.4);
 }
 @keyframes heartbeat-rest {
-  0%   { box-shadow: 0 0 24px rgba(var(--accent-rgb),0.15); }
-  12%  { box-shadow: 0 0 40px rgba(var(--accent-rgb),0.45); }
-  18%  { box-shadow: 0 0 30px rgba(var(--accent-rgb),0.28); }
-  28%  { box-shadow: 0 0 36px rgba(var(--accent-rgb),0.35); }
-  45%  { box-shadow: 0 0 24px rgba(var(--accent-rgb),0.15); }
-  100% { box-shadow: 0 0 20px rgba(var(--accent-rgb),0.1); }
+  0%   { box-shadow: 0 0 24px rgba(var(--accent-rgb),calc(0.15 * var(--glow-strength))); }
+  12%  { box-shadow: 0 0 40px rgba(var(--accent-rgb),calc(0.45 * var(--glow-strength))); }
+  18%  { box-shadow: 0 0 30px rgba(var(--accent-rgb),calc(0.28 * var(--glow-strength))); }
+  28%  { box-shadow: 0 0 36px rgba(var(--accent-rgb),calc(0.35 * var(--glow-strength))); }
+  45%  { box-shadow: 0 0 24px rgba(var(--accent-rgb),calc(0.15 * var(--glow-strength))); }
+  100% { box-shadow: 0 0 20px rgba(var(--accent-rgb),calc(0.1 * var(--glow-strength))); }
 }
 
 /* ═══════════════════════════════════════════
@@ -305,7 +307,7 @@ html, body {
 .pairing-sub {
   font-size: 22px;
   font-weight: 400;
-  color: rgba(var(--ui-rgb),0.25);
+  color: rgba(var(--ui-rgb),0.72);
   line-height: 1.2;
   max-width: 320px;
 }
@@ -314,7 +316,7 @@ html, body {
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 1px;
-  color: rgba(var(--accent-rgb),0.4);
+  color: var(--accent);
 }
 .pairing-link {
   width: min(100%, 320px);
@@ -348,9 +350,9 @@ html, body {
   border-radius: 999px;
   padding: 16px 24px;
   background: var(--accent);
-  color: white;
+  color: rgb(var(--accent-on));
   font: 700 15px var(--font-d);
-  box-shadow: 0 0 32px rgba(var(--accent-rgb),0.35);
+  box-shadow: 0 0 32px rgba(var(--accent-rgb),calc(0.35 * var(--glow-strength)));
   cursor: pointer;
   transition: opacity 150ms var(--ease-mag);
 }
@@ -383,7 +385,7 @@ html, body {
 .pairing-confirm-hint {
   font-size: 15px;
   font-weight: 500;
-  color: rgba(var(--ui-rgb),0.4);
+  color: rgba(var(--ui-rgb),0.82);
   line-height: 1.4;
 }
 .pairing-link button, .install-cta button {
@@ -391,7 +393,7 @@ html, body {
   border-radius: 12px;
   padding: 12px 16px;
   background: var(--accent);
-  color: white;
+  color: rgb(var(--accent-on));
   font: 700 13px var(--font-d);
 }
 .install-cta {
@@ -420,7 +422,7 @@ html, body {
 }
 .install-cta .cta-dismiss svg {
   width: 16px; height: 16px;
-  stroke: rgba(var(--ui-rgb),0.4);
+  stroke: rgba(var(--ui-rgb),0.82);
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
@@ -481,7 +483,7 @@ html, body {
 .paywall-sub {
   font-size: 15px;
   font-weight: 500;
-  color: rgba(var(--ui-rgb),0.25);
+  color: rgba(var(--ui-rgb),0.72);
   text-align: center;
   padding: 0 32px;
   line-height: 1.5;
@@ -491,11 +493,11 @@ html, body {
   border: none;
   border-radius: 999px;
   background: var(--accent);
-  color: white;
+  color: rgb(var(--accent-on));
   font-family: var(--font-d);
   font-size: 15px;
   font-weight: 700;
-  box-shadow: 0 0 32px rgba(var(--accent-rgb),0.35);
+  box-shadow: 0 0 32px rgba(var(--accent-rgb),calc(0.35 * var(--glow-strength)));
   cursor: pointer;
   transition: opacity 150ms var(--ease-mag);
 }
@@ -546,7 +548,7 @@ html, body {
   font-family: var(--font-b);
   font-size: 14px;
   font-weight: 500;
-  color: rgba(var(--ui-rgb),0.2);
+  color: rgba(var(--ui-rgb),0.72);
   pointer-events: none;
   transition: opacity 300ms var(--ease-mag);
   z-index: 5;
@@ -596,7 +598,7 @@ html, body {
   width: 140px; height: 140px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 80px rgba(var(--accent-rgb),0.3);
+  box-shadow: 0 0 80px rgba(var(--accent-rgb),calc(0.3 * var(--glow-strength)));
   animation: heartbeat-rest 833ms ease infinite;
 }
 .airmouse-label {
@@ -616,7 +618,7 @@ html, body {
   font-family: var(--font-b);
   font-size: 17px;
   font-weight: 500;
-  color: rgba(var(--ui-rgb),0.25);
+  color: rgba(var(--ui-rgb),0.72);
   text-align: center;
   line-height: 1.5;
 }
@@ -627,17 +629,17 @@ html, body {
   border: none;
   border-radius: 999px;
   background: var(--accent);
-  color: white;
+  color: rgb(var(--accent-on));
   font-family: var(--font-d);
   font-size: 15px;
   font-weight: 700;
-  box-shadow: 0 0 40px rgba(var(--accent-rgb),0.35);
+  box-shadow: 0 0 40px rgba(var(--accent-rgb),calc(0.35 * var(--glow-strength)));
   cursor: pointer;
   transition: opacity 150ms var(--ease-mag), box-shadow 200ms var(--ease-mag);
 }
 .airmouse-recal:active { opacity: 0.85; }
 .airmouse-recal.confirmed {
-  box-shadow: 0 0 56px rgba(var(--accent-rgb),0.5);
+  box-shadow: 0 0 56px rgba(var(--accent-rgb),calc(0.5 * var(--glow-strength)));
 }
 .airmouse-hint-tip {
   font-family: var(--font-m);
@@ -645,7 +647,7 @@ html, body {
   font-weight: 500;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: rgba(var(--ui-rgb),0.1);
+  color: rgba(var(--ui-rgb),0.72);
   text-align: center;
   line-height: 1.8;
 }
@@ -676,7 +678,7 @@ html, body {
   font-weight: 500;
   letter-spacing: 3px;
   text-transform: uppercase;
-  color: rgba(var(--accent-rgb),0.5);
+  color: var(--accent);
   margin-bottom: 12px;
 }
 .media-title {
@@ -722,7 +724,7 @@ html, body {
   width: 14px; height: 14px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 8px rgba(var(--accent-rgb),0.4);
+  box-shadow: 0 0 8px rgba(var(--accent-rgb),calc(0.4 * var(--glow-strength)));
   transform: translate(-50%, -50%);
   opacity: 0;
   transition: opacity 150ms var(--ease-mag);
@@ -739,7 +741,7 @@ html, body {
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.5px;
-  color: rgba(var(--ui-rgb),0.15);
+  color: rgba(var(--ui-rgb),0.72);
 }
 .media-bottom {
   flex: 1;
@@ -769,7 +771,7 @@ html, body {
 .media-btn:active { opacity: 0.6; }
 .media-btn svg {
   width: 24px; height: 24px;
-  stroke: rgba(var(--ui-rgb),0.4);
+  stroke: rgba(var(--ui-rgb),0.82);
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
@@ -779,9 +781,9 @@ html, body {
   width: 80px; height: 80px;
   background: var(--accent);
   border-color: transparent;
-  box-shadow: 0 0 32px rgba(var(--accent-rgb),0.35);
+  box-shadow: 0 0 32px rgba(var(--accent-rgb),calc(0.35 * var(--glow-strength)));
 }
-.media-btn-play svg { stroke: white; width: 28px; height: 28px; }
+.media-btn-play svg { stroke: rgb(var(--accent-on)); width: 28px; height: 28px; }
 .media-actions {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -807,7 +809,7 @@ html, body {
 }
 .media-action.highlight {
   background: rgba(var(--accent-rgb),0.15);
-  border-color: rgba(var(--accent-rgb),0.3);
+  border-color: var(--accent);
   color: var(--accent);
 }
 
@@ -857,7 +859,7 @@ html, body {
   font-family: var(--font-m);
   font-size: 14px;
   font-weight: 500;
-  color: rgba(var(--ui-rgb),0.5);
+  color: rgba(var(--ui-rgb),0.82);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -886,7 +888,7 @@ html, body {
 }
 .kb-dismiss svg {
   width: 16px; height: 16px;
-  stroke: rgba(var(--ui-rgb),0.3);
+  stroke: rgba(var(--ui-rgb),0.82);
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
@@ -920,7 +922,7 @@ html, body {
   font-family: var(--font-b);
   font-size: 16px;
   font-weight: 500;
-  color: rgba(var(--ui-rgb),0.5);
+  color: rgba(var(--ui-rgb),0.82);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -935,7 +937,7 @@ html, body {
   font-family: var(--font-d);
   font-size: 12px;
   font-weight: 700;
-  color: rgba(var(--ui-rgb),0.3);
+  color: rgba(var(--ui-rgb),0.82);
   max-width: none;
   background: var(--ink);
 }
@@ -947,11 +949,11 @@ html, body {
   max-width: 72px;
   background: var(--accent);
   border-color: transparent;
-  color: white;
+  color: rgb(var(--accent-on));
   font-family: var(--font-d);
   font-size: 13px;
   font-weight: 700;
-  box-shadow: 0 0 16px rgba(var(--accent-rgb),0.25);
+  box-shadow: 0 0 16px rgba(var(--accent-rgb),calc(0.25 * var(--glow-strength)));
 }
 
 /* On phones, use the familiar keyboard supplied by the device. */
@@ -1034,14 +1036,14 @@ html, body {
 .tab-close:active { opacity: 0.5; }
 .tab-close svg {
   width: 14px; height: 14px;
-  stroke: rgba(var(--ui-rgb),0.2);
+  stroke: rgba(var(--ui-rgb),0.72);
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 .tab-item.active-tab .tab-close svg {
-  stroke: rgba(var(--accent-rgb),0.4);
+  stroke: var(--accent);
 }
 .tab-info { flex: 1; min-width: 0; }
 .tab-title {
@@ -1049,7 +1051,7 @@ html, body {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.3px;
-  color: rgba(var(--ui-rgb),0.5);
+  color: rgba(var(--ui-rgb),0.82);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1059,7 +1061,7 @@ html, body {
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.5px;
-  color: rgba(var(--ui-rgb),0.12);
+  color: rgba(var(--ui-rgb),0.72);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1072,7 +1074,7 @@ html, body {
   justify-content: center;
   font-family: var(--font-b);
   font-size: 14px;
-  color: rgba(var(--ui-rgb),0.12);
+  color: rgba(var(--ui-rgb),0.72);
 }
 
 .tab-item-content {
@@ -1101,7 +1103,7 @@ html, body {
   font-weight: 500;
   letter-spacing: 3px;
   text-transform: uppercase;
-  color: rgba(var(--accent-rgb),0.4);
+  color: var(--accent);
   padding: 8px 4px 4px;
   margin-top: 30px;
 }
@@ -1121,20 +1123,20 @@ html, body {
   font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.3px;
-  color: rgba(var(--ui-rgb),0.5);
+  color: rgba(var(--ui-rgb),0.82);
 }
 .setting-desc {
   font-family: var(--font-b);
   font-size: 14px;
   font-weight: 400;
-  color: rgba(var(--ui-rgb),0.15);
+  color: rgba(var(--ui-rgb),0.72);
   margin-top: 3px;
 }
 .setting-toggle {
   width: 44px; height: 26px;
   border-radius: 999px;
   border: none;
-  background: var(--ink);
+  background: rgba(var(--ui-rgb),0.18);
   position: relative;
   cursor: pointer;
   flex-shrink: 0;
@@ -1144,7 +1146,7 @@ html, body {
   position: absolute;
   width: 20px; height: 20px;
   border-radius: 50%;
-  background: rgba(var(--ui-rgb),0.3);
+  background: rgba(var(--ui-rgb),0.82);
   top: 3px; left: 3px;
   transition: transform 200ms var(--ease-mag), background 200ms var(--ease-mag);
 }
@@ -1160,7 +1162,7 @@ html, body {
   height: 4px;
   -webkit-appearance: none;
   appearance: none;
-  background: var(--ink);
+  background: rgba(var(--ui-rgb),0.3);
   border-radius: 2px;
   outline: none;
 }
@@ -1189,7 +1191,13 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
+  gap: 8px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  min-width: 0;
   margin-bottom: 10px;
   cursor: pointer;
   position: relative;
@@ -1197,45 +1205,60 @@ html, body {
 .theme-swatch-dot {
   width: 100%; aspect-ratio: 1;
   border-radius: 10px;
-  border: none;
+  border: 1px solid rgba(var(--ui-rgb),0.3);
   position: relative;
   overflow: hidden;
 }
 .theme-swatch-name {
+  width: 100%;
+  min-height: 26px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  text-align: center;
   font-family: var(--font-m);
   font-size: 9px;
   font-weight: 500;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: rgba(var(--ui-rgb),0.2);
+  color: rgba(var(--ui-rgb),0.72);
   transition: color 200ms var(--ease-mag);
 }
 .theme-swatch.active .theme-swatch-name {
   color: rgba(var(--ui-rgb),0.9);
+}
+.theme-swatch.active .theme-swatch-dot {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.theme-swatch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 6px;
+  border-radius: 10px;
 }
 .theme-swatch-lock {
   position: absolute;
   top: 8px; right: 8px;
   width: 16px; height: 16px;
   border-radius: 50%;
-  background: rgba(var(--ui-rgb),0.4);
+  background: var(--void);
   border: 1.5px solid rgba(var(--ui-rgb),0.15);
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   z-index: 2;
 }
 .theme-swatch-lock svg {
   width: 11px; height: 11px;
-  stroke: rgba(var(--ui-rgb),0.5);
+  stroke: rgba(var(--ui-rgb),0.82);
   fill: none;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 .theme-swatch.locked {
-  opacity: 0.5;
+  cursor: default;
 }
+.theme-swatch.locked .theme-swatch-lock { display: flex; }
 
 /* ── Tab Actions ── */
 .tab-reload {
@@ -1253,7 +1276,7 @@ html, body {
 .tab-reload:active { opacity: 0.5; }
 .tab-reload svg {
   width: 14px; height: 14px;
-  stroke: rgba(var(--ui-rgb),0.25);
+  stroke: rgba(var(--ui-rgb),0.72);
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
@@ -1287,7 +1310,7 @@ html, body {
   font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.3px;
-  color: rgba(var(--accent-rgb),0.5);
+  color: var(--accent);
 }
 .btn-close-session {
   display: flex;
@@ -1312,10 +1335,10 @@ html, body {
 .btn-close-session + .btn-close-session { margin-top: 12px; }
 .btn-disconnect-session {
   background: rgba(var(--ui-rgb),0.04);
-  border-color: rgba(var(--ui-rgb),0.08);
+  border-color: rgba(var(--ui-rgb),0.72);
   color: rgba(var(--ui-rgb),0.7);
 }
-.btn-disconnect-session svg { stroke: rgba(var(--ui-rgb),0.4); }
+.btn-disconnect-session svg { stroke: rgba(var(--ui-rgb),0.82); }
 .btn-close-session:focus-visible {
   outline: 2px solid rgba(var(--ui-rgb),0.6);
   outline-offset: 2px;
@@ -1337,15 +1360,15 @@ html, body {
   font-family: var(--font-d);
   font-size: 18px;
   font-weight: 800;
-  color: rgba(var(--ui-rgb),0.3);
+  color: rgba(var(--ui-rgb),0.82);
   margin-bottom: 4px;
 }
-.about-brand span { color: rgba(var(--accent-rgb),0.4); }
+.about-brand span { color: var(--accent); }
 .about-ver {
   font-family: var(--font-m);
   font-size: 9px;
   font-weight: 500;
-  color: rgba(var(--ui-rgb),0.08);
+  color: rgba(var(--ui-rgb),0.72);
   letter-spacing: 1px;
 }
 
@@ -1420,7 +1443,7 @@ html, body {
   font-weight: 500;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: rgba(var(--accent-rgb),0.4);
+  color: var(--accent);
   pointer-events: none;
   opacity: 0;
   transition: opacity 200ms var(--ease-mag);
@@ -1504,7 +1527,7 @@ html, body {
   font-family: var(--font-b);
   font-size: 13px;
   font-weight: 500;
-  color: rgba(var(--ui-rgb),0.35);
+  color: rgba(var(--ui-rgb),0.82);
   cursor: pointer;
   transition: opacity 150ms var(--ease-mag);
 }
@@ -1517,7 +1540,7 @@ html, body {
   font-family: var(--font-b);
   font-size: 13px;
   font-weight: 600;
-  color: rgba(var(--accent-rgb),1);
+  color: var(--accent);
   cursor: pointer;
   transition: opacity 150ms var(--ease-mag);
 }
@@ -1614,7 +1637,7 @@ html, body {
   font-weight: 500;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: rgba(var(--accent-rgb),0.4);
+  color: var(--accent);
 }
 .sticker-paste-btn {
   display: flex;
@@ -1628,14 +1651,14 @@ html, body {
   font-family: var(--font-b);
   font-size: 11px;
   font-weight: 500;
-  color: rgba(var(--accent-rgb),0.8);
+  color: var(--accent);
   cursor: pointer;
   transition: opacity 150ms var(--ease-mag);
 }
 .sticker-paste-btn:active { opacity: 0.6; }
 .sticker-paste-btn svg {
   width: 13px; height: 13px;
-  stroke: rgba(var(--accent-rgb),0.6);
+  stroke: var(--accent);
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
@@ -1701,7 +1724,7 @@ html, body {
   font-family: var(--font-b);
   font-size: 14px;
   font-weight: 400;
-  color: rgba(var(--ui-rgb),0.5);
+  color: rgba(var(--ui-rgb),0.82);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1711,7 +1734,7 @@ html, body {
 .sticker-ctrl-btn:active { opacity: 0.6; }
 .sticker-ctrl-btn svg {
   width: 14px; height: 14px;
-  stroke: rgba(var(--ui-rgb),0.4);
+  stroke: rgba(var(--ui-rgb),0.82);
   stroke-width: 1.8;
   fill: none;
   stroke-linecap: round;
@@ -1726,7 +1749,7 @@ html, body {
 .sticker-count {
   font-family: var(--font-m);
   font-size: 10px;
-  color: rgba(var(--ui-rgb),0.2);
+  color: rgba(var(--ui-rgb),0.72);
   margin-left: auto;
 }
 
@@ -1746,7 +1769,7 @@ html, body {
   border-radius: 999px;
   background: rgba(var(--void-rgb),0.72);
   border: 1px solid rgba(var(--accent-rgb),0.35);
-  box-shadow: 0 0 0 1px rgba(var(--accent-rgb),0.12), 0 8px 40px rgba(var(--accent-rgb),0.22);
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb),calc(0.12 * var(--glow-strength))), 0 8px 40px rgba(var(--accent-rgb),calc(0.22 * var(--glow-strength)));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   opacity: 0;
@@ -1809,10 +1832,40 @@ html, body {
   font-family: var(--font-b);
   font-size: 14px;
   font-weight: 500;
-  color: rgba(var(--ui-rgb),0.45);
+  color: rgba(var(--ui-rgb),0.82);
   max-width: 280px;
   line-height: 1.5;
 }
+/* Material treatments travel with the palette to the extension popup. */
+:root:where([data-appearance]:not([data-appearance="aura"])) {
+  --glow-strength: 0;
+  --surface-stroke: rgba(var(--ui-rgb),0.18);
+  --surface-stroke-width: 1px;
+}
+:root[data-appearance="paper"] {
+  --font-d: Georgia, 'Times New Roman', serif;
+  --font-m: 'Courier New', monospace;
+  --surface-stroke: rgba(var(--ui-rgb),0.4);
+}
+:root[data-appearance="graphic"] {
+  --surface-stroke: rgba(var(--ui-rgb),0.75);
+  --surface-stroke-width: 2px;
+}
+:root[data-appearance]:not([data-appearance="aura"]) :is(.nav-btn, .topbar-nav-btn, .trackpad-surface, .setting-row, .media-btn, .media-action, .tab-item, .trackpad-btn) {
+  box-shadow: inset 0 0 0 var(--surface-stroke-width) var(--surface-stroke);
+}
+:root[data-appearance]:not([data-appearance="aura"]) .trackpad-surface::after {
+  background-image: none;
+}
+:root[data-appearance="paper"] .trackpad-surface::before { background-image: none; }
+:root[data-appearance="paper"] .setting-section-label {
+  border-bottom: 1px solid rgba(var(--ui-rgb),0.4);
+}
+:root[data-appearance="graphic"] :is(.media-btn-play, .airmouse-recal, .pairing-btn, .paywall-btn) {
+  background: var(--primary);
+  color: rgb(var(--primary-on));
+}
+:root[data-appearance="graphic"] .media-btn-play svg { stroke: rgb(var(--primary-on)); }
 </style>
 </head>
 <body>
@@ -2041,7 +2094,7 @@ html, body {
 
         <div class="setting-row" id="btn-guide" style="cursor:pointer;margin-top:24px;">
           <div><div class="setting-label">See What You Can Do</div><div class="setting-desc">Features, themes, tips — all in one place</div></div>
-          <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:rgba(var(--accent-rgb),0.5);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke: var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </div>
 
         <button class="btn-close-session btn-disconnect-session" id="btn-pair-again" type="button">
@@ -2220,18 +2273,28 @@ html, body {
   var lastFailureToast = { reason: '', at: 0 };
 
   // ── Theme Definitions ──
-  // Curated set — every theme passes WCAG AA contrast and is legible under
-  // red-green colour deficiency. (Deep Blue uses the colourblind-safe blue↔orange
-  // axis; Acid/Night Indigo carry on luminance, not hue.)
+  // Distinct surfaces and readable accents, including when void/ink are swapped.
+  // Tidal: WGSN's 2026 teal direction. Plum Noir: Pinterest's plum + wasabi hues.
+  // https://www.wgsn.com/en/blog/key-colours-w-26-27
+  // https://newsroom.pinterest.com/en-gb/news/from-cool-blue-to-persimmon-meet-the-2026-pinterest-palette/
+  // Contrast is checked in tests/themes.test.cjs; states also use labels/icons.
   var THEMES = [
     // ── Base (free) ──
-    { id: 'dark',         name: 'Dark',         accent: '79,82,224',   voidHex: '#0A0B10', inkHex: '#0D0F1C', voidRgb: '10,11,16',    ui: '255,255,255', primaryHex: '#4F52E0', free: true },
-    { id: 'light',        name: 'Light',        accent: '13,13,13',    voidHex: '#FFFFFF', inkHex: '#F0F0F0', voidRgb: '255,255,255', ui: '13,13,13',    primaryHex: '#0D0D0D', free: true },
+    { id: 'dark',         name: 'Dark',         accent: '155,158,255', voidHex: '#080A12', inkHex: '#20263D', voidRgb: '8,10,18',     ui: '245,246,255', primaryHex: '#9B9EFF', free: true },
+    { id: 'light',        name: 'Light',        accent: '17,24,42',    voidHex: '#F8FAFF', inkHex: '#DDE5F2', voidRgb: '248,250,255', ui: '17,24,42',    primaryHex: '#11182A', free: true },
     // ── Premium ──
-    { id: 'acid',         name: 'Acid',         accent: '200,244,0',   voidHex: '#0C0D0B', inkHex: '#1A1C18', voidRgb: '12,13,11',    ui: '245,245,245', primaryHex: '#C8F400', free: false },
-    { id: 'deepblue',     name: 'Deep Blue',    accent: '240,96,30',   voidHex: '#0A1834', inkHex: '#122448', voidRgb: '10,24,52',    ui: '245,244,225', primaryHex: '#F0601E', free: false },
-    { id: 'nightindigo',  name: 'Night Indigo', accent: '255,64,129',  voidHex: '#12122B', inkHex: '#1E1E3D', voidRgb: '18,18,43',    ui: '245,245,245', primaryHex: '#FF4081', free: false },
-    { id: 'emo',          name: 'Emo',          accent: '199,125,255', voidHex: '#160A2B', inkHex: '#24123F', voidRgb: '22,10,43',    ui: '245,245,245', primaryHex: '#C77DFF', free: false }
+    { id: 'newspaper',    name: 'Newspaper',    accent: '127,41,27',   voidHex: '#F4F0E7', inkHex: '#DED8CC', voidRgb: '244,240,231', ui: '33,31,27',    primaryHex: '#25231F', appearance: 'paper', free: false },
+    { id: 'butter',       name: 'Butter',       accent: '96,64,25',    voidHex: '#FFF3BE', inkHex: '#EAD687', voidRgb: '255,243,190', ui: '43,32,12',    primaryHex: '#67441D', appearance: 'soft', free: false },
+    { id: 'pistachio',    name: 'Pistachio',    accent: '46,85,59',    voidHex: '#EAF0D7', inkHex: '#CEDBB4', voidRgb: '234,240,215', ui: '20,35,21',    primaryHex: '#335940', appearance: 'soft', free: false },
+    { id: 'strawberry',   name: 'Strawberry Milk', accent: '130,37,65', voidHex: '#FFE8EB', inkHex: '#F2C6D0', voidRgb: '255,232,235', ui: '53,18,33',    primaryHex: '#8E254B', appearance: 'soft', free: false },
+    { id: 'solar',        name: 'Solar',        accent: '107,56,8',    voidHex: '#FFE04A', inkHex: '#FFF2A6', voidRgb: '255,224,74',  ui: '40,33,13',    primaryHex: '#171717', appearance: 'graphic', free: false },
+    { id: 'terracotta',   name: 'Terracotta',   accent: '95,56,39',    voidHex: '#F8E8D9', inkHex: '#E6B99B', voidRgb: '248,232,217', ui: '43,27,20',    primaryHex: '#79402C', appearance: 'earth', free: false },
+    { id: 'bauhaus',      name: 'Bauhaus',      accent: '141,38,27',   voidHex: '#F6F1E7', inkHex: '#E3DACC', voidRgb: '246,241,231', ui: '36,35,31',    primaryHex: '#E2B529', appearance: 'graphic', free: false },
+    { id: 'espresso',     name: 'Espresso',     accent: '235,195,148', voidHex: '#160F0D', inkHex: '#3C2B24', voidRgb: '22,15,13',    ui: '255,241,220', primaryHex: '#EBC394', appearance: 'earth', free: false },
+    { id: 'acid',         name: 'Acid',         accent: '213,255,56',  voidHex: '#090D08', inkHex: '#26331B', voidRgb: '9,13,8',      ui: '246,255,232', primaryHex: '#D5FF38', free: false },
+    { id: 'deepblue',     name: 'Deep Blue',    accent: '255,170,102', voidHex: '#061429', inkHex: '#18365C', voidRgb: '6,20,41',     ui: '244,248,255', primaryHex: '#FFAA66', free: false },
+    { id: 'tidal',        name: 'Tidal',        accent: '114,230,209', voidHex: '#041B20', inkHex: '#16434A', voidRgb: '4,27,32',     ui: '237,255,251', primaryHex: '#72E6D1', free: false },
+    { id: 'plumnoir',     name: 'Plum Noir',    accent: '229,245,138', voidHex: '#1B0D1B', inkHex: '#48233F', voidRgb: '27,13,27',    ui: '255,245,251', primaryHex: '#E5F58A', free: false }
   ];
 
   // ── DOM ──
@@ -3668,7 +3731,7 @@ html, body {
 
   function sendCursorSettings() {
     var theme = getThemeById(currentThemeId);
-    var color = theme ? theme.accent : '79,82,224';
+    var color = theme ? theme.accent : '155,158,255';
     send({ type: 'cursor_settings', size: cursorSize, color: color });
   }
 
@@ -3683,7 +3746,34 @@ html, body {
     return parseInt(h.substring(0, 2), 16) + ',' + parseInt(h.substring(2, 4), 16) + ',' + parseInt(h.substring(4, 6), 16);
   }
 
+  function onColor(hex) {
+    var channels = hexToRgbStr(hex).split(',').map(function (value) {
+      var c = Number(value) / 255;
+      return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    var luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    return (luminance + 0.05) / 0.05 >= 1.05 / (luminance + 0.05) ? '0,0,0' : '255,255,255';
+  }
+
+  // Use the same resolved surfaces for rendering, reconnects and popup storage.
+  function getThemeColors(theme) {
+    var inverted = invertedState[theme.id];
+    var background = inverted ? theme.inkHex : theme.voidHex;
+    return {
+      id: theme.id,
+      voidHex: background,
+      voidRgb: hexToRgbStr(background),
+      inkHex: inverted ? theme.voidHex : theme.inkHex,
+      accent: theme.accent,
+      ui: theme.ui,
+      primaryHex: theme.primaryHex,
+      appearance: theme.appearance || 'aura'
+    };
+  }
+
   function getThemeById(id) {
+    if (id === 'nightindigo') id = 'newspaper';
+    if (id === 'emo') id = 'pistachio';
     for (var i = 0; i < THEMES.length; i++) {
       if (THEMES[i].id === id) return THEMES[i];
     }
@@ -3698,10 +3788,10 @@ html, body {
     currentThemeId = themeId;
 
     // Resolve inversion: swap void ↔ ink when inverted
-    var inv = invertedState[themeId];
-    var voidHex = inv ? theme.inkHex : theme.voidHex;
-    var inkHex = inv ? theme.voidHex : theme.inkHex;
-    var voidRgb = inv ? hexToRgbStr(theme.inkHex) : theme.voidRgb;
+    var colors = getThemeColors(theme);
+    var voidHex = colors.voidHex;
+    var inkHex = colors.inkHex;
+    var voidRgb = colors.voidRgb;
 
     var parts = theme.accent.split(',');
     var r = parseInt(parts[0], 10);
@@ -3720,6 +3810,7 @@ html, body {
     var root = document.documentElement;
 
     function setVars() {
+      root.setAttribute('data-appearance', colors.appearance);
       root.style.setProperty('--void', voidHex);
       root.style.setProperty('--void-rgb', voidRgb);
       root.style.setProperty('--ink', inkHex);
@@ -3732,10 +3823,10 @@ html, body {
       var pR = parseInt(pH.substring(0, 2), 16);
       var pG = parseInt(pH.substring(2, 4), 16);
       var pB = parseInt(pH.substring(4, 6), 16);
-      var pLum = (0.299 * pR + 0.587 * pG + 0.114 * pB) / 255;
       root.style.setProperty('--primary', theme.primaryHex);
       root.style.setProperty('--primary-rgb', pR + ',' + pG + ',' + pB);
-      root.style.setProperty('--primary-on', pLum > 0.5 ? '0,0,0' : '255,255,255');
+      root.style.setProperty('--primary-on', onColor(theme.primaryHex));
+      root.style.setProperty('--accent-on', onColor(accentHex));
     }
 
     if (isFirstLoad) {
@@ -3778,14 +3869,7 @@ html, body {
 
   // Send theme data to extension for popup sync
   function sendThemeToExtension(theme) {
-    send({ type: 'theme_update', theme: {
-      id: theme.id,
-      voidHex: theme.voidHex,
-      voidRgb: theme.voidRgb,
-      inkHex: theme.inkHex,
-      accent: theme.accent,
-      ui: theme.ui
-    }});
+    send({ type: 'theme_update', theme: getThemeColors(theme) });
   }
 
   function buildThemeSwatches() {
@@ -3793,15 +3877,16 @@ html, body {
     container.innerHTML = '';
 
     THEMES.forEach(function (theme) {
-      var swatch = document.createElement('div');
+      var swatch = document.createElement('button');
+      swatch.type = 'button';
       swatch.className = 'theme-swatch' + (theme.id === currentThemeId ? ' active' : '');
       swatch.setAttribute('data-theme', theme.id);
 
-      // The dot: diagonal split showing void + ink
+      // Show both surfaces and the primary button color for each palette.
       var dot = document.createElement('div');
       dot.className = 'theme-swatch-dot';
       var inner = document.createElement('div');
-      inner.style.cssText = 'position:absolute;inset:-25%;width:150%;height:150%;background:linear-gradient(135deg, ' + theme.voidHex + ' 50%, ' + theme.inkHex + ' 50%);';
+      inner.style.cssText = 'position:absolute;inset:0;background:linear-gradient(135deg, ' + theme.voidHex + ' 40%, ' + theme.inkHex + ' 40% 76%, ' + theme.primaryHex + ' 76%);';
       dot.appendChild(inner);
 
       var name = document.createElement('span');
@@ -3840,6 +3925,8 @@ html, body {
       var id = swatch.getAttribute('data-theme');
       var theme = getThemeById(id);
       swatch.classList.toggle('active', id === currentThemeId);
+      swatch.setAttribute('aria-pressed', id === currentThemeId ? 'true' : 'false');
+      swatch.setAttribute('aria-label', theme.name + (id === currentThemeId ? '. Select again to swap surfaces.' : ''));
 
       // Update swatch dot to reflect inversion state
       if (theme) {
@@ -3848,13 +3935,14 @@ html, body {
         if (dotInner) {
           var c1 = inv ? theme.inkHex : theme.voidHex;
           var c2 = inv ? theme.voidHex : theme.inkHex;
-          dotInner.style.background = 'linear-gradient(135deg, ' + c1 + ' 50%, ' + c2 + ' 50%)';
+          dotInner.style.background = 'linear-gradient(135deg, ' + c1 + ' 40%, ' + c2 + ' 40% 76%, ' + theme.primaryHex + ' 76%)';
         }
       }
 
       // Show/hide lock based on premium status
       if (theme && !theme.free) {
         swatch.classList.toggle('locked', !isPaid);
+        swatch.disabled = !isPaid;
       }
     });
   }
@@ -4598,9 +4686,13 @@ html, body {
     var savedInverted = localStorage.getItem('couchlock-theme-inverted');
     if (savedInverted) invertedState = JSON.parse(savedInverted);
   } catch (e) { /* ignore */ }
-  // getThemeById falls back to THEMES[0], so compare ids to detect a removed theme.
-  if (savedTheme && getThemeById(savedTheme).id === savedTheme) {
-    currentThemeId = savedTheme;
+  // Migrate replaced palettes while keeping their saved surface inversion.
+  if (savedTheme) {
+    var restoredTheme = getThemeById(savedTheme);
+    currentThemeId = restoredTheme.id;
+    if (restoredTheme.id !== savedTheme && invertedState[savedTheme]) {
+      invertedState[restoredTheme.id] = true;
+    }
   }
 
   // Restore auto-reconnect preference (default on)

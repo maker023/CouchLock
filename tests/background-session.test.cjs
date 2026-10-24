@@ -5,12 +5,13 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { webcrypto } = require('node:crypto');
 
-function boot(localSession, legacySession) {
+function boot(localSession, legacySession, mediaSnapshot) {
   const listeners = {};
   const connected = [];
   const disconnects = [];
   const sent = [];
   const tabMessages = [];
+  const deliveries = [];
   const revoked = [];
   const local = { session: localSession };
   const on = (name) => ({ addListener(fn) { listeners[name] = fn; } });
@@ -20,6 +21,10 @@ function boot(localSession, legacySession) {
       create() {},
       sendMessage(tabId, msg, options, callback) {
         tabMessages.push(msg);
+        deliveries.push({ tabId, msg, options });
+        if (msg.action === 'requestMediaStatus' && mediaSnapshot) {
+          listeners.message(mediaSnapshot, { tab: { id: tabId, title: 'Playing episode' }, frameId: 3 }, () => {});
+        }
         if (callback) callback();
       },
       onActivated: { addListener() {} },
@@ -69,10 +74,10 @@ function boot(localSession, legacySession) {
     return new Promise((resolve) => listeners.message({ type }, {}, resolve));
   }
   return {
-    local, connected, disconnects, sent, tabMessages, revoked, message,
+    local, connected, disconnects, sent, tabMessages, deliveries, revoked, message,
     relay: (status) => listeners.status(status),
     phone: (msg) => listeners.transport(msg),
-    fromTab: (tabId, msg) => listeners.message(msg, { tab: { id: tabId, url: 'https://example.com/' }, frameId: 0 }, () => {})
+    fromTab: (tabId, msg) => listeners.message(msg, { tab: { id: tabId, url: 'https://example.com/', title: 'Playing episode' }, frameId: 0 }, () => {})
   };
 }
 
@@ -132,6 +137,34 @@ test('media status only comes from the tab the remote is driving', async () => {
   assert.equal(app.sent.filter((m) => m.type === 'media_status').length, 0);
   app.fromTab(7, status); // active tab of the last-focused window
   assert.equal(app.sent.filter((m) => m.type === 'media_status').length, 1);
+});
+
+test('automatic reconnect fetches the playing title from all frames without toggling playback', async () => {
+  const saved = { id: 'saved123', token: 'aa'.repeat(32), created: 1, pairedAt: 5 };
+  const snapshot = { type: 'mediaStatus', platform: 'universal', title: 'Current episode', playing: true, currentTime: 120, duration: 1800 };
+  const app = boot(saved, null, snapshot);
+  await app.message('getSession');
+  for (let reconnect = 0; reconnect < 2; reconnect++) {
+    app.tabMessages.length = 0;
+    app.deliveries.length = 0;
+    app.phone({ type: 'hello', token: saved.token });
+    const request = app.deliveries.find((entry) => entry.msg.action === 'requestMediaStatus');
+    assert.ok(request, 'every hello requests current media');
+    assert.equal(request.tabId, 7);
+    assert.deepEqual(Object.keys(request.options), [], 'broadcast to embedded players too');
+    const status = app.sent.filter((msg) => msg.type === 'media_status').at(-1);
+    assert.equal(status.title, snapshot.title);
+    assert.equal(status.playing, true);
+    assert.equal(status.currentTime, 120);
+    assert.ok(!app.tabMessages.some((msg) => msg.command === 'playPause'));
+  }
+});
+
+test('media with an empty title uses the active browser tab title', async () => {
+  const app = boot({ id: 'saved123', token: 'aa'.repeat(32), created: 1 }, null);
+  await app.message('getSession');
+  app.fromTab(7, { type: 'mediaStatus', platform: 'universal', playing: true, title: '  ' });
+  assert.equal(app.sent.at(-1).title, 'Playing episode');
 });
 
 test('disconnecting from the phone keeps the pairing without echoing back', async () => {

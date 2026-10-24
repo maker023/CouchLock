@@ -795,10 +795,7 @@
 
   // ── Media Status Reporting ──
 
-  function reportMediaStatus() {
-    var vid = activeVideo();
-    var detectedPlatform = currentPlatform();
-
+  function mediaTitle() {
     var title = '';
     if (platform === 'netflix') {
       var titleEl = document.querySelector('[data-uia="video-title"]') || document.querySelector('.ellipsize-text');
@@ -806,10 +803,21 @@
     } else if (platform === 'youtube') {
       var ytTitle = document.querySelector('#movie_player .ytp-title-link') || document.querySelector('h1.ytd-watch-metadata yt-formatted-string');
       if (ytTitle) title = ytTitle.textContent;
-    } else {
-      var docTitle = document.title;
-      if (docTitle) title = docTitle;
     }
+    if (title.trim()) return title.trim();
+
+    // Player overlays can be absent while playing. Media Session metadata and
+    // page metadata remain available without pausing to reveal the controls.
+    var metadata = navigator.mediaSession && navigator.mediaSession.metadata;
+    if (metadata && (metadata.title || '').trim()) return metadata.title.trim();
+    var pageTitle = document.querySelector('meta[property="og:title"]') || document.querySelector('meta[name="twitter:title"]');
+    if (pageTitle && (pageTitle.content || '').trim()) return pageTitle.content.trim();
+    return (document.title || '').trim();
+  }
+
+  function reportMediaStatus() {
+    var vid = activeVideo();
+    var detectedPlatform = currentPlatform();
 
     // Also check skip intro availability for platforms that support it
     var strats = getStrategies();
@@ -818,7 +826,7 @@
     safeSendMessage({
       type: 'mediaStatus',
       platform: vid ? detectedPlatform : 'unknown',
-      title: title.trim(),
+      title: mediaTitle(),
       playing: vid ? !vid.paused : false,
       currentTime: vid ? vid.currentTime : 0,
       duration: vid && Number.isFinite(vid.duration) ? vid.duration : 0,
@@ -974,6 +982,7 @@
   }
 
   chrome.runtime.onMessage.addListener(onMessage);
+  reportMediaStatus();
 
   // ── Cleanup ──
 
