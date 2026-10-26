@@ -282,7 +282,9 @@
       var video = videos[i];
       var rect = video.getBoundingClientRect();
       var visible = rect.width > 0 && rect.height > 0 && getComputedStyle(video).visibility !== 'hidden';
-      var score = (visible ? 2 : 0) + (!video.paused && !video.ended ? 4 : 0) + (video.readyState > 0 ? 1 : 0);
+      // A hidden preview must not outrank the full-size player when it pauses.
+      var score = (visible ? 100 : 0) + (!video.paused && !video.ended ? 10 : 0) +
+        (video.readyState > 0 ? 1 : 0) + (visible ? Math.min(50, Math.sqrt(rect.width * rect.height) / 20) : 0);
       if (score > bestScore) { best = video; bestScore = score; }
     }
     return best;
@@ -314,6 +316,7 @@
   var CONTAINER_GROWTH = 1.25; // an ancestor this much larger than the video is page layout, not player
 
   var lifted = []; // [{ el, style, popover, open }] in lift order
+  var expansionToken = null;
 
   function applyStyles(el, styles) {
     var saved = { el: el, style: el.getAttribute('style') };
@@ -327,8 +330,10 @@
   }
 
   function lift(el, styles, toTopLayer) {
+    if (lifted.some(function (state) { return state.el === el; })) return;
     var state = applyStyles(el, styles);
     state.popover = el.getAttribute('popover');
+    state.wasOpen = supportsTopLayer() && state.popover !== null && el.matches(':popover-open');
     if (toTopLayer && supportsTopLayer()) {
       try {
         if (state.popover === null) el.setAttribute('popover', 'manual');
@@ -364,42 +369,65 @@
   function restorePlayer() {
     while (lifted.length) {
       var state = lifted.pop();
-      if (state.open) {
+      if (state.open && !state.wasOpen) {
         try { state.el.hidePopover(); } catch (e) { /* already closed */ }
-        if (state.popover === null) state.el.removeAttribute('popover');
       }
+      if (state.popover === null) state.el.removeAttribute('popover');
       restoreStyles(state);
     }
   }
 
-  function expandPlayer() {
+  function notifyPlayerExpanded() {
+    if (window !== window.top) {
+      window.parent.postMessage({ type: 'couchlock-expand-frame', token: expansionToken }, '*');
+    } else {
+      safeSendMessage({ type: 'playerExpanded', token: expansionToken });
+    }
+  }
+
+  function expandPlayer(token) {
+    if (!token || token !== expansionToken) return;
     // The user went native fullscreen on the laptop: the remote's press means "exit".
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(function () {});
       safeSendMessage({ type: 'playerRestored' });
       return;
     }
-    if (isLifted()) return;
+    if (isLifted()) { notifyPlayerExpanded(); return; }
     var video = activeVideo();
-    if (!video) return;
+    if (!video) {
+      safeSendMessage({ type: 'playerExpandFailed', token: token, reason: 'no_media' });
+      return;
+    }
     var player = playerContainer(video);
     lift(player, LIFT_STYLES, true);
-    if (player !== video) lift(video, FILL_STYLES, false);
+    // Fixed-size wrappers between a known player and its video otherwise keep
+    // the picture small even though the outer player covers the viewport.
+    var inner = video;
+    while (inner && inner !== player) {
+      lift(inner, FILL_STYLES, false);
+      inner = inner.parentElement;
+    }
     promoteCursor();
-    if (window !== window.top) safeSendMessage({ type: 'expandMyFrame' });
+    notifyPlayerExpanded();
   }
 
-  function expandChildFrame(frameId) {
-    if (typeof chrome.runtime.getFrameId !== 'function') return;
+  // Match the actual sending window, including cross-origin nested players.
+  // Only a background-authorized fullscreen operation arms this listener.
+  function expandChildFrame(event) {
+    if (!expansionToken || !event.data || event.data.type !== 'couchlock-expand-frame' ||
+        event.data.token !== expansionToken) return;
     var frames = document.querySelectorAll('iframe, frame');
     for (var i = 0; i < frames.length; i++) {
-      if (chrome.runtime.getFrameId(frames[i]) !== frameId) continue;
+      if (frames[i].contentWindow !== event.source) continue;
       lift(frames[i], LIFT_STYLES, true);
       promoteCursor();
-      if (window !== window.top) safeSendMessage({ type: 'expandMyFrame' });
+      notifyPlayerExpanded();
       return;
     }
   }
+
+  listen(window, 'message', expandChildFrame);
 
   listen(document, 'keydown', function (event) {
     if (event.key === 'Escape' && isLifted()) {
@@ -433,7 +461,8 @@
       ],
       nextEpisode: [
         { type: 'selector', value: '[data-uia="next-episode-seamless-button"]' },
-        { type: 'selector', value: '[data-uia="next-episode-seamless-button-draining"]' }
+        { type: 'selector', value: '[data-uia="next-episode-seamless-button-draining"]' },
+        { type: 'selector', value: '[data-uia="control-next"]' }
       ],
       mute: [
         { type: 'selector', value: '[data-uia="control-mute-unmute"]' },
@@ -591,28 +620,47 @@
 
   // ── Strategy Executor ──
 
+  function usableControl(el) {
+    if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true' ||
+        el.closest('[hidden], [inert], [aria-hidden="true"]')) return false;
+    var rect = el.getBoundingClientRect();
+    var style = getComputedStyle(el);
+    // offsetParent is null for fixed-position and top-layer controls too.
+    return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+  }
+
+  function strategyControl(strategy) {
+    var elements = document.querySelectorAll(strategy.type === 'selector' ? strategy.value : 'button, [role="button"]');
+    for (var i = 0; i < elements.length; i++) {
+      var el = elements[i];
+      if (strategy.type === 'aria' && (el.getAttribute('aria-label') || '').toLowerCase().indexOf(strategy.value.toLowerCase()) === -1) continue;
+      if (usableControl(el)) return el;
+    }
+    return null;
+  }
+
+  function starNextURL() {
+    var container = document.querySelector('[data-plugin-kwik]');
+    if (!container) return '';
+    try {
+      var next = JSON.parse(container.getAttribute('data-plugin-kwik')).Kwik.NextVideo;
+      if (!next) return '';
+      var url = new URL(next, window.location.href);
+      return url.origin === window.location.origin && url.pathname.indexOf('/tv/') === 0 ? url.href : '';
+    } catch (e) { return ''; }
+  }
+
   function execStrategy(strategies, command) {
     if (!strategies) return false;
 
     for (var i = 0; i < strategies.length; i++) {
       var s = strategies[i];
 
-      if (s.type === 'selector') {
-        var el = document.querySelector(s.value);
+      if (s.type === 'selector' || s.type === 'aria') {
+        var el = strategyControl(s);
         if (el) {
           el.click();
           return true;
-        }
-      }
-
-      if (s.type === 'aria') {
-        var buttons = document.querySelectorAll('button, [role="button"]');
-        for (var j = 0; j < buttons.length; j++) {
-          var label = buttons[j].getAttribute('aria-label') || '';
-          if (label.toLowerCase().indexOf(s.value.toLowerCase()) !== -1) {
-            buttons[j].click();
-            return true;
-          }
         }
       }
 
@@ -637,6 +685,7 @@
           code: s.value.code,
           keyCode: getKeyCode(s.value.key),
           which: getKeyCode(s.value.key),
+          shiftKey: !!(s.value.modifiers & 1),
           bubbles: true,
           cancelable: true
         });
@@ -647,6 +696,7 @@
           code: s.value.code,
           keyCode: getKeyCode(s.value.key),
           which: getKeyCode(s.value.key),
+          shiftKey: !!(s.value.modifiers & 1),
           bubbles: true,
           cancelable: true
         });
@@ -678,16 +728,8 @@
       }
 
       if (s.type === 'starNext') {
-        var container = document.querySelector('[data-plugin-kwik]');
-        if (!container) continue;
-        try {
-          var next = JSON.parse(container.getAttribute('data-plugin-kwik')).Kwik.NextVideo;
-          var url = new URL(next, window.location.href);
-          if (url.origin === window.location.origin && url.pathname.indexOf('/tv/') === 0) {
-            window.location.assign(url.href);
-            return true;
-          }
-        } catch (e) { /* No next episode in this player. */ }
+        var nextURL = starNextURL();
+        if (nextURL) { window.location.assign(nextURL); return true; }
       }
     }
 
@@ -709,19 +751,8 @@
     if (!strategies) return false;
     for (var i = 0; i < strategies.length; i++) {
       var s = strategies[i];
-      if (s.type === 'selector') {
-        var el = document.querySelector(s.value);
-        if (el && el.offsetParent !== null) return true;
-      }
-      if (s.type === 'aria') {
-        var buttons = document.querySelectorAll('button, [role="button"]');
-        for (var j = 0; j < buttons.length; j++) {
-          var label = buttons[j].getAttribute('aria-label') || '';
-          if (label.toLowerCase().indexOf(s.value.toLowerCase()) !== -1) {
-            if (buttons[j].offsetParent !== null) return true;
-          }
-        }
-      }
+      if ((s.type === 'selector' || s.type === 'aria') && strategyControl(s)) return true;
+      if (s.type === 'starNext' && starNextURL()) return true;
     }
     return false;
   }
@@ -738,30 +769,6 @@
 
   function getStrategies() {
     return S[currentPlatform()] || S.universal;
-  }
-
-  // ── Skip Ad Availability Reporting (YouTube only, NOT automated) ──
-
-  var lastSkipAdAvailable = false;
-
-  function checkSkipAdAvailability() {
-    if (platform !== 'youtube') return;
-
-    var strats = getStrategies();
-    var available = checkStrategyExists(strats.skipAd);
-
-    if (available !== lastSkipAdAvailable) {
-      lastSkipAdAvailable = available;
-      safeSendMessage({
-        type: 'skipAdAvailable',
-        available: available
-      });
-    }
-  }
-
-  // Poll every 500ms to detect when skip button appears
-  if (platform === 'youtube') {
-    safeSetInterval(checkSkipAdAvailability, 500);
   }
 
   // ── Input Focus Detection ──
@@ -795,7 +802,28 @@
 
   // ── Media Status Reporting ──
 
-  function mediaTitle() {
+  var titleKey = '';
+  var cachedTitle = '';
+  var pageSessionTitle = '';
+  var titleRequestedAt = 0;
+  var titleRequestPending = false;
+  var lastStatusJSON = '';
+  var lastStatusAt = 0;
+  var statusTimer = null;
+
+  function descriptiveTitle(title) {
+    title = (typeof title === 'string' ? title : '').replace(/\s+/g, ' ').trim();
+    return /^(netflix|youtube|disney\+?|hbo( max)?|max|hulu|star( tv)?|video player)$/i.test(title) ? '' : title;
+  }
+
+  function mediaTitle(vid) {
+    var key = window.location.href + '|' + (vid ? vid.currentSrc || vid.src || '' : '');
+    if (key !== titleKey || !vid) {
+      titleKey = key;
+      cachedTitle = '';
+      pageSessionTitle = '';
+      titleRequestedAt = 0;
+    }
     var title = '';
     if (platform === 'netflix') {
       var titleEl = document.querySelector('[data-uia="video-title"]') || document.querySelector('.ellipsize-text');
@@ -804,37 +832,75 @@
       var ytTitle = document.querySelector('#movie_player .ytp-title-link') || document.querySelector('h1.ytd-watch-metadata yt-formatted-string');
       if (ytTitle) title = ytTitle.textContent;
     }
-    if (title.trim()) return title.trim();
+    title = descriptiveTitle(title);
 
     // Player overlays can be absent while playing. Media Session metadata and
     // page metadata remain available without pausing to reveal the controls.
     var metadata = navigator.mediaSession && navigator.mediaSession.metadata;
-    if (metadata && (metadata.title || '').trim()) return metadata.title.trim();
     var pageTitle = document.querySelector('meta[property="og:title"]') || document.querySelector('meta[name="twitter:title"]');
-    if (pageTitle && (pageTitle.content || '').trim()) return pageTitle.content.trim();
-    return (document.title || '').trim();
+    title = title || descriptiveTitle(metadata && metadata.title) || pageSessionTitle ||
+      descriptiveTitle(pageTitle && pageTitle.content) || descriptiveTitle(document.title);
+    if (title) cachedTitle = title;
+
+    // Page-owned Media Session metadata can be absent in the isolated world.
+    // Ask only while needed, and never let an old episode's reply rename a new one.
+    if (vid && !title && !titleRequestPending && Date.now() - titleRequestedAt > 5000) {
+      titleRequestedAt = Date.now();
+      titleRequestPending = true;
+      safeSendMessage({ type: 'requestMediaTitle' }, function (response) {
+        titleRequestPending = false;
+        if (key !== titleKey || !response || response.url !== window.location.href) return;
+        pageSessionTitle = descriptiveTitle(response.title);
+        if (pageSessionTitle) scheduleMediaStatus();
+      });
+    }
+    return cachedTitle || (document.title || '').trim();
   }
 
-  function reportMediaStatus() {
+  function reportMediaStatus(force) {
     var vid = activeVideo();
-    var detectedPlatform = currentPlatform();
+    var detectedPlatform = platform === 'unknown' && vid ? 'universal' : platform;
 
     // Also check skip intro availability for platforms that support it
-    var strats = getStrategies();
+    var strats = S[detectedPlatform] || S.universal;
     var skipIntroAvailable = checkStrategyExists(strats.skipIntro);
 
-    safeSendMessage({
+    var rect = vid ? vid.getBoundingClientRect() : null;
+    var status = {
       type: 'mediaStatus',
       platform: vid ? detectedPlatform : 'unknown',
-      title: mediaTitle(),
-      playing: vid ? !vid.paused : false,
+      title: mediaTitle(vid),
+      mediaKey: titleKey,
+      playing: vid ? !vid.paused && !vid.ended : false,
+      mediaArea: rect ? Math.round(rect.width * rect.height) : 0,
       currentTime: vid ? vid.currentTime : 0,
       duration: vid && Number.isFinite(vid.duration) ? vid.duration : 0,
-      skipIntroAvailable: skipIntroAvailable
-    });
+      skipIntroAvailable: skipIntroAvailable,
+      skipAdAvailable: checkStrategyExists(strats.skipAd),
+      nextEpisodeAvailable: checkStrategyExists(strats.nextEpisode) || (detectedPlatform === 'youtube' && !!vid)
+    };
+    var json = JSON.stringify(status);
+    if (force !== true && json === lastStatusJSON && Date.now() - lastStatusAt < 10000) return;
+    lastStatusJSON = json;
+    lastStatusAt = Date.now();
+    safeSendMessage(status);
   }
 
-  var statusInterval = safeSetInterval(reportMediaStatus, 2000);
+  function scheduleMediaStatus() {
+    if (statusTimer !== null) return;
+    statusTimer = setTimeout(function () {
+      statusTimer = null;
+      if (contextValid) reportMediaStatus();
+    }, 40);
+  }
+
+  var statusInterval = safeSetInterval(reportMediaStatus, 1000);
+  ['play', 'pause', 'ended', 'loadedmetadata', 'emptied', 'seeked', 'durationchange'].forEach(function (type) {
+    listen(document, type, function (event) {
+      if (event.target && event.target.tagName === 'VIDEO') scheduleMediaStatus();
+    }, true);
+  });
+  teardownTasks.push(function () { clearTimeout(statusTimer); });
 
   // ── Message Handler ──
 
@@ -844,18 +910,20 @@
     if (!contextValid) return;
     if (!msg || !msg.action) return;
 
+    if (msg.action === 'preparePlayerExpand') {
+      expansionToken = msg.token;
+      sendResponse({ ready: true });
+      return;
+    }
+
     if (msg.action === 'playerExpand') {
-      expandPlayer();
+      expandPlayer(msg.token);
       return;
     }
 
     if (msg.action === 'playerRestore') {
+      expansionToken = null;
       restorePlayer();
-      return;
-    }
-
-    if (msg.action === 'expandChildFrame') {
-      expandChildFrame(msg.frameId);
       return;
     }
 
@@ -884,7 +952,7 @@
     }
 
     if (msg.action === 'requestMediaStatus') {
-      reportMediaStatus();
+      reportMediaStatus(true);
       return;
     }
 
@@ -893,7 +961,9 @@
       if (platform === 'netflix') {
         safeSendMessage({ type: 'cmdResult', command: 'seek', success: false, reason: 'unsupported' });
       } else if (vid && msg.time !== undefined) {
-        vid.currentTime = msg.time;
+        if (!Number.isFinite(msg.time)) return;
+        vid.currentTime = Math.max(0, Number.isFinite(vid.duration) ? Math.min(vid.duration, msg.time) : msg.time);
+        scheduleMediaStatus();
         safeSendMessage({ type: 'cmdResult', command: 'seek', success: true });
       } else {
         safeSendMessage({ type: 'cmdResult', command: 'seek', success: false });
@@ -939,6 +1009,7 @@
         reason = MEDIA_COMMANDS.indexOf(command) !== -1 && !activeVideo() ? 'no_media' : 'no_control';
       }
       safeSendMessage({ type: 'cmdResult', command: command, success: success, reason: reason });
+      scheduleMediaStatus();
       sendResponse({ success: success });
       return true;
     }

@@ -2217,7 +2217,7 @@ html, body {
   </div>
 </div>
 
-<script src="transport.js?v=3"></script>
+<script src="transport.js?v=4"></script>
 <script src="discovery.js?v=1"></script>
 <script>
 (function () {
@@ -2244,6 +2244,9 @@ html, body {
   var gyroLastBeta = null;
   var mediaState = { platform: '', title: '', playing: false, currentTime: 0, duration: 0, skipIntroAvailable: false };
   var skipAdAvailable = false;
+  var mediaFresh = false;
+  var mediaReceivedAt = 0;
+  var mediaScrubbing = false;
   var kbShift = false;
   var kbOverlayVisible = false;
   var trackpadHintHidden = false;
@@ -2689,6 +2692,10 @@ html, body {
 
     CouchTransport.onMessage(function (msg) {
       if (!msg) return;
+      // The relay echoes our own publications. A phone's ping/command is not
+      // proof that the laptop is still alive.
+      if (['ready', 'pong', 'media_status', 'skip_ad_available', 'tab_list_result', 'cmd_result',
+        'input_focused', 'input_blurred', 'session_available', 'session_paused', 'session_closed'].indexOf(msg.type) === -1) return;
       lastLaptopSeen = Date.now();
 
       if (msg.type === 'session_available') {
@@ -2736,15 +2743,19 @@ html, body {
       }
 
       if (msg.type === 'media_status') {
+        mediaFresh = true;
+        mediaReceivedAt = Date.now();
         mediaState = {
           platform: msg.platform || '',
           title: msg.title || '—',
           playing: msg.playing || false,
           currentTime: msg.currentTime || 0,
           duration: msg.duration || 0,
-          skipIntroAvailable: msg.skipIntroAvailable || false
+          skipIntroAvailable: msg.skipIntroAvailable || false,
+          nextEpisodeAvailable: msg.nextEpisodeAvailable || false
         };
-        updateMediaUI();
+        skipAdAvailable = !!msg.skipAdAvailable;
+        if (document.visibilityState === 'visible' && currentMode === 'media') updateMediaUI();
       }
 
       if (msg.type === 'skip_ad_available') {
@@ -2816,17 +2827,26 @@ html, body {
   // Without this, the user waits for the next scheduled retry after unlocking.
   // We tear down the stale socket and reconnect immediately instead.
   function resumeReconnect() {
-    if (!autoReconnect || !token) return;
+    if (!token || sessionPaused || document.visibilityState === 'hidden') return;
     if (Date.now() - lastResumeReconnect < 1000) return;
-    if (CouchTransport.isConnected() && (!hiddenAt || Date.now() - hiddenAt < 1500)) return;
     lastResumeReconnect = Date.now();
+    var wasAway = hiddenAt && Date.now() - hiddenAt >= 1500;
     hiddenAt = 0;
-    CouchTransport.reconnectNow();
+    if (autoReconnect && (!CouchTransport.isConnected() || wasAway)) {
+      mediaFresh = false;
+      updateMediaUI();
+      CouchTransport.reconnectNow();
+    } else if (CouchTransport.isConnected() && isPaired) {
+      // Even a short app switch can miss an intro/ad boundary or a pause.
+      send({ type: 'request_media_status' });
+      updateMediaUI();
+    }
   }
 
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'hidden') {
       hiddenAt = Date.now();
+      mediaFresh = false;
       hideRepairNudge();
       keyboardRequestedUntil = 0;
       clearTimeout(kbFocusTimer);
@@ -2848,6 +2868,8 @@ html, body {
 
   // ── Connection UI ──
   function updateConnUI() {
+    if (!isPaired) mediaFresh = false;
+    if (currentMode === 'media') updateMediaUI();
     var dot = $('#conn-dot');
     var text = $('#conn-text');
     var offline = !isPaired && laptopPresence === '0' && !sessionPaused;
@@ -3026,6 +3048,7 @@ html, body {
     if (mode === 'media' && isPaired) {
       send({ type: 'request_media_status' });
     }
+    if (mode === 'media') updateMediaUI();
   }
 
   $$('.nav-btn').forEach(function (btn) {
@@ -3325,6 +3348,11 @@ html, body {
     var pName = PLATFORM_NAMES[mediaState.platform] || '';
     var isIdle = !mediaState.platform || mediaState.platform === 'unknown';
     var mediaEl = document.querySelector('.media');
+    var canControl = isPaired && mediaFresh && !isIdle;
+    if (mediaEl) mediaEl.setAttribute('aria-busy', isPaired && !mediaFresh ? 'true' : 'false');
+    $$('.media-controls button, .media-actions button').forEach(function (button) {
+      button.disabled = !canControl;
+    });
 
     // Toggle idle state
     if (mediaEl) {
@@ -3338,10 +3366,9 @@ html, body {
     $('#media-platform').textContent = pName ? pName.toUpperCase() : 'NO MEDIA DETECTED';
     $('#media-title').textContent = mediaState.title || '—';
 
-    var pct = mediaState.duration > 0 ? (mediaState.currentTime / mediaState.duration * 100) : 0;
-    $('#media-progress').style.width = pct + '%';
-    $('#media-current').textContent = formatTime(mediaState.currentTime);
+    updateMediaProgress();
     $('#media-duration').textContent = formatTime(mediaState.duration);
+    $('#btn-play-pause').setAttribute('aria-label', mediaState.playing ? 'Pause' : 'Play');
 
     // Play/Pause icon toggle
     if (mediaState.playing) {
@@ -3363,7 +3390,28 @@ html, body {
     }
 
     updateMediaActions(mediaState.platform);
+    var nextBtn = $('#btn-next-ep');
+    nextBtn.classList.toggle('faded', !mediaState.nextEpisodeAvailable);
+    nextBtn.classList.toggle('highlight', !!mediaState.nextEpisodeAvailable);
+    updateSkipAdButton();
   }
+
+  function updateMediaProgress() {
+    if (mediaScrubbing) return;
+    // Interpolate briefly between authoritative snapshots, never through a lock
+    // or a dead connection. This makes the timeline smooth without extra traffic.
+    var elapsed = mediaFresh && mediaState.playing && isPaired ? Math.min(2, (Date.now() - mediaReceivedAt) / 1000) : 0;
+    var time = Math.max(0, mediaState.currentTime + elapsed);
+    if (mediaState.duration > 0) time = Math.min(mediaState.duration, time);
+    var pct = mediaState.duration > 0 ? Math.max(0, Math.min(100, time / mediaState.duration * 100)) : 0;
+    $('#media-progress').style.width = pct + '%';
+    $('#media-thumb').style.left = pct + '%';
+    $('#media-current').textContent = formatTime(time);
+  }
+
+  setInterval(function () {
+    if (document.visibilityState === 'visible' && currentMode === 'media' && mediaFresh && mediaState.playing) updateMediaProgress();
+  }, 1000);
 
   function formatTime(s) {
     if (!s || isNaN(s)) return '0:00';
@@ -3974,7 +4022,6 @@ html, body {
     var bar = $('#media-progress-bar');
     var fill = $('#media-progress');
     var thumb = $('#media-thumb');
-    var scrubbing = false;
 
     function scrubTo(clientX) {
       var rect = bar.getBoundingClientRect();
@@ -3985,23 +4032,24 @@ html, body {
     }
 
     bar.addEventListener('touchstart', function (e) {
-      if (!mediaState.duration) return;
+      if (!mediaState.duration || !mediaFresh || !isPaired) return;
       e.preventDefault();
-      scrubbing = true;
+      mediaScrubbing = true;
       bar.classList.add('scrubbing');
       scrubTo(e.touches[0].clientX);
     });
 
     bar.addEventListener('touchmove', function (e) {
-      if (!scrubbing) return;
+      if (!mediaScrubbing) return;
       e.preventDefault();
       scrubTo(e.touches[0].clientX);
     });
 
     bar.addEventListener('touchend', function (e) {
-      if (!scrubbing) return;
-      scrubbing = false;
+      if (!mediaScrubbing) return;
+      mediaScrubbing = false;
       bar.classList.remove('scrubbing');
+      if (!mediaFresh || !isPaired) return;
 
       // Calculate the final seek position
       var rect = bar.getBoundingClientRect();
@@ -4013,9 +4061,18 @@ html, body {
       showToast('Seeking to ' + formatTime(seekTime));
     });
 
+    function cancelScrub() {
+      mediaScrubbing = false;
+      bar.classList.remove('scrubbing');
+    }
+    bar.addEventListener('touchcancel', cancelScrub);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') cancelScrub();
+    });
+
     // Click (desktop fallback)
     bar.addEventListener('click', function (e) {
-      if (!mediaState.duration) return;
+      if (!mediaState.duration || !mediaFresh || !isPaired) return;
       var pct = scrubTo(e.clientX);
       var seekTime = pct * mediaState.duration;
       send({ type: 'cmd', action: 'seek', data: { time: seekTime } });

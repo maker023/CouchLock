@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { webcrypto } = require('node:crypto');
 
-function boot(localSession, legacySession, mediaSnapshot) {
+function boot(localSession, legacySession, mediaSnapshot, options = {}) {
   const listeners = {};
   const connected = [];
   const disconnects = [];
@@ -13,13 +13,18 @@ function boot(localSession, legacySession, mediaSnapshot) {
   const tabMessages = [];
   const deliveries = [];
   const revoked = [];
+  const windowUpdates = [];
+  const timers = [];
+  let activeId = 7;
   const local = { session: localSession };
   const on = (name) => ({ addListener(fn) { listeners[name] = fn; } });
   const chrome = {
     tabs: {
-      query(_query, callback) { callback([{ id: 7, windowId: 1 }]); },
+      query(_query, callback) { callback([{ id: activeId, windowId: 1 }]); },
+      update(tabId, _update, callback) { activeId = tabId; callback(); },
       create() {},
       sendMessage(tabId, msg, options, callback) {
+        if (typeof options === 'function') { callback = options; options = {}; }
         tabMessages.push(msg);
         deliveries.push({ tabId, msg, options });
         if (msg.action === 'requestMediaStatus' && mediaSnapshot) {
@@ -27,13 +32,23 @@ function boot(localSession, legacySession, mediaSnapshot) {
         }
         if (callback) callback();
       },
-      onActivated: { addListener() {} },
+      onActivated: on('activated'),
       onCreated: on('created'),
       onRemoved: on('removed'),
       onUpdated: on('updated')
     },
     alarms: { create() {}, onAlarm: on('alarm') },
-    windows: { WINDOW_ID_NONE: -1, get() {}, update() {}, onFocusChanged: on('focus') },
+    windows: {
+      WINDOW_ID_NONE: -1,
+      get(_id, callback) { callback({ state: 'maximized' }); },
+      update(id, update, callback) {
+        windowUpdates.push({ id, ...update });
+        if (options.windowError && update.state === 'fullscreen') chrome.runtime.lastError = { message: 'Window unavailable' };
+        if (callback) callback();
+        chrome.runtime.lastError = null;
+      },
+      onFocusChanged: on('focus'), onBoundsChanged: on('bounds')
+    },
     scripting: { executeScript() { return Promise.resolve([]); } },
     runtime: {
       lastError: null,
@@ -68,16 +83,18 @@ function boot(localSession, legacySession, mediaSnapshot) {
     onPresence() {}
   };
   const context = { chrome, CouchTransport: transport, crypto: webcrypto, importScripts() {},
-    Uint8Array, Promise, Date, setTimeout, clearTimeout };
+    Uint8Array, Promise, Date,
+    setTimeout(fn, ms) { const timer = { fn, ms }; timers.push(timer); return timer; },
+    clearTimeout(timer) { if (timer) timer.cancelled = true; } };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'extension', 'background.js'), 'utf8'), context);
   function message(type) {
     return new Promise((resolve) => listeners.message({ type }, {}, resolve));
   }
   return {
-    local, connected, disconnects, sent, tabMessages, deliveries, revoked, message,
+    local, connected, disconnects, sent, tabMessages, deliveries, revoked, message, windowUpdates, timers, listeners,
     relay: (status) => listeners.status(status),
     phone: (msg) => listeners.transport(msg),
-    fromTab: (tabId, msg) => listeners.message(msg, { tab: { id: tabId, url: 'https://example.com/', title: 'Playing episode' }, frameId: 0 }, () => {})
+    fromTab: (tabId, msg, frameId = 0, url = 'https://example.com/') => listeners.message(msg, { tab: { id: tabId, url, title: 'Playing episode' }, frameId }, () => {})
   };
 }
 
@@ -90,6 +107,82 @@ test('extension restores a saved pairing before answering popup requests', async
   const renewed = await app.message('newSession');
   assert.notEqual(renewed.session.id, saved.id);
   assert.equal(app.local.session.id, renewed.session.id);
+});
+
+test('a paused main player is not overwritten by a small playing preview in another frame', async () => {
+  const app = boot({ token: 'aa'.repeat(32) });
+  await app.message('getSession');
+  app.fromTab(7, { type: 'mediaStatus', platform: 'netflix', title: 'Episode', playing: true, mediaArea: 921600 }, 3);
+  app.fromTab(7, { type: 'mediaStatus', platform: 'universal', title: 'Preview', playing: true, mediaArea: 10000 }, 4);
+  app.fromTab(7, { type: 'mediaStatus', platform: 'netflix', title: 'Episode', playing: false, mediaArea: 921600 }, 3);
+  assert.equal(app.sent.at(-1).title, 'Episode');
+  assert.equal(app.sent.at(-1).playing, false);
+  app.phone({ type: 'cmd', action: 'playPause' });
+  assert.equal(app.deliveries.at(-1).options.frameId, 3);
+});
+
+test('reconnect discards a vanished playing frame and replays every action flag', async () => {
+  const snapshot = { type: 'mediaStatus', platform: 'youtube', title: 'New video', playing: false,
+    skipAdAvailable: true, skipIntroAvailable: true, nextEpisodeAvailable: true };
+  const app = boot({ token: 'aa'.repeat(32) }, null, snapshot);
+  await app.message('getSession');
+  app.fromTab(7, { type: 'mediaStatus', platform: 'universal', title: 'Removed', playing: true, mediaArea: 2000000 }, 4);
+  app.phone({ type: 'request_media_status' });
+  const state = app.sent.at(-1);
+  assert.equal(state.title, 'New video');
+  assert.equal(state.playing, false);
+  assert.equal(state.skipAdAvailable, true);
+  assert.equal(state.skipIntroAvailable, true);
+  assert.equal(state.nextEpisodeAvailable, true);
+});
+
+test('switching browser tabs clears stale media and immediately queries the new tab', async () => {
+  const app = boot({ token: 'aa'.repeat(32), pairedAt: 1 });
+  await app.message('getSession');
+  app.phone({ type: 'tab_switch', tabId: 9 });
+  assert.equal(app.sent.at(-1).platform, 'unknown');
+  assert.ok(app.deliveries.some((d) => d.tabId === 9 && d.msg.action === 'requestMediaStatus'));
+});
+
+test('Star embedded video uses next-episode availability from the parent page', async () => {
+  const app = boot({ token: 'aa'.repeat(32) });
+  await app.message('getSession');
+  app.fromTab(7, { type: 'mediaStatus', platform: 'unknown', nextEpisodeAvailable: true }, 0, 'https://www.star.gr/tv/episode');
+  app.fromTab(7, { type: 'mediaStatus', platform: 'universal', playing: true }, 3, 'https://www.star.gr/tv/episode');
+  assert.equal(app.sent.at(-1).platform, 'star');
+  assert.equal(app.sent.at(-1).nextEpisodeAvailable, true);
+  app.phone({ type: 'cmd', action: 'nextEpisode' });
+  assert.equal(app.deliveries.at(-1).options.frameId, 0);
+});
+
+test('fullscreen restores the original window after a missing player or an expansion timeout', async () => {
+  for (const failure of ['no_media', 'timeout', 'window']) {
+    const app = boot({ token: 'aa'.repeat(32) }, null, null, { windowError: failure === 'window' });
+    await app.message('getSession');
+    app.phone({ type: 'cmd', action: 'fullscreen' });
+    if (failure === 'no_media') {
+      const expand = app.deliveries.find((d) => d.msg.action === 'playerExpand');
+      app.fromTab(7, { type: 'playerExpandFailed', token: expand.msg.token, reason: failure });
+    } else if (failure === 'timeout') {
+      app.timers.find((timer) => timer.ms === 3000 && !timer.cancelled).fn();
+    }
+    assert.deepEqual(app.windowUpdates.map((u) => u.state), ['fullscreen', 'maximized'], failure);
+    assert.ok(app.tabMessages.some((m) => m.action === 'playerRestore'), failure);
+    assert.equal(app.sent.at(-1).success, false, failure);
+  }
+});
+
+test('fullscreen confirms the top frame and restores when laptop exits fullscreen', async () => {
+  const app = boot({ token: 'aa'.repeat(32) });
+  await app.message('getSession');
+  app.phone({ type: 'cmd', action: 'fullscreen' });
+  const expand = app.deliveries.find((d) => d.msg.action === 'playerExpand');
+  app.fromTab(7, { type: 'playerExpanded', token: expand.msg.token });
+  assert.equal(app.sent.at(-1).success, true);
+  assert.ok(app.timers.find((timer) => timer.ms === 3000).cancelled);
+  app.listeners.bounds({ id: 1, state: 'normal' });
+  assert.equal(app.windowUpdates.at(-1).state, 'maximized');
+  assert.ok(app.tabMessages.some((m) => m.action === 'playerRestore'));
 });
 
 test('extension migrates a pairing from temporary storage', async () => {

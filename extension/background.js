@@ -30,12 +30,15 @@ importScripts('transport.js');
   var mediaFrameId = null; // frame containing the active HTML media element
   var mediaPlaying = false;
   var mediaPlatform = 'unknown';
+  var mediaFrames = {};
   var cursorX = 0;
   var cursorY = 0;
   var viewportW = 1920;
   var viewportH = 1080;
   var connStatus = 'disconnected';
   var fullscreenTab = null; // { tabId, windowId, prevState } while the remote holds fullscreen
+  var fullscreenTimer = null;
+  var fullscreenBusy = false;
   var injecting = {};       // tabId → Promise<boolean>
   var sessionReady;
   var resolveSessionReady;
@@ -120,9 +123,10 @@ importScripts('transport.js');
   // rule, so status never comes from one tab while commands land on another.
   var TARGET_TAB = { active: true, lastFocusedWindow: true };
 
-  function withActiveTab(fn) {
+  function withActiveTab(fn, onMissing) {
     chrome.tabs.query(TARGET_TAB, function (tabs) {
-      if (tabs.length > 0) fn(tabs[0]);
+      if (!chrome.runtime.lastError && tabs && tabs.length > 0) fn(tabs[0]);
+      else if (onMissing) onMissing();
     });
   }
 
@@ -133,7 +137,9 @@ importScripts('transport.js');
       mediaFrameId = null;
       mediaPlaying = false;
       mediaPlatform = 'unknown';
+      mediaFrames = {};
       if (paired) {
+        clearPhoneMedia();
         requestViewport();
         sendToContentScript({ action: 'requestMediaStatus' }, null);
         setTimeout(handleTabList, 300);
@@ -242,7 +248,7 @@ importScripts('transport.js');
         handleTipsPref(msg);
         break;
       case 'request_media_status':
-        sendToContentScript({ action: 'requestMediaStatus' }, null);
+        requestMediaSnapshot();
         break;
       case 'ping':
         CouchTransport.send({ type: 'pong', ts: Date.now() });
@@ -314,7 +320,7 @@ importScripts('transport.js');
       requestViewport();
       // A reconnect may happen while the media view is already open. Fetch a
       // snapshot from every frame without waiting for a playback interaction.
-      sendToContentScript({ action: 'requestMediaStatus' }, null);
+      requestMediaSnapshot();
       startKeepalive();
       maybeOpenTips();
     }
@@ -512,20 +518,45 @@ importScripts('transport.js');
   }
 
   function enterFullscreen() {
+    if (fullscreenBusy) return;
+    fullscreenBusy = true;
     withActiveTab(function (tab) {
       chrome.windows.get(tab.windowId, function (win) {
-        if (chrome.runtime.lastError) return;
-        fullscreenTab = { tabId: tab.id, windowId: tab.windowId, prevState: win.state };
-        saveFullscreenTab();
-        if (win.state !== 'fullscreen') chrome.windows.update(tab.windowId, { state: 'fullscreen' });
-        deliver(tab.id, { action: 'playerExpand' }, mediaFrame(), function () {
+        if (chrome.runtime.lastError || !win) {
+          fullscreenBusy = false;
           reportCommand('fullscreen', false, 'unreachable');
-        }, true);
+          return;
+        }
+        var operation = { tabId: tab.id, windowId: tab.windowId, prevState: win.state, token: generateToken() };
+        fullscreenTab = operation;
+        saveFullscreenTab();
+        function failed() {
+          if (fullscreenTab !== operation) return;
+          exitFullscreen();
+          reportCommand('fullscreen', false, 'unreachable');
+        }
+        fullscreenTimer = setTimeout(failed, 3000);
+        function expand() {
+          if (fullscreenTab !== operation) return;
+          if (chrome.runtime.lastError) { failed(); return; }
+          chrome.tabs.sendMessage(tab.id, { action: 'preparePlayerExpand', token: operation.token }, {}, function () {
+            if (fullscreenTab !== operation) return;
+            if (chrome.runtime.lastError) { failed(); return; }
+            deliver(tab.id, { action: 'playerExpand', token: operation.token }, mediaFrame(), failed, false);
+          });
+        }
+        if (win.state !== 'fullscreen') chrome.windows.update(tab.windowId, { state: 'fullscreen' }, expand);
+        else expand();
       });
+    }, function () {
+      fullscreenBusy = false;
+      reportCommand('fullscreen', false, 'unreachable');
     });
   }
 
   function exitFullscreen() {
+    clearTimeout(fullscreenTimer);
+    fullscreenBusy = false;
     if (!fullscreenTab) return;
     var fs = fullscreenTab;
     fullscreenTab = null;
@@ -539,6 +570,10 @@ importScripts('transport.js');
       });
     }
   }
+
+  chrome.windows.onBoundsChanged.addListener(function (win) {
+    if (fullscreenTab && win.id === fullscreenTab.windowId && win.state && win.state !== 'fullscreen') exitFullscreen();
+  });
 
   // ── Netflix ──
 
@@ -586,10 +621,7 @@ importScripts('transport.js');
     if (msg.tabId) {
       chrome.tabs.update(msg.tabId, { active: true }, function () {
         if (chrome.runtime.lastError) return;
-        activeTabId = msg.tabId;
-        mediaFrameId = null;
-        mediaPlaying = false;
-        mediaPlatform = 'unknown';
+        retarget();
         setTimeout(handleTabList, 300);
       });
     }
@@ -608,7 +640,7 @@ importScripts('transport.js');
   function handleTabNew() {
     chrome.tabs.create({}, function (tab) {
       if (chrome.runtime.lastError) return;
-      activeTabId = tab.id;
+      retarget();
       setTimeout(handleTabList, 300);
     });
   }
@@ -713,6 +745,20 @@ importScripts('transport.js');
     });
   }
 
+  function requestMediaSnapshot() {
+    withActiveTab(function (tab) {
+      activeTabId = tab.id;
+      // A removed iframe cannot report that it is gone after phone/laptop sleep.
+      mediaFrames = {};
+      mediaFrameId = null;
+      mediaPlaying = false;
+      mediaPlatform = 'unknown';
+      deliver(tab.id, { action: 'requestMediaStatus' }, null, function () {
+        if (activeTabId === tab.id) clearPhoneMedia();
+      }, true);
+    });
+  }
+
   chrome.runtime.onInstalled.addListener(function () {
     chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] }, function (tabs) {
       tabs.forEach(function (tab) {
@@ -751,7 +797,7 @@ importScripts('transport.js');
     }
 
     if (msg.type === 'viewport') {
-      if (msg.w && msg.h) {
+      if (sender.tab && sender.tab.id === activeTabId && !sender.frameId && msg.w && msg.h) {
         viewportW = msg.w;
         viewportH = msg.h;
         cursorX = Math.round(viewportW / 2);
@@ -764,48 +810,42 @@ importScripts('transport.js');
       if (fullscreenTab && sender.tab && sender.tab.id === fullscreenTab.tabId) exitFullscreen();
     }
 
-    // A frame asks its parent frame to lift the <iframe> holding it.
-    if (msg.type === 'expandMyFrame' && sender.tab && sender.frameId) {
-      chrome.tabs.sendMessage(sender.tab.id, { action: 'expandChildFrame', frameId: sender.frameId }, function () {
-        if (chrome.runtime.lastError) { /* frame went away */ }
-      });
+    if (msg.type === 'playerExpanded' || msg.type === 'playerExpandFailed') {
+      if (!fullscreenTab || !sender.tab || sender.tab.id !== fullscreenTab.tabId || msg.token !== fullscreenTab.token) return;
+      if (msg.type === 'playerExpandFailed') {
+        exitFullscreen();
+        reportCommand('fullscreen', false, msg.reason || 'no_control');
+      } else if (!sender.frameId) {
+        clearTimeout(fullscreenTimer);
+        fullscreenBusy = false;
+        reportCommand('fullscreen', true);
+      }
+    }
+
+    if (msg.type === 'requestMediaTitle') {
+      if (!sender.tab || sender.tab.id !== activeTabId) return;
+      chrome.scripting.executeScript({
+        target: { tabId: sender.tab.id, frameIds: [sender.frameId || 0] },
+        world: 'MAIN',
+        func: function () {
+          var metadata = navigator.mediaSession && navigator.mediaSession.metadata;
+          return { title: metadata && typeof metadata.title === 'string' ? metadata.title.slice(0, 500) : '', url: location.href };
+        }
+      }).then(function (results) {
+        sendResponse(results && results[0] ? results[0].result : null);
+      }, function () { sendResponse(null); });
+      return true;
     }
 
     if (msg.type === 'mediaStatus') {
-      if (sender.tab && sender.tab.id !== activeTabId) return;
+      if (!sender.tab || sender.tab.id !== activeTabId) return;
       var frameId = sender.frameId || 0;
-      var hasMedia = msg.platform && msg.platform !== 'unknown';
-      var reportedPlatform = msg.platform;
-      if (hasMedia && reportedPlatform === 'universal' && sender.tab &&
-          /^https:\/\/([^.]+\.)?star\.gr\//.test(sender.tab.url || '')) {
-        reportedPlatform = 'star';
-      }
-      if (hasMedia) {
-        // Keep a playing frame selected over an idle video in another frame.
-        if (mediaFrameId !== null && mediaFrameId !== frameId && mediaPlaying && !msg.playing) return;
-        mediaFrameId = frameId;
-        mediaPlaying = !!msg.playing;
-        mediaPlatform = reportedPlatform;
-      } else if (mediaFrameId === frameId) {
-        mediaFrameId = null;
-        mediaPlaying = false;
-        mediaPlatform = 'unknown';
-      } else if (mediaFrameId !== null || frameId !== 0) {
-        return;
-      }
-
-      CouchTransport.send({
-        type: 'media_status',
-        platform: reportedPlatform,
-        title: (msg.title || '').trim() || (sender.tab && sender.tab.title) || '',
-        playing: msg.playing,
-        currentTime: msg.currentTime,
-        duration: msg.duration,
-        skipIntroAvailable: msg.skipIntroAvailable || false
-      });
+      mediaFrames[frameId] = { status: msg, at: Date.now() };
+      relayMediaStatus(sender.tab);
     }
 
     if (msg.type === 'skipAdAvailable') {
+      if (!sender.tab || sender.tab.id !== activeTabId || sender.frameId !== mediaFrameId) return;
       CouchTransport.send({
         type: 'skip_ad_available',
         available: msg.available
@@ -832,6 +872,44 @@ importScripts('transport.js');
 
   // ── Popup Communication ──
 
+  function clearPhoneMedia() {
+    CouchTransport.send({ type: 'media_status', platform: 'unknown', title: '', playing: false,
+      currentTime: 0, duration: 0, skipIntroAvailable: false, skipAdAvailable: false, nextEpisodeAvailable: false });
+  }
+
+  function relayMediaStatus(tab) {
+    var selected = null;
+    var selectedId = null;
+    var bestScore = -1;
+    Object.keys(mediaFrames).forEach(function (id) {
+      var entry = mediaFrames[id];
+      if (Date.now() - entry.at > 15000) { delete mediaFrames[id]; return; }
+      var status = entry.status;
+      if (!status.platform || status.platform === 'unknown') return;
+      var area = Math.max(0, Number(status.mediaArea) || 0);
+      var score = (area > 0 ? 100 + Math.min(50, Math.sqrt(area) / 20) : 0) + (status.playing ? 10 : 0);
+      if (score > bestScore || (score === bestScore && Number(id) === mediaFrameId)) {
+        selected = status;
+        selectedId = Number(id);
+        bestScore = score;
+      }
+    });
+    mediaFrameId = selectedId;
+    mediaPlaying = !!(selected && selected.playing);
+    mediaPlatform = selected ? selected.platform : 'unknown';
+    if (!selected) { clearPhoneMedia(); return; }
+    if (mediaPlatform === 'universal' && /^https:\/\/([^.]+\.)?star\.gr\//.test(tab.url || '')) mediaPlatform = 'star';
+    var parent = mediaFrames[0] && mediaFrames[0].status;
+    CouchTransport.send({
+      type: 'media_status', platform: mediaPlatform,
+      title: (selected.title || '').trim() || (parent && (parent.title || '').trim()) || tab.title || '',
+      playing: mediaPlaying, currentTime: selected.currentTime, duration: selected.duration,
+      skipIntroAvailable: !!selected.skipIntroAvailable,
+      skipAdAvailable: !!selected.skipAdAvailable,
+      nextEpisodeAvailable: !!(mediaPlatform === 'star' && parent ? parent.nextEpisodeAvailable : selected.nextEpisodeAvailable)
+    });
+  }
+
   function broadcastToPopup(msg) {
     chrome.runtime.sendMessage(msg).catch(function () {
       // Popup not open, ignore
@@ -851,9 +929,12 @@ importScripts('transport.js');
 
   chrome.tabs.onUpdated.addListener(function (tabId, changeInfo) {
     if (tabId === activeTabId && changeInfo.status === 'loading') {
+      if (fullscreenTab && fullscreenTab.tabId === tabId) exitFullscreen();
       mediaFrameId = null;
       mediaPlaying = false;
       mediaPlatform = 'unknown';
+      mediaFrames = {};
+      if (paired) clearPhoneMedia();
     }
     if (paired && changeInfo.title) {
       setTimeout(handleTabList, 300);

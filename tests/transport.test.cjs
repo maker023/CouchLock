@@ -4,6 +4,83 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { webcrypto } = require('node:crypto');
+const { Broker, loadContext, waitFor } = require('./fake-broker.cjs');
+
+function delayedCrypto(operation) {
+  let release;
+  let started = false;
+  const gate = new Promise((resolve) => { release = resolve; });
+  return {
+    release, started: () => started,
+    crypto: {
+      getRandomValues: webcrypto.getRandomValues.bind(webcrypto),
+      subtle: new Proxy(webcrypto.subtle, {
+        get(target, name) {
+          if (name !== operation) return target[name].bind(target);
+          return (...args) => {
+            const result = target[name](...args);
+            if (started) return result;
+            started = true;
+            return result.then(async (value) => { await gate; return value; });
+          };
+        }
+      })
+    }
+  };
+}
+
+for (const operation of ['encrypt', 'decrypt']) {
+  test(`delayed ${operation} cannot reverse media snapshots`, async () => {
+    const broker = new Broker();
+    const delay = delayedCrypto(operation);
+    const sender = loadContext(broker, operation === 'encrypt' ? { crypto: delay.crypto } : {}).CouchTransport;
+    const receiver = loadContext(broker, operation === 'decrypt' ? { crypto: delay.crypto } : {}).CouchTransport;
+    const received = [];
+    receiver.onMessage((msg) => received.push(msg.sequence));
+    try {
+      await sender.connect({ token: 'aa'.repeat(32), sessionId: 'sender' });
+      await receiver.connect({ token: 'aa'.repeat(32), sessionId: 'receiver' });
+      await waitFor(() => sender.isConnected() && receiver.isConnected());
+      const first = sender.send({ sequence: 1, playing: true });
+      const second = sender.send({ sequence: 2, playing: false });
+      await waitFor(delay.started);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      assert.deepEqual(received, [], 'later state waits for earlier state');
+      delay.release();
+      await Promise.all([first, second]);
+      await waitFor(() => received.length === 2);
+      assert.deepEqual(received, [1, 2]);
+    } finally { delay.release(); sender.disconnect(); receiver.disconnect(); }
+  });
+}
+
+test('a decrypted snapshot from before reconnect is discarded', async () => {
+  const broker = new Broker();
+  const delay = delayedCrypto('decrypt');
+  const sender = loadContext(broker).CouchTransport;
+  const receiver = loadContext(broker, { crypto: delay.crypto }).CouchTransport;
+  const received = [];
+  receiver.onMessage((msg) => received.push(msg.title));
+  try {
+    await sender.connect({ token: 'aa'.repeat(32), sessionId: 'sender' });
+    await receiver.connect({ token: 'aa'.repeat(32), sessionId: 'receiver' });
+    await waitFor(() => sender.isConnected() && receiver.isConnected());
+    await sender.send({ title: 'Stale episode' });
+    await waitFor(delay.started);
+    receiver.reconnectNow();
+    await waitFor(() => receiver.isConnected());
+    await sender.send({ title: 'Current episode' });
+    await waitFor(() => received.length === 1);
+    delay.release();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.deepEqual(received, ['Current episode']);
+  } finally { delay.release(); sender.disconnect(); receiver.disconnect(); }
+});
+
+test('phone and extension transports remain identical', () => {
+  assert.equal(fs.readFileSync(path.join(__dirname, '..', 'transport.js'), 'utf8'),
+    fs.readFileSync(path.join(__dirname, '..', 'extension', 'transport.js'), 'utf8'));
+});
 
 for (const file of ['transport.js', 'extension/transport.js']) {
   test(`${file} waits for a complete SUBACK before publishing`, async () => {

@@ -208,6 +208,8 @@ var CouchTransport = (function () {
     var config = null;
     var packetId = 1;
     var destroyed = true;
+    var sendQueue = Promise.resolve();
+    var receiveQueue = Promise.resolve();
 
     function setStatus(s) {
       if (statusCallback) statusCallback(s);
@@ -265,6 +267,8 @@ var CouchTransport = (function () {
     // Detach and close the current socket without letting its onclose run.
     function releaseSocket() {
       stopPing();
+      sendQueue = Promise.resolve();
+      receiveQueue = Promise.resolve();
       if (ws) {
         ws.onopen = ws.onmessage = ws.onerror = ws.onclose = null;
         try { ws.close(); } catch (e) { /* already closed */ }
@@ -357,7 +361,12 @@ var CouchTransport = (function () {
         return;
       }
       if (!cryptoKey) return;
-      decrypt(cryptoKey, payload).then(function (plaintext) {
+      var socket = ws;
+      var decoded = decrypt(cryptoKey, payload).catch(function () { return null; });
+      // WebCrypto completions need not preserve packet order. Old sockets must
+      // also never deliver their pending state after a reconnect.
+      receiveQueue = receiveQueue.then(function () { return decoded; }).then(function (plaintext) {
+        if (socket !== ws || socket.readyState !== 1 || plaintext === null) return;
         try {
           messageCallback(JSON.parse(plaintext));
         } catch (e) {
@@ -419,11 +428,12 @@ var CouchTransport = (function () {
       }
 
       return hashTopic(cfg.token).then(function (t) {
+        if (config !== cfg || destroyed) return null;
         topic = t;
         presenceTopic = t + '/p';
         return deriveKey(cfg.token);
       }).then(function (key) {
-        if (config !== cfg) return; // superseded by a newer connect()
+        if (config !== cfg || destroyed || !key) return; // superseded by a newer connect()
         cryptoKey = key;
         doConnect();
       });
@@ -440,13 +450,15 @@ var CouchTransport = (function () {
         return Promise.resolve(true);
       }
       if (!cryptoKey) return Promise.resolve(false);
-      return encrypt(cryptoKey, json).then(function (encrypted) {
-        if (socket === ws && socket.readyState === 1) {
+      var encoded = encrypt(cryptoKey, json).catch(function () { return null; });
+      sendQueue = sendQueue.then(function () { return encoded; }).then(function (encrypted) {
+        if (encrypted && socket === ws && socket.readyState === 1) {
           socket.send(buildPublish(outgoingTopic, encrypted, false));
           return true;
         }
         return false;
-      });
+      }).catch(function () { return false; });
+      return sendQueue;
     }
 
     function onMessage(fn) {
