@@ -307,10 +307,12 @@
   var LIFT_STYLES = [
     ['position', 'fixed'], ['inset', '0'], ['width', '100vw'], ['height', '100vh'],
     ['max-width', 'none'], ['max-height', 'none'], ['margin', '0'], ['padding', '0'],
+    ['min-width', '0'], ['min-height', '0'], ['box-sizing', 'border-box'], ['overflow', 'hidden'],
     ['border', '0'], ['transform', 'none'], ['z-index', '2147483645'], ['background', 'black']
   ];
   var FILL_STYLES = [
     ['width', '100%'], ['height', '100%'], ['max-width', 'none'], ['max-height', 'none'],
+    ['min-width', '0'], ['min-height', '0'], ['padding', '0'], ['margin', '0'], ['box-sizing', 'border-box'],
     ['left', '0'], ['top', '0'], ['object-fit', 'contain']
   ];
   var CONTAINER_GROWTH = 1.25; // an ancestor this much larger than the video is page layout, not player
@@ -428,6 +430,15 @@
   }
 
   listen(window, 'message', expandChildFrame);
+
+  // Parent frames can receive the preparation broadcast after their child has
+  // already posted its expansion request. Retry the idempotent frame lift for
+  // a short, bounded window so process scheduling cannot lose the handoff.
+  function retryFrameExpansion(token, attempts) {
+    if (!contextValid || window === window.top || expansionToken !== token || !isLifted() || !attempts) return;
+    notifyPlayerExpanded();
+    setTimeout(function () { retryFrameExpansion(token, attempts - 1); }, 100);
+  }
 
   listen(document, 'keydown', function (event) {
     if (event.key === 'Escape' && isLifted()) {
@@ -918,6 +929,7 @@
 
     if (msg.action === 'playerExpand') {
       expandPlayer(msg.token);
+      if (window !== window.top) retryFrameExpansion(msg.token, 10);
       return;
     }
 

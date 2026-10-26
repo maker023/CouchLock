@@ -16,6 +16,9 @@ function boot(localSession, legacySession, mediaSnapshot, options = {}) {
   const windowUpdates = [];
   const timers = [];
   let activeId = 7;
+  let windowState = 'maximized';
+  let prepareReplies = 0;
+  const injections = [];
   const local = { session: localSession };
   const on = (name) => ({ addListener(fn) { listeners[name] = fn; } });
   const chrome = {
@@ -30,7 +33,10 @@ function boot(localSession, legacySession, mediaSnapshot, options = {}) {
         if (msg.action === 'requestMediaStatus' && mediaSnapshot) {
           listeners.message(mediaSnapshot, { tab: { id: tabId, title: 'Playing episode' }, frameId: 3 }, () => {});
         }
-        if (callback) callback();
+        if (msg.action === 'preparePlayerExpand') {
+          prepareReplies++;
+          if (callback) callback(optionsForBoot.staleContent && prepareReplies === 1 ? undefined : { ready: true });
+        } else if (callback) callback();
       },
       onActivated: on('activated'),
       onCreated: on('created'),
@@ -40,16 +46,18 @@ function boot(localSession, legacySession, mediaSnapshot, options = {}) {
     alarms: { create() {}, onAlarm: on('alarm') },
     windows: {
       WINDOW_ID_NONE: -1,
-      get(_id, callback) { callback({ state: 'maximized' }); },
+      get(_id, callback) { callback({ state: windowState }); },
       update(id, update, callback) {
         windowUpdates.push({ id, ...update });
+        windowState = update.state;
+        if (options.onWindowUpdate) options.onWindowUpdate(listeners);
         if (options.windowError && update.state === 'fullscreen') chrome.runtime.lastError = { message: 'Window unavailable' };
         if (callback) callback();
         chrome.runtime.lastError = null;
       },
       onFocusChanged: on('focus'), onBoundsChanged: on('bounds')
     },
-    scripting: { executeScript() { return Promise.resolve([]); } },
+    scripting: { executeScript(config) { injections.push(config); return Promise.resolve([]); } },
     runtime: {
       lastError: null,
       onStartup: on('startup'),
@@ -71,6 +79,7 @@ function boot(localSession, legacySession, mediaSnapshot, options = {}) {
       }
     }
   };
+  const optionsForBoot = options;
   const transport = {
     connect(config) { connected.push(config); return Promise.resolve(); },
     disconnect(presence) { disconnects.push(presence); },
@@ -91,7 +100,8 @@ function boot(localSession, legacySession, mediaSnapshot, options = {}) {
     return new Promise((resolve) => listeners.message({ type }, {}, resolve));
   }
   return {
-    local, connected, disconnects, sent, tabMessages, deliveries, revoked, message, windowUpdates, timers, listeners,
+    local, connected, disconnects, sent, tabMessages, deliveries, revoked, message, windowUpdates, timers, listeners, injections,
+    setWindowState(state) { windowState = state; },
     relay: (status) => listeners.status(status),
     phone: (msg) => listeners.transport(msg),
     fromTab: (tabId, msg, frameId = 0, url = 'https://example.com/') => listeners.message(msg, { tab: { id: tabId, url, title: 'Playing episode' }, frameId }, () => {})
@@ -164,7 +174,7 @@ test('fullscreen restores the original window after a missing player or an expan
       const expand = app.deliveries.find((d) => d.msg.action === 'playerExpand');
       app.fromTab(7, { type: 'playerExpandFailed', token: expand.msg.token, reason: failure });
     } else if (failure === 'timeout') {
-      app.timers.find((timer) => timer.ms === 3000 && !timer.cancelled).fn();
+      app.timers.find((timer) => timer.ms === 5000 && !timer.cancelled).fn();
     }
     assert.deepEqual(app.windowUpdates.map((u) => u.state), ['fullscreen', 'maximized'], failure);
     assert.ok(app.tabMessages.some((m) => m.action === 'playerRestore'), failure);
@@ -179,10 +189,45 @@ test('fullscreen confirms the top frame and restores when laptop exits fullscree
   const expand = app.deliveries.find((d) => d.msg.action === 'playerExpand');
   app.fromTab(7, { type: 'playerExpanded', token: expand.msg.token });
   assert.equal(app.sent.at(-1).success, true);
-  assert.ok(app.timers.find((timer) => timer.ms === 3000).cancelled);
+  assert.ok(app.timers.find((timer) => timer.ms === 5000).cancelled);
+  app.setWindowState('normal');
   app.listeners.bounds({ id: 1, state: 'normal' });
+  app.timers.filter((timer) => timer.ms === 200 && !timer.cancelled).at(-1).fn();
   assert.equal(app.windowUpdates.at(-1).state, 'maximized');
   assert.ok(app.tabMessages.some((m) => m.action === 'playerRestore'));
+});
+
+test('a stale window notification does not undo fullscreen and frame selection stays fixed through resize', async () => {
+  const app = boot({ token: 'aa'.repeat(32) }, null, null, {
+    onWindowUpdate(listeners) {
+      listeners.bounds({ id: 1, state: 'maximized' });
+      listeners.message({ type: 'mediaStatus', platform: 'universal', playing: true, mediaArea: 2000000 },
+        { tab: { id: 7 }, frameId: 4 }, () => {});
+    }
+  });
+  await app.message('getSession');
+  app.fromTab(7, { type: 'mediaStatus', platform: 'star', mediaArea: 400000 }, 0);
+  app.phone({ type: 'cmd', action: 'fullscreen' });
+  const expand = app.deliveries.find((d) => d.msg.action === 'playerExpand');
+  assert.equal(expand.options.frameId, 0, 'resize must not redirect expansion into another player');
+  app.fromTab(7, { type: 'playerExpanded', token: expand.msg.token });
+  app.listeners.bounds({ id: 1, state: 'maximized' });
+  app.timers.filter((timer) => timer.ms === 200 && !timer.cancelled).at(-1).fn();
+  assert.deepEqual(app.windowUpdates.map((u) => u.state), ['fullscreen']);
+  assert.ok(!app.tabMessages.some((m) => m.action === 'playerRestore'));
+});
+
+test('fullscreen refreshes stale content scripts before entering the window', async () => {
+  const app = boot({ token: 'aa'.repeat(32) }, null, null, { staleContent: true });
+  await app.message('getSession');
+  app.phone({ type: 'cmd', action: 'fullscreen' });
+  assert.equal(app.windowUpdates.length, 0, 'wait for the player to acknowledge preparation');
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(app.injections.length, 1);
+  assert.equal(app.injections[0].files[0], 'content.js');
+  assert.equal(app.windowUpdates[0].state, 'fullscreen');
+  const prepare = app.deliveries.find((d) => d.msg.action === 'preparePlayerExpand');
+  assert.equal(prepare.options.frameId, 0);
 });
 
 test('extension migrates a pairing from temporary storage', async () => {

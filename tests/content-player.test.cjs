@@ -120,3 +120,16 @@ test('nested fullscreen lifts only the authorized child window and restores orig
   assert.equal(frame.getAttribute('style'), 'width:640px');
   assert.equal(frame.getAttribute('popover'), null);
 });
+
+test('an embedded player retries a delayed parent handoff and stops after restore', () => {
+  const app = boot({ child: true });
+  app.command({ action: 'preparePlayerExpand', token: 'authorized' });
+  app.command({ action: 'playerExpand', token: 'authorized' });
+  const initial = app.parentMessages.length;
+  app.timers.at(-1)();
+  assert.equal(app.parentMessages.length, initial + 1, 'a parent armed after the first message gets another chance');
+  const retry = app.timers.at(-1);
+  app.command({ action: 'playerRestore' });
+  retry();
+  assert.equal(app.parentMessages.length, initial + 1, 'pending retries cannot reopen restored frames');
+});

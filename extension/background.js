@@ -38,6 +38,7 @@ importScripts('transport.js');
   var connStatus = 'disconnected';
   var fullscreenTab = null; // { tabId, windowId, prevState } while the remote holds fullscreen
   var fullscreenTimer = null;
+  var fullscreenBoundsTimer = null;
   var fullscreenBusy = false;
   var injecting = {};       // tabId → Promise<boolean>
   var sessionReady;
@@ -521,13 +522,14 @@ importScripts('transport.js');
     if (fullscreenBusy) return;
     fullscreenBusy = true;
     withActiveTab(function (tab) {
+      var frameId = tab.id === activeTabId ? mediaFrame() : 0;
       chrome.windows.get(tab.windowId, function (win) {
         if (chrome.runtime.lastError || !win) {
           fullscreenBusy = false;
           reportCommand('fullscreen', false, 'unreachable');
           return;
         }
-        var operation = { tabId: tab.id, windowId: tab.windowId, prevState: win.state, token: generateToken() };
+        var operation = { tabId: tab.id, windowId: tab.windowId, frameId: frameId, prevState: win.state, token: generateToken(), entering: true };
         fullscreenTab = operation;
         saveFullscreenTab();
         function failed() {
@@ -535,18 +537,36 @@ importScripts('transport.js');
           exitFullscreen();
           reportCommand('fullscreen', false, 'unreachable');
         }
-        fullscreenTimer = setTimeout(failed, 3000);
+        fullscreenTimer = setTimeout(failed, 5000);
+        function prepare(retry) {
+          if (fullscreenTab !== operation) return;
+          // The first reply to an all-frame broadcast may come from an ad frame.
+          // Confirm the selected player separately before changing the window.
+          chrome.tabs.sendMessage(tab.id, { action: 'preparePlayerExpand', token: operation.token }, { frameId: frameId }, function (response) {
+            var error = chrome.runtime.lastError;
+            if (fullscreenTab !== operation) return;
+            if (error || !response || response.ready !== true) {
+              if (!retry) { failed(); return; }
+              injectContentScript(tab.id).then(function (ok) {
+                if (ok) prepare(false);
+                else failed();
+              });
+              return;
+            }
+            if (win.state !== 'fullscreen') chrome.windows.update(tab.windowId, { state: 'fullscreen' }, expand);
+            else expand();
+          });
+        }
         function expand() {
           if (fullscreenTab !== operation) return;
           if (chrome.runtime.lastError) { failed(); return; }
           chrome.tabs.sendMessage(tab.id, { action: 'preparePlayerExpand', token: operation.token }, {}, function () {
             if (fullscreenTab !== operation) return;
             if (chrome.runtime.lastError) { failed(); return; }
-            deliver(tab.id, { action: 'playerExpand', token: operation.token }, mediaFrame(), failed, false);
+            deliver(tab.id, { action: 'playerExpand', token: operation.token }, frameId, failed, false);
           });
         }
-        if (win.state !== 'fullscreen') chrome.windows.update(tab.windowId, { state: 'fullscreen' }, expand);
-        else expand();
+        prepare(true);
       });
     }, function () {
       fullscreenBusy = false;
@@ -556,6 +576,7 @@ importScripts('transport.js');
 
   function exitFullscreen() {
     clearTimeout(fullscreenTimer);
+    clearTimeout(fullscreenBoundsTimer);
     fullscreenBusy = false;
     if (!fullscreenTab) return;
     var fs = fullscreenTab;
@@ -572,8 +593,22 @@ importScripts('transport.js');
   }
 
   chrome.windows.onBoundsChanged.addListener(function (win) {
-    if (fullscreenTab && win.id === fullscreenTab.windowId && win.state && win.state !== 'fullscreen') exitFullscreen();
+    if (!fullscreenTab || win.id !== fullscreenTab.windowId || !win.state || win.state === 'fullscreen') return;
+    checkFullscreenWindow(fullscreenTab);
   });
+
+  function checkFullscreenWindow(operation) {
+    clearTimeout(fullscreenBoundsTimer);
+    // Windows can queue resize notifications during the fullscreen transition.
+    // A delayed notification alone must not undo a successful player expansion.
+    fullscreenBoundsTimer = setTimeout(function () {
+      if (fullscreenTab !== operation || operation.entering) return;
+      chrome.windows.get(operation.windowId, function (win) {
+        if (fullscreenTab !== operation || chrome.runtime.lastError || !win) return;
+        if (win.state && win.state !== 'fullscreen') exitFullscreen();
+      });
+    }, 200);
+  }
 
   // ── Netflix ──
 
@@ -815,9 +850,12 @@ importScripts('transport.js');
       if (msg.type === 'playerExpandFailed') {
         exitFullscreen();
         reportCommand('fullscreen', false, msg.reason || 'no_control');
-      } else if (!sender.frameId) {
+      } else if (!sender.frameId && fullscreenTab.entering) {
         clearTimeout(fullscreenTimer);
+        fullscreenTab.entering = false;
+        saveFullscreenTab();
         fullscreenBusy = false;
+        checkFullscreenWindow(fullscreenTab);
         reportCommand('fullscreen', true);
       }
     }

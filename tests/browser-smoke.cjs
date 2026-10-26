@@ -36,7 +36,9 @@ test('Chrome: nested cross-origin fullscreen and phone player UI', { skip: !fs.e
       res.end(`<style>iframe{width:400px;height:225px;border:0} .clipped{transform:translateX(5px);overflow:hidden;width:450px;height:260px}</style>
         <div class="clipped"><iframe src="http://127.0.0.1:${framePort}${next}"></iframe></div>${bridge}<script>${content}</script>`);
     } else if (req.url === '/player') {
-      res.end(`<div class="video_container" style="width:400px;height:225px"><div style="width:400px;height:225px"><video style="width:100%;height:100%"></video></div></div>
+      // Star's Video.js fluid player uses percentage padding for aspect ratio.
+      res.end(`<style>.video-js{box-sizing:border-box;position:relative;width:100%;height:0;padding-top:56.25%}.vjs-tech{position:absolute;inset:0}</style>
+        <div class="video_container" style="width:400px;height:225px"><div style="width:400px;height:225px"><div class="video-js"><video class="vjs-tech" style="width:100%;height:100%"></video></div></div></div>
         ${bridge}<script>${content}</script><script>
         addEventListener('message', event => { if(event.data && event.data.fixtureExpand) command({action:'playerExpand',token:'test-token'}); });
         </script>`);
@@ -121,9 +123,13 @@ test('Chrome: nested cross-origin fullscreen and phone player UI', { skip: !fs.e
       const dimensions = await evaluate(`(() => { const r = document.querySelector('${i === 2 ? 'video' : 'iframe'}').getBoundingClientRect(); return {width:r.width,height:r.height,vw:innerWidth,vh:innerHeight}; })()`, contexts[i]);
       assert.ok(Math.abs(dimensions.width - dimensions.vw) < 2 && Math.abs(dimensions.height - dimensions.vh) < 2, JSON.stringify({ frame: i, ...dimensions }));
     }
+    assert.equal(await evaluate(`getComputedStyle(document.querySelector('.video-js')).paddingTop`, contexts[2]), '0px');
+    assert.equal(await evaluate(`(() => {const p=document.querySelector('.video_container');return p.scrollWidth <= p.clientWidth && p.scrollHeight <= p.clientHeight;})()`, contexts[2]), true,
+      'Star-style fluid player fits without internal scrollbars');
     await evaluate(`postMessage({fixtureCommand:{action:'playerRestore'}}, '*')`);
     await new Promise((resolve) => setTimeout(resolve, 100));
     assert.equal(await evaluate(`document.querySelector('iframe').getBoundingClientRect().width`), 400);
+    assert.equal(await evaluate(`getComputedStyle(document.querySelector('.video-js')).paddingTop`, contexts[2]), '225px', 'restore original aspect ratio');
     await cdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
     await cdp('Page.navigate', { url: `http://127.0.0.1:${port}/app` });
     await new Promise((resolve) => setTimeout(resolve, 300));
