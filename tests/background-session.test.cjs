@@ -19,7 +19,9 @@ function boot(localSession, legacySession, mediaSnapshot, options = {}) {
   let windowState = 'maximized';
   let prepareReplies = 0;
   const injections = [];
-  const local = { session: localSession };
+  const local = { session: localSession, pushTarget: options.pushTarget, vapid: options.vapid };
+  const sessionStore = { session: legacySession };
+  const pushes = [];
   const on = (name) => ({ addListener(fn) { listeners[name] = fn; } });
   const chrome = {
     tabs: {
@@ -69,13 +71,14 @@ function boot(localSession, legacySession, mediaSnapshot, options = {}) {
       local: {
         setAccessLevel() { return Promise.resolve(); },
         get(_key, callback) {
-          queueMicrotask(() => callback({ session: local.session, retiredTokens: local.retiredTokens }));
+          queueMicrotask(() => callback({ session: local.session, retiredTokens: local.retiredTokens,
+            pushTarget: local.pushTarget, vapid: local.vapid }));
         },
         set(value) { Object.assign(local, value); return Promise.resolve(); }
       },
       session: {
-        get(_key, callback) { queueMicrotask(() => callback({ session: legacySession })); },
-        set() { return Promise.resolve(); }
+        get(_key, callback) { queueMicrotask(() => callback({ ...sessionStore })); },
+        set(value) { Object.assign(sessionStore, value); return Promise.resolve(); }
       }
     }
   };
@@ -91,7 +94,14 @@ function boot(localSession, legacySession, mediaSnapshot, options = {}) {
     onMessage(fn) { listeners.transport = fn; },
     onPresence() {}
   };
-  const context = { chrome, CouchTransport: transport, crypto: webcrypto, importScripts() {},
+  const push = {
+    createVapidKeys() { return Promise.resolve({ publicKey: 'new-key', privateJwk: {} }); },
+    send(subscription, note, vapid, sendOptions) {
+      pushes.push({ subscription, note, vapid, options: sendOptions });
+      return Promise.resolve(options.pushResult || { ok: true, status: 201, gone: false });
+    }
+  };
+  const context = { chrome, CouchTransport: transport, CouchPush: push, crypto: webcrypto, importScripts() {},
     Uint8Array, Promise, Date,
     setTimeout(fn, ms) { const timer = { fn, ms }; timers.push(timer); return timer; },
     clearTimeout(timer) { if (timer) timer.cancelled = true; } };
@@ -100,7 +110,7 @@ function boot(localSession, legacySession, mediaSnapshot, options = {}) {
     return new Promise((resolve) => listeners.message({ type }, {}, resolve));
   }
   return {
-    local, connected, disconnects, sent, tabMessages, deliveries, revoked, message, windowUpdates, timers, listeners, injections,
+    local, sessionStore, pushes, connected, disconnects, sent, tabMessages, deliveries, revoked, message, windowUpdates, timers, listeners, injections,
     setWindowState(state) { windowState = state; },
     relay: (status) => listeners.status(status),
     phone: (msg) => listeners.transport(msg),
@@ -331,4 +341,103 @@ test('forgotten tokens are revoked again every time the relay connects', async (
   app.revoked.length = 0;
   app.relay('connected'); // e.g. after laptop sleep
   assert.deepEqual(app.revoked, [saved.token]);
+});
+
+// ── Phone notifications ──
+
+const PAIRED = { id: 'paired1', token: 'aa'.repeat(32), created: 1, pairedAt: 1 };
+const SUB = { endpoint: 'https://web.push.apple.com/QGx', keys: { p256dh: 'p256', auth: 'auth' } };
+const VAPID = { publicKey: 'k1', privateJwk: {} };
+const MEDIA = { type: 'mediaStatus', platform: 'netflix', title: 'Ep 1', mediaKey: 'ep1', playing: true, mediaArea: 921600 };
+const settle = () => new Promise((resolve) => setImmediate(resolve));
+const notes = (app) => app.sent.filter((msg) => msg.type === 'notify');
+const plain = (value) => JSON.parse(JSON.stringify(value)); // sandbox objects have another realm's prototypes
+
+test('an on-screen phone gets one in-app message per playback moment, not a push', async () => {
+  const app = boot(PAIRED, null, null, { vapid: VAPID, pushTarget: { subscription: SUB, prefs: {} } });
+  await app.message('getSession');
+  app.phone({ type: 'phone_state', visible: true });
+  app.fromTab(7, { ...MEDIA, skipIntroAvailable: true });
+  app.fromTab(7, { ...MEDIA, skipIntroAvailable: true });
+  app.fromTab(7, { ...MEDIA, skipIntroAvailable: false });
+  app.fromTab(7, { ...MEDIA, skipIntroAvailable: true }); // flicker inside the cooldown
+  await settle();
+  assert.deepEqual(notes(app).map((n) => [n.kind, n.title, n.body]), [['skipIntro', 'Intro can be skipped', 'Ep 1']]);
+  assert.equal(app.pushes.length, 0);
+});
+
+test('an off-screen phone gets a push to its synced subscription, minus muted kinds', async () => {
+  const app = boot(PAIRED, null, null, { vapid: VAPID });
+  await app.message('getSession');
+  app.phone({ type: 'notify_sync', enabled: true, key: 'k1', subscription: SUB, prefs: { skipIntro: false } });
+  await settle();
+  assert.deepEqual(plain(app.sent.at(-1)), { type: 'push_key', key: 'k1' });
+  app.phone({ type: 'ping', visible: false });
+  app.fromTab(7, { ...MEDIA, platform: 'youtube', skipAdAvailable: true, skipIntroAvailable: true });
+  await settle();
+  assert.deepEqual(plain(app.pushes.map((p) => p.note)), [{ kind: 'skipAd', title: 'Ad can be skipped', body: 'Ep 1' }]);
+  assert.equal(app.pushes[0].subscription.endpoint, SUB.endpoint);
+  assert.deepEqual(plain(app.pushes[0].options), { ttl: 30, topic: 'skipAd' });
+  assert.equal(notes(app).length, 0);
+});
+
+test('subscriptions for an old key or a non-push host are not kept', async () => {
+  const app = boot(PAIRED, null, null, { vapid: VAPID, pushTarget: { subscription: SUB, prefs: {} } });
+  await app.message('getSession');
+  app.phone({ type: 'notify_sync', enabled: true, key: 'old', subscription: SUB, prefs: {} });
+  await settle();
+  assert.equal(app.local.pushTarget.subscription, null);
+  assert.deepEqual(plain(app.sent.at(-1)), { type: 'push_key', key: 'k1' });
+  app.phone({ type: 'notify_sync', enabled: true, key: 'k1', subscription: { ...SUB, endpoint: 'https://router.local/x' }, prefs: {} });
+  await settle();
+  assert.equal(app.local.pushTarget.subscription, null);
+});
+
+test('a subscription the push service reports gone is dropped', async () => {
+  const app = boot(PAIRED, null, null, { vapid: VAPID, pushTarget: { subscription: SUB, prefs: {} }, pushResult: { ok: false, status: 410, gone: true } });
+  await app.message('getSession');
+  app.fromTab(7, { ...MEDIA, stillWatching: true });
+  await settle();
+  assert.equal(app.pushes[0].note.kind, 'stillWatching');
+  assert.equal(app.local.pushTarget.subscription, null);
+});
+
+test('"laptop connected" fires once per Chrome launch, and not after the phone already said hello', async () => {
+  const app = boot(PAIRED, null, null, { vapid: VAPID, pushTarget: { subscription: SUB, prefs: {} } });
+  await app.message('getSession');
+  app.relay('connected');
+  await settle();
+  app.timers.find((t) => t.ms === 4000).fn();
+  await settle();
+  assert.deepEqual(app.pushes.map((p) => [p.note.kind, p.options.ttl]), [['connected', 300]]);
+  app.relay('reconnecting');
+  app.relay('connected');
+  await settle();
+  assert.equal(app.timers.filter((t) => t.ms === 4000).length, 1);
+
+  const greeted = boot(PAIRED, null, null, { vapid: VAPID, pushTarget: { subscription: SUB, prefs: {} } });
+  await greeted.message('getSession');
+  greeted.phone({ type: 'hello', token: PAIRED.token });
+  greeted.relay('connected');
+  await settle();
+  assert.equal(greeted.timers.filter((t) => t.ms === 4000).length, 0);
+});
+
+test('autoplay after the credits announces the new episode; a manual switch does not', async () => {
+  const app = boot(PAIRED, null, null, { vapid: VAPID });
+  await app.message('getSession');
+  app.phone({ type: 'phone_state', visible: true });
+  app.fromTab(7, { ...MEDIA, upNext: true });
+  app.fromTab(7, { ...MEDIA, mediaKey: 'ep2', title: '', playing: true }); // title not resolved yet
+  app.fromTab(7, { ...MEDIA, mediaKey: 'ep2', title: 'Ep 2', playing: true });
+  app.fromTab(7, { ...MEDIA, mediaKey: 'ep3', title: 'Ep 3', playing: true });
+  assert.deepEqual(notes(app).map((n) => [n.kind, n.title, n.body]),
+    [['nextEpisode', 'Episode finished', 'Next episode is up'], ['nowPlaying', 'Now playing', 'Ep 2']]);
+});
+
+test('forgetting the phone forgets its push subscription', async () => {
+  const app = boot(PAIRED, null, null, { vapid: VAPID, pushTarget: { subscription: SUB, prefs: {} } });
+  await app.message('getSession');
+  await app.message('newSession');
+  assert.equal(app.local.pushTarget.subscription, null);
 });

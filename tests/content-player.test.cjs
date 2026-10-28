@@ -81,6 +81,24 @@ test('fixed-position skip controls are available and hidden/disabled duplicates 
   assert.equal(disabled.clicked, undefined);
 });
 
+test('credits and "still watching?" are reported apart from the control-bar next button', () => {
+  const app = boot();
+  app.selectors['[data-uia="control-next"]'] = [element()];
+  app.command({ action: 'requestMediaStatus' });
+  assert.equal(app.status().nextEpisodeAvailable, true);
+  assert.equal(app.status().upNext, false);
+  assert.equal(app.status().stillWatching, false);
+  const seamless = element();
+  const proceed = element();
+  app.selectors['[data-uia="next-episode-seamless-button"]'] = [seamless];
+  app.selectors['[data-uia="interrupt-autoplay-continue"]'] = [proceed];
+  app.command({ action: 'requestMediaStatus' });
+  assert.equal(app.status().upNext, true);
+  assert.equal(app.status().stillWatching, true);
+  app.command({ action: 'cmd', command: 'stillWatching' });
+  assert.equal(proceed.clicked, true);
+});
+
 test('pause events promptly report the visible player instead of a hidden playing preview', () => {
   const preview = element(0, 0);
   const video = element();

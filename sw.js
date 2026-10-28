@@ -3,8 +3,9 @@
  *
  * Handles caching for offline PWA support.
  * Network-first for navigations, cache-first for static assets.
+ * Shows the laptop's push notifications while the app is closed.
  */
-var CACHE_NAME = 'couchlock-v9';
+var CACHE_NAME = 'couchlock-v10';
 // Scripts are cache-first, so index.html loads them with a ?v= version. Bump it
 // (here and in index.html) whenever a script changes, or an installed app can
 // pair a new page with an old cached script.
@@ -84,4 +85,38 @@ self.addEventListener('fetch', function (event) {
       });
     })
   );
+});
+
+// ── Push notifications ──
+// Sent by the laptop's extension only while the app is off screen (it toasts
+// in-app otherwise). iOS revokes subscriptions whose pushes show nothing, so
+// every push becomes a visible notification.
+self.addEventListener('push', function (event) {
+  var note = {};
+  try {
+    note = event.data ? event.data.json() : {};
+  } catch (e) {
+    // Unreadable payload: still show something.
+  }
+  event.waitUntil(self.registration.showNotification(note.title || 'CouchLock', {
+    body: note.body || '',
+    tag: note.kind || 'couchlock',
+    icon: 'icons/icon-192.png',
+    data: { kind: note.kind || '' }
+  }));
+});
+
+// Playback notifications open the remote on Media; "laptop connected" opens
+// wherever the user left it.
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+  var kind = event.notification.data ? event.notification.data.kind : '';
+  var mode = kind && kind !== 'connected' ? 'media' : '';
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (windows) {
+    if (windows.length > 0) {
+      if (mode) windows[0].postMessage({ type: 'open_mode', mode: mode });
+      return windows[0].focus();
+    }
+    return self.clients.openWindow(new URL('./index.html' + (mode ? '#' + mode : ''), self.registration.scope).href);
+  }));
 });

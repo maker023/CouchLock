@@ -47,10 +47,12 @@ test('Chrome: nested cross-origin fullscreen and phone player UI', { skip: !fs.e
       html = html.replace(/<link[^>]+href="https:[^"]*"[^>]*>/g, '');
       html = html.replace('<script src="transport.js?v=4"></script>', `<script>
         localStorage.setItem('couchlock-pairing-v1', JSON.stringify({token:'aa'.repeat(32),sessionId:'fixture'}));
+        localStorage.setItem('couchlock-notify', '1');
+        window.sentMessages = [];
         window.CouchTransport = {
           onStatus(fn) { this.status = fn; }, onPresence() {}, onMessage(fn) { this.message = fn; },
           connect() { queueMicrotask(() => { this.status('connected'); this.message({type:'ready'}); }); },
-          send(msg) { return Promise.resolve(true); }, isConnected() {return true;}, disconnect(){}, reconnectNow(){}, checkAlive(){}
+          send(msg) { sentMessages.push(msg); return Promise.resolve(true); }, isConnected() {return true;}, disconnect(){}, reconnectNow(){}, checkAlive(){}
         };
         navigator.serviceWorker.register = () => Promise.resolve();
       </script>`);
@@ -140,6 +142,25 @@ test('Chrome: nested cross-origin fullscreen and phone player UI', { skip: !fs.e
     assert.equal(await evaluate(`document.querySelector('#btn-play-pause').disabled`), false);
     assert.equal(await evaluate(`document.querySelector('#btn-next-ep').classList.contains('highlight')`), true);
     assert.equal(await evaluate(`document.documentElement.scrollWidth <= innerWidth`), true);
+
+    // Notification toasts: suppressed on Media, actionable elsewhere.
+    const notify = `CouchTransport.message({type:'notify',kind:'skipAd',title:'Ad can be skipped',body:'Test episode'})`;
+    await evaluate(notify);
+    assert.equal(await evaluate(`document.querySelectorAll('.toast-notify').length`), 0);
+    await evaluate(`document.querySelector('.nav-btn[data-mode="settings"]').click(); ${notify}`);
+    assert.equal(await evaluate(`document.querySelector('#notify-types').hidden`), false);
+    assert.equal(await evaluate(`document.querySelector('#setting-notify').getAttribute('aria-checked')`), 'true');
+    const toast = await evaluate(`(() => { const r = document.querySelector('.toast-notify').getBoundingClientRect();
+      return { left: r.left, right: r.right, vw: innerWidth, action: document.querySelector('.toast-action').textContent }; })()`);
+    assert.ok(toast.left >= 0 && toast.right <= toast.vw, JSON.stringify(toast));
+    assert.equal(toast.action, 'Skip');
+    await evaluate(`document.querySelector('.toast-action').click()`);
+    assert.deepEqual(await evaluate(`sentMessages.at(-1)`), { type: 'cmd', action: 'skipAd' });
+    await evaluate(`CouchTransport.message({type:'notify',kind:'nowPlaying',title:'Now playing',body:'A very long episode title that should be truncated rather than pushing past the edge of the screen'})`);
+    const longToast = await evaluate(`(() => { const r = document.querySelectorAll('.toast-notify'); const last = r[r.length - 1].getBoundingClientRect(); return { left: last.left, right: last.right, vw: innerWidth }; })()`);
+    assert.ok(longToast.left >= 0 && longToast.right <= longToast.vw, JSON.stringify(longToast));
+    await evaluate(`document.querySelectorAll('.toast-open')[document.querySelectorAll('.toast-open').length - 1].click()`);
+    assert.equal(await evaluate(`document.querySelector('#view-media').classList.contains('active')`), true);
     assert.deepEqual(errors, []);
   } finally {
     if (ws) ws.close();

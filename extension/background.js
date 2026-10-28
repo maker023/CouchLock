@@ -13,8 +13,9 @@
  *   - Cursor settings relay
  *   - Player fullscreen (window fullscreen + player lifted above the page)
  *   - Netflix seeking through the page's own player API
+ *   - Phone notifications: in-app messages, or Web Push while the app is closed
  */
-importScripts('transport.js');
+importScripts('transport.js', 'webpush.js');
 
 (function () {
   'use strict';
@@ -96,6 +97,7 @@ importScripts('transport.js');
     cursorY = Math.round(viewportH / 2);
 
     saveSession();
+    savePushTarget(null, {}); // the next phone subscribes again after pairing
     connectSession();
     broadcastToPopup({ type: 'status', status: connStatus, paired: false, session: session });
 
@@ -139,6 +141,7 @@ importScripts('transport.js');
       mediaPlaying = false;
       mediaPlatform = 'unknown';
       mediaFrames = {};
+      resetMediaMoments();
       if (paired) {
         clearPhoneMedia();
         requestViewport();
@@ -175,6 +178,7 @@ importScripts('transport.js');
     if (status === 'connected' && session) {
       CouchTransport.send({ type: 'session_available' });
       revokeRetired();
+      notifyFirstConnect();
     }
   });
 
@@ -251,7 +255,14 @@ importScripts('transport.js');
       case 'request_media_status':
         requestMediaSnapshot();
         break;
+      case 'notify_sync':
+        handleNotifySync(msg);
+        break;
+      case 'phone_state':
+        notePhone(msg);
+        break;
       case 'ping':
+        notePhone(msg);
         CouchTransport.send({ type: 'pong', ts: Date.now() });
         break;
       case 'session_close':
@@ -310,6 +321,8 @@ importScripts('transport.js');
 
   function handleHello(msg) {
     if (session && msg.token === session.token) {
+      // The phone is talking to us, so this Chrome launch needs no "connected" notice.
+      chrome.storage.session.set({ connectNotified: true });
       paired = true;
       if (!session.pairedAt || session.paused) {
         session.pairedAt = session.pairedAt || Date.now();
@@ -347,6 +360,167 @@ importScripts('transport.js');
     // Re-enabling means "show me the tips again" → allow one more open.
     if (enabled) update.tipsShown = false;
     chrome.storage.local.set(update);
+  }
+
+  // ── Phone Notifications ──
+  // The first connection of each Chrome launch, plus playback moments (skippable
+  // ad or intro, credits, "still watching?"). A phone with the app on screen
+  // gets an in-app message and decides whether to toast. Otherwise iOS has
+  // suspended the app, and only a Web Push (webpush.js) can reach it.
+
+  var PHONE_STALE = 25000;          // the app pings every 10s while it runs
+  var CONNECT_NOTIFY_DELAY = 4000;  // lets an open app check in first, so it gets a toast instead
+  var UP_NEXT_WINDOW = 180000;      // a new video this soon after the credits means autoplay
+  var NOTIFY_COOLDOWN = { skipAd: 15000, skipIntro: 60000, nextEpisode: 60000, stillWatching: 60000 };
+  var NOTIFY_TTL = { connected: 300, nowPlaying: 60 }; // seconds; playback moments expire after 30
+  var PUSH_SERVICE = /^https:\/\/([a-z0-9-]+\.)*(push\.apple\.com|fcm\.googleapis\.com|push\.services\.mozilla\.com|notify\.windows\.com)\//;
+  var NOTES = {
+    connected: { title: 'Laptop connected', body: 'CouchLock is ready when you are' },
+    skipAd: { title: 'Ad can be skipped' },
+    skipIntro: { title: 'Intro can be skipped' },
+    nextEpisode: { title: 'Episode finished', body: 'Next episode is up' },
+    stillWatching: { title: 'Still watching?', body: 'Playback is paused until you answer' },
+    nowPlaying: { title: 'Now playing' }
+  };
+
+  var phoneVisible = false;
+  var phoneSeenAt = 0;
+  var pushTarget = { subscription: null, prefs: {} };
+  var vapidReady = null;
+  var mediaSignals = {};   // kind → last reported state, for rising edges
+  var notifiedAt = {};     // kind → last notification time
+  var lastMediaKey = '';
+  var upNextAt = 0;
+  var nowPlayingKey = '';  // autoplay started this video; announce it once it has a title
+
+  function notePhone(msg) {
+    phoneSeenAt = Date.now();
+    if (typeof msg.visible === 'boolean') phoneVisible = msg.visible;
+  }
+
+  function phoneOnScreen() {
+    return phoneVisible && Date.now() - phoneSeenAt < PHONE_STALE;
+  }
+
+  function notifyPhone(kind, mediaTitle) {
+    if (!paired || !session) return;
+    var note = {
+      kind: kind,
+      title: kind === 'nextEpisode' && mediaPlatform === 'youtube' ? 'Video finished' : NOTES[kind].title,
+      body: NOTES[kind].body || mediaTitle || ''
+    };
+    if (phoneOnScreen()) {
+      CouchTransport.send({ type: 'notify', kind: note.kind, title: note.title, body: note.body });
+      return;
+    }
+    sendPush(note);
+  }
+
+  function sendPush(note) {
+    var subscription = pushTarget.subscription;
+    if (!subscription || pushTarget.prefs[note.kind] === false) return;
+    vapidKeys().then(function (vapid) {
+      // Topic: an undelivered push of the same kind is replaced, not stacked.
+      return CouchPush.send(subscription, note, vapid, { ttl: NOTIFY_TTL[note.kind] || 30, topic: note.kind });
+    }).then(function (result) {
+      if (result.gone && pushTarget.subscription === subscription) savePushTarget(null, pushTarget.prefs);
+    }, function () {
+      // Key storage failed; the next notification retries.
+    });
+  }
+
+  // One VAPID key pair for the life of the install. Phones subscribe with its
+  // public half, and every push is signed with the private half.
+  function vapidKeys() {
+    if (!vapidReady) {
+      vapidReady = new Promise(function (resolve) {
+        chrome.storage.local.get('vapid', function (data) { resolve(data && data.vapid); });
+      }).then(function (saved) {
+        if (saved) return saved;
+        return CouchPush.createVapidKeys().then(function (created) {
+          chrome.storage.local.set({ vapid: created });
+          return created;
+        });
+      });
+      vapidReady.catch(function () { vapidReady = null; });
+    }
+    return vapidReady;
+  }
+
+  function savePushTarget(subscription, prefs) {
+    pushTarget = { subscription: subscription, prefs: prefs };
+    chrome.storage.local.set({ pushTarget: pushTarget });
+  }
+
+  function validSubscription(sub) {
+    return !!(sub && typeof sub.endpoint === 'string' && PUSH_SERVICE.test(sub.endpoint) && sub.keys &&
+      typeof sub.keys.p256dh === 'string' && typeof sub.keys.auth === 'string');
+  }
+
+  // The phone sends its subscription and per-kind preferences on every connect.
+  // A subscription made with another key (extension reinstalled) can't be
+  // signed for, so it's dropped; the reply carries the current key and the
+  // phone subscribes again with it.
+  function handleNotifySync(msg) {
+    vapidKeys().then(function (vapid) {
+      var usable = !!msg.enabled && msg.key === vapid.publicKey && validSubscription(msg.subscription);
+      var subscription = usable ? { endpoint: msg.subscription.endpoint,
+        keys: { p256dh: msg.subscription.keys.p256dh, auth: msg.subscription.keys.auth } } : null;
+      savePushTarget(subscription, msg.prefs && typeof msg.prefs === 'object' ? msg.prefs : {});
+      CouchTransport.send({ type: 'push_key', key: vapid.publicKey });
+    }, function () {
+      // Key creation failed; the phone asks again on its next connect.
+    });
+  }
+
+  // Once per Chrome launch: chrome.storage.session is wiped when Chrome quits,
+  // and unlike a variable it survives this worker being restarted.
+  function notifyFirstConnect() {
+    if (!paired) return;
+    chrome.storage.session.get('connectNotified', function (data) {
+      if (data && data.connectNotified) return;
+      chrome.storage.session.set({ connectNotified: true });
+      setTimeout(function () { notifyPhone('connected'); }, CONNECT_NOTIFY_DELAY);
+    });
+  }
+
+  function resetMediaMoments() {
+    mediaSignals = {};
+    lastMediaKey = '';
+    upNextAt = 0;
+    nowPlayingKey = '';
+  }
+
+  // Rising edges only, so a control that stays up notifies once. The cooldown
+  // stops a control that flickers as the player UI fades from notifying again.
+  function detectMediaMoments(status, title, nextEpisodeAvailable) {
+    var now = Date.now();
+    var key = status.mediaKey || '';
+    if (key && key !== lastMediaKey) {
+      nowPlayingKey = lastMediaKey && now - upNextAt < UP_NEXT_WINDOW ? key : '';
+      lastMediaKey = key;
+      upNextAt = 0;
+    }
+    if (nowPlayingKey && nowPlayingKey === key && status.playing && title) {
+      nowPlayingKey = '';
+      notifyPhone('nowPlaying', title);
+    }
+
+    var signals = {
+      skipAd: !!status.skipAdAvailable,
+      skipIntro: !!status.skipIntroAvailable,
+      nextEpisode: !!status.upNext || (!!status.ended && nextEpisodeAvailable),
+      stillWatching: !!status.stillWatching
+    };
+    Object.keys(signals).forEach(function (kind) {
+      var rising = signals[kind] && !mediaSignals[kind];
+      mediaSignals[kind] = signals[kind];
+      if (!rising) return;
+      if (kind === 'nextEpisode') upNextAt = now;
+      if (now - (notifiedAt[kind] || 0) < NOTIFY_COOLDOWN[kind]) return;
+      notifiedAt[kind] = now;
+      notifyPhone(kind, title);
+    });
   }
 
   // ── Input Dispatch (all via content script) ──
@@ -938,14 +1112,19 @@ importScripts('transport.js');
     if (!selected) { clearPhoneMedia(); return; }
     if (mediaPlatform === 'universal' && /^https:\/\/([^.]+\.)?star\.gr\//.test(tab.url || '')) mediaPlatform = 'star';
     var parent = mediaFrames[0] && mediaFrames[0].status;
+    var reportedTitle = (selected.title || '').trim() || (parent && (parent.title || '').trim()) || '';
+    var title = reportedTitle || tab.title || '';
+    var nextEpisodeAvailable = !!(mediaPlatform === 'star' && parent ? parent.nextEpisodeAvailable : selected.nextEpisodeAvailable);
     CouchTransport.send({
       type: 'media_status', platform: mediaPlatform,
-      title: (selected.title || '').trim() || (parent && (parent.title || '').trim()) || tab.title || '',
+      title: title,
       playing: mediaPlaying, currentTime: selected.currentTime, duration: selected.duration,
       skipIntroAvailable: !!selected.skipIntroAvailable,
       skipAdAvailable: !!selected.skipAdAvailable,
-      nextEpisodeAvailable: !!(mediaPlatform === 'star' && parent ? parent.nextEpisodeAvailable : selected.nextEpisodeAvailable)
+      nextEpisodeAvailable: nextEpisodeAvailable
     });
+    // Notifications use only the player's own title: a tab title is often just the site name.
+    detectMediaMoments(selected, reportedTitle, nextEpisodeAvailable);
   }
 
   function broadcastToPopup(msg) {
@@ -985,8 +1164,9 @@ importScripts('transport.js');
   chrome.storage.session.get('fullscreenTab', function (data) {
     if (data && data.fullscreenTab) fullscreenTab = data.fullscreenTab;
   });
-  chrome.storage.local.get(['session', 'retiredTokens'], function (data) {
+  chrome.storage.local.get(['session', 'retiredTokens', 'pushTarget'], function (data) {
     if (data && data.retiredTokens) retiredTokens = data.retiredTokens;
+    if (data && data.pushTarget) pushTarget = data.pushTarget;
     if (data && data.session) {
       session = data.session;
       paired = !!session.pairedAt && !session.paused;

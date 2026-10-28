@@ -12,6 +12,7 @@
  *   - Cursor overlay rendering
  *   - Input focus detection (for keyboard overlay on PWA)
  *   - Skip Ad availability reporting (YouTube, manual only)
+ *   - Up-next and "still watching?" detection (drives phone notifications)
  *   - Player fullscreen (lifted into the top layer above the page)
  */
 (function () {
@@ -475,6 +476,14 @@
         { type: 'selector', value: '[data-uia="next-episode-seamless-button-draining"]' },
         { type: 'selector', value: '[data-uia="control-next"]' }
       ],
+      // Only shown over the credits, unlike the control-bar next button.
+      upNext: [
+        { type: 'selector', value: '[data-uia="next-episode-seamless-button"]' },
+        { type: 'selector', value: '[data-uia="next-episode-seamless-button-draining"]' }
+      ],
+      stillWatching: [
+        { type: 'selector', value: '[data-uia="interrupt-autoplay-continue"]' }
+      ],
       mute: [
         { type: 'selector', value: '[data-uia="control-mute-unmute"]' },
         { type: 'key', value: { key: 'm', code: 'KeyM' } }
@@ -542,6 +551,14 @@
       nextEpisode: [
         { type: 'selector', value: '.ytp-next-button' },
         { type: 'key', value: { key: 'N', code: 'KeyN', modifiers: 1 } }
+      ],
+      // The autoplay countdown's "play now" button is only laid out while it counts down.
+      upNext: [
+        { type: 'selector', value: '.ytp-autonav-endscreen-upnext-play-button' }
+      ],
+      stillWatching: [
+        { type: 'selector', value: 'ytd-popup-container yt-confirm-dialog-renderer #confirm-button button' },
+        { type: 'selector', value: 'ytd-popup-container yt-confirm-dialog-renderer #confirm-button' }
       ],
       mute: [
         { type: 'selector', value: '.ytp-mute-button' },
@@ -883,12 +900,15 @@
       title: mediaTitle(vid),
       mediaKey: titleKey,
       playing: vid ? !vid.paused && !vid.ended : false,
+      ended: vid ? vid.ended : false,
       mediaArea: rect ? Math.round(rect.width * rect.height) : 0,
       currentTime: vid ? vid.currentTime : 0,
       duration: vid && Number.isFinite(vid.duration) ? vid.duration : 0,
       skipIntroAvailable: skipIntroAvailable,
       skipAdAvailable: checkStrategyExists(strats.skipAd),
-      nextEpisodeAvailable: checkStrategyExists(strats.nextEpisode) || (detectedPlatform === 'youtube' && !!vid)
+      nextEpisodeAvailable: checkStrategyExists(strats.nextEpisode) || (detectedPlatform === 'youtube' && !!vid),
+      upNext: checkStrategyExists(strats.upNext),
+      stillWatching: checkStrategyExists(strats.stillWatching)
     };
     var json = JSON.stringify(status);
     if (force !== true && json === lastStatusJSON && Date.now() - lastStatusAt < 10000) return;
