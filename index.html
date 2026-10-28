@@ -1149,7 +1149,8 @@ html, body {
   flex-direction: column;
   gap: 10px;
 }
-.notify-types[hidden] { display: none; }
+.notify-types[hidden],
+.setting-row[hidden] { display: none; }
 .setting-row {
   display: flex;
   align-items: center;
@@ -2162,8 +2163,12 @@ html, body {
 
         <div class="setting-section-label">Notifications</div>
         <div class="setting-row">
-          <div><div class="setting-label">Notifications</div><div class="setting-desc" id="notify-desc">Lock screen alerts while you watch</div></div>
-          <button class="setting-toggle" id="setting-notify" type="button" role="switch" aria-checked="false" aria-label="Notifications"></button>
+          <div><div class="setting-label">Lock screen</div><div class="setting-desc" id="notify-desc">Lock screen alerts while you watch</div></div>
+          <button class="setting-toggle" id="setting-notify" type="button" role="switch" aria-checked="false" aria-label="Lock screen notifications"></button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">In-app</div><div class="setting-desc">Toasts while you’re on another tab</div></div>
+          <button class="setting-toggle" id="setting-notify-inapp" type="button" role="switch" aria-checked="false" aria-label="In-app notifications"></button>
         </div>
         <div class="notify-types" id="notify-types" hidden>
           <div class="setting-row">
@@ -2190,7 +2195,7 @@ html, body {
             <div><div class="setting-label">Now playing</div><div class="setting-desc">When autoplay starts the next one</div></div>
             <button class="setting-toggle" type="button" role="switch" data-notify-kind="nowPlaying" aria-label="Now playing"></button>
           </div>
-          <div class="setting-row">
+          <div class="setting-row" id="notify-test-row">
             <div><div class="setting-label">Test notification</div><div class="setting-desc" id="notify-test-desc" role="status">Sends one through your laptop now</div></div>
             <button class="sticker-ctrl-btn" id="btn-notify-test" type="button">Send</button>
           </div>
@@ -2393,7 +2398,9 @@ html, body {
   var nudgeTimer = null;       // counts down to the "pair again?" suggestion
   var nudgeDismissed = false;
   var lastFailureToast = { reason: '', at: 0 };
-  var notifyEnabled = false;   // notifications switched on (persisted, needs a push subscription)
+  var notifyEnabled = false;   // lock-screen notifications switched on (persisted, needs a push subscription)
+  var inAppEnabled = true;     // in-app notification toasts (persisted, no permission needed)
+  var pushReachable = true;    // the laptop can reach this phone's push service (last known, persisted)
   var notifyPrefs = {};        // kind → false when that notification is muted (persisted, synced)
   var pushKey = '';            // the laptop's push signing key, cached so subscribing fits inside the tap
   var subscribedKey = '';      // the key the current push subscription was made with
@@ -2864,7 +2871,7 @@ html, body {
       }
 
       if (msg.type === 'push_key') {
-        handlePushKey(msg.key);
+        handlePushKey(msg);
       }
 
       if (msg.type === 'notify_test_result') {
@@ -3873,7 +3880,7 @@ html, body {
 
   // ── Settings Toggles ──
   // Toggles with dedicated handlers (state + persistence) manage their own .on class.
-  var DEDICATED_TOGGLES = ['setting-tier', 'setting-auto-reconnect', 'setting-tips', 'setting-notify'];
+  var DEDICATED_TOGGLES = ['setting-tier', 'setting-auto-reconnect', 'setting-tips', 'setting-notify', 'setting-notify-inapp'];
   $$('.setting-toggle').forEach(function (toggle) {
     if (DEDICATED_TOGGLES.indexOf(toggle.id) !== -1 || toggle.hasAttribute('data-notify-kind')) return;
     toggle.addEventListener('click', function () {
@@ -3914,8 +3921,10 @@ html, body {
     install: 'Add CouchLock to your Home Screen to turn these on',
     unsupported: 'This browser can’t show notifications',
     blocked: 'Blocked. Allow them in iOS Settings › Notifications › CouchLock',
-    lapsed: 'Turned off by the phone. Tap to turn back on'
+    lapsed: 'Turned off by the phone. Tap to turn back on',
+    unreachable: 'Not available from your laptop’s browser right now. In-app notifications still work'
   };
+  var APPLE_PUSH = 'https://web.push.apple.com'; // every Apple device subscribes here
   var notifyLapsed = false; // the subscription vanished or couldn't be renewed
 
   function pushSupported() {
@@ -3940,6 +3949,8 @@ html, body {
 
   function saveNotifySettings() {
     savePref('couchlock-notify', notifyEnabled ? '1' : '0');
+    savePref('couchlock-notify-inapp', inAppEnabled ? '1' : '0');
+    savePref('couchlock-push-reachable', pushReachable ? '1' : '0');
     savePref('couchlock-notify-prefs', JSON.stringify(notifyPrefs));
     savePref('couchlock-push-key', pushKey);
     savePref('couchlock-push-subscribed-key', subscribedKey);
@@ -3978,15 +3989,25 @@ html, body {
         enabled: notifyEnabled,
         key: subscribedKey,
         subscription: sub && notifyEnabled ? sub.toJSON() : null,
-        prefs: notifyPrefs
+        prefs: notifyPrefs,
+        pushOrigin: pushOrigin(sub)
       });
     });
   }
 
-  function handlePushKey(key) {
-    if (typeof key !== 'string' || !key) return;
-    pushKey = key;
+  // The push service this phone uses: known from its subscription, otherwise
+  // Apple's for any Apple device (every iOS browser is WebKit, vendor "Apple").
+  function pushOrigin(sub) {
+    if (sub) return new URL(sub.endpoint).origin;
+    return /Apple/.test(navigator.vendor || '') ? APPLE_PUSH : '';
+  }
+
+  function handlePushKey(msg) {
+    if (typeof msg.key !== 'string' || !msg.key) return;
+    pushKey = msg.key;
+    pushReachable = msg.reachable !== false;
     saveNotifySettings();
+    renderNotifyUI();
     if (notifyEnabled && subscribedKey !== pushKey) resubscribe();
   }
 
@@ -4052,12 +4073,21 @@ html, body {
   }
 
   function renderNotifyUI() {
+    // Lock-screen alerts stay switched on underneath when the laptop can't
+    // reach the push service, so they return as soon as it can.
+    var lockOn = notifyEnabled && pushReachable;
     var toggle = $('#setting-notify');
-    toggle.classList.toggle('on', notifyEnabled);
-    toggle.setAttribute('aria-checked', notifyEnabled ? 'true' : 'false');
-    $('#notify-types').hidden = !notifyEnabled;
+    toggle.hidden = !pushReachable;
+    toggle.classList.toggle('on', lockOn);
+    toggle.setAttribute('aria-checked', lockOn ? 'true' : 'false');
+    var inApp = $('#setting-notify-inapp');
+    inApp.classList.toggle('on', inAppEnabled);
+    inApp.setAttribute('aria-checked', inAppEnabled ? 'true' : 'false');
+    $('#notify-types').hidden = !lockOn && !inAppEnabled;
+    $('#notify-test-row').hidden = !lockOn;
     var blocker = notifyEnabled ? '' : notifyBlocker();
-    $('#notify-desc').textContent = NOTIFY_DESC[notifyEnabled ? 'on' : blocker || (notifyLapsed ? 'lapsed' : 'off')];
+    $('#notify-desc').textContent = !pushReachable ? NOTIFY_DESC.unreachable
+      : NOTIFY_DESC[notifyEnabled ? 'on' : blocker || (notifyLapsed ? 'lapsed' : 'off')];
     $$('[data-notify-kind]').forEach(function (kindToggle) {
       var on = notifyPrefs[kindToggle.getAttribute('data-notify-kind')] !== false;
       kindToggle.classList.toggle('on', on);
@@ -4068,6 +4098,12 @@ html, body {
   $('#setting-notify').addEventListener('click', function () {
     if (notifyEnabled) disableNotifications();
     else enableNotifications();
+  });
+
+  $('#setting-notify-inapp').addEventListener('click', function () {
+    inAppEnabled = !inAppEnabled;
+    saveNotifySettings();
+    renderNotifyUI();
   });
 
   $$('[data-notify-kind]').forEach(function (kindToggle) {
@@ -4103,7 +4139,7 @@ html, body {
   }
 
   function showNotifyToast(msg) {
-    if (!notifyEnabled || notifyPrefs[msg.kind] === false) return;
+    if (!inAppEnabled || notifyPrefs[msg.kind] === false) return;
     if (document.visibilityState !== 'visible' || currentMode === 'media') return;
     var action = NOTIFY_ACTIONS[msg.kind];
     var text = msg.kind === 'nowPlaying' && msg.body ? msg.title + ' · ' + msg.body : msg.title;
@@ -4122,6 +4158,8 @@ html, body {
   function restoreNotifications() {
     try {
       notifyEnabled = localStorage.getItem('couchlock-notify') === '1';
+      inAppEnabled = localStorage.getItem('couchlock-notify-inapp') !== '0';
+      pushReachable = localStorage.getItem('couchlock-push-reachable') !== '0';
       notifyPrefs = JSON.parse(localStorage.getItem('couchlock-notify-prefs') || '{}') || {};
       pushKey = localStorage.getItem('couchlock-push-key') || '';
       subscribedKey = localStorage.getItem('couchlock-push-subscribed-key') || '';

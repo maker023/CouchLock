@@ -150,6 +150,11 @@ test('Chrome: nested cross-origin fullscreen and phone player UI', { skip: !fs.e
     await evaluate(`document.querySelector('.nav-btn[data-mode="settings"]').click(); ${notify}`);
     assert.equal(await evaluate(`document.querySelector('#notify-types').hidden`), false);
     assert.equal(await evaluate(`document.querySelector('#setting-notify').getAttribute('aria-checked')`), 'true');
+    await evaluate(`CouchTransport.message({ type: 'push_key', key: 'k1', reachable: false })`);
+    assert.equal(await evaluate(`document.querySelector('#setting-notify').hidden`), true);
+    assert.equal(await evaluate(`document.querySelector('#notify-test-row').offsetParent === null`), true);
+    assert.match(await evaluate(`document.querySelector('#notify-desc').textContent`), /In-app notifications still work/);
+    assert.equal(await evaluate(`document.querySelector('#notify-types').hidden`), false, 'in-app keeps the per-type toggles');
     const toast = await evaluate(`(() => { const r = document.querySelector('.toast-notify').getBoundingClientRect();
       return { left: r.left, right: r.right, vw: innerWidth, action: document.querySelector('.toast-action').textContent }; })()`);
     assert.ok(toast.left >= 0 && toast.right <= toast.vw, JSON.stringify(toast));

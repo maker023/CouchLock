@@ -379,6 +379,7 @@ importScripts('transport.js', 'webpush.js');
   var UP_NEXT_WINDOW = 180000;      // a new video this soon after the credits means autoplay
   var NOTIFY_COOLDOWN = { skipAd: 15000, skipIntro: 60000, nextEpisode: 60000, stillWatching: 60000 };
   var NOTIFY_TTL = { connected: 300, nowPlaying: 60 }; // seconds; playback moments expire after 30
+  var REACH_TTL = 600000;           // re-check an unreachable push service every 10 minutes
   var PUSH_SERVICE = /^https:\/\/([a-z0-9-]+\.)*(push\.apple\.com|fcm\.googleapis\.com|push\.services\.mozilla\.com|notify\.windows\.com)\//;
   var NOTES = {
     connected: { title: 'Laptop connected', body: 'CouchLock is ready when you are' },
@@ -393,6 +394,7 @@ importScripts('transport.js', 'webpush.js');
   var phoneSeenAt = 0;
   var pushTarget = { subscription: null, prefs: {} };
   var vapidReady = null;
+  var reach = {};          // push service origin → { ok, at }
   var mediaSignals = {};   // kind → last reported state, for rising edges
   var notifiedAt = {};     // kind → last notification time
   var lastMediaKey = '';
@@ -425,9 +427,13 @@ importScripts('transport.js', 'webpush.js');
   function sendPush(note) {
     var subscription = pushTarget.subscription;
     if (!subscription || pushTarget.prefs[note.kind] === false) return;
+    var origin = new URL(subscription.endpoint).origin;
+    var known = reach[origin];
+    if (known && !known.ok && Date.now() - known.at < REACH_TTL) return;
     vapidKeys().then(function (vapid) {
       return CouchPush.send(subscription, note, vapid, { ttl: NOTIFY_TTL[note.kind] || 30 });
     }).then(function (result) {
+      if (result.status === 0) reach[origin] = { ok: false, at: Date.now() };
       if (result.gone && pushTarget.subscription === subscription) savePushTarget(null, pushTarget.prefs);
     }, function () {
       // Key storage failed; the next notification retries.
@@ -462,17 +468,39 @@ importScripts('transport.js', 'webpush.js');
       typeof sub.keys.p256dh === 'string' && typeof sub.keys.auth === 'string');
   }
 
+  // Can this browser reach the phone's push service at all? Chrome distrusts the
+  // certificate chain of Apple's push server (web.push.apple.com chains to
+  // "COMODO ECC Certification Authority"), so every push to an iPhone fails
+  // before it leaves the laptop. Any HTTP answer means reachable; a failed
+  // request means the phone should offer in-app notifications only. Checked
+  // rather than inferred from the browser name, so a fix on Apple's or
+  // Chrome's side brings lock-screen alerts back by itself.
+  function pushServiceReachable(origin) {
+    if (typeof origin !== 'string' || !PUSH_SERVICE.test(origin + '/')) return Promise.resolve(true);
+    var known = reach[origin];
+    if (known && Date.now() - known.at < REACH_TTL) return Promise.resolve(known.ok);
+    return fetch(origin + '/', { credentials: 'omit', cache: 'no-store' }).then(function () {
+      return true;
+    }, function () {
+      return false;
+    }).then(function (ok) {
+      reach[origin] = { ok: ok, at: Date.now() };
+      return ok;
+    });
+  }
+
   // The phone sends its subscription and per-kind preferences on every connect.
   // A subscription made with another key (extension reinstalled) can't be
   // signed for, so it's dropped; the reply carries the current key and the
   // phone subscribes again with it.
   function handleNotifySync(msg) {
-    vapidKeys().then(function (vapid) {
+    Promise.all([vapidKeys(), pushServiceReachable(msg.pushOrigin)]).then(function (ready) {
+      var vapid = ready[0];
       var usable = !!msg.enabled && msg.key === vapid.publicKey && validSubscription(msg.subscription);
       var subscription = usable ? { endpoint: msg.subscription.endpoint,
         keys: { p256dh: msg.subscription.keys.p256dh, auth: msg.subscription.keys.auth } } : null;
       savePushTarget(subscription, msg.prefs && typeof msg.prefs === 'object' ? msg.prefs : {});
-      CouchTransport.send({ type: 'push_key', key: vapid.publicKey });
+      CouchTransport.send({ type: 'push_key', key: vapid.publicKey, reachable: ready[1] });
     }, function () {
       // Key creation failed; the phone asks again on its next connect.
     });

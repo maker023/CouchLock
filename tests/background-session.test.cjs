@@ -112,6 +112,7 @@ function boot(localSession, legacySession, mediaSnapshot, options = {}) {
   const context = { chrome, CouchTransport: transport, CouchPush: push, crypto: webcrypto, importScripts() {}, URL, btoa,
     fetch(url, init) {
       fetches.push({ url, init });
+      if (options.unreachable && url.startsWith(options.unreachable)) return Promise.reject(new TypeError('Failed to fetch'));
       return Promise.resolve({ ok: true, status: 200, blob: () => Promise.resolve({ size: 2048 }) });
     },
     createImageBitmap() { return Promise.resolve({ width: 640, height: 360, close() {} }); },
@@ -389,7 +390,7 @@ test('an off-screen phone gets a push to its synced subscription, minus muted ki
   await app.message('getSession');
   app.phone({ type: 'notify_sync', enabled: true, key: 'k1', subscription: SUB, prefs: { skipIntro: false } });
   await settle();
-  assert.deepEqual(plain(app.sent.at(-1)), { type: 'push_key', key: 'k1' });
+  assert.deepEqual(plain(app.sent.at(-1)), { type: 'push_key', key: 'k1', reachable: true });
   app.phone({ type: 'ping', visible: false });
   app.fromTab(7, { ...MEDIA, platform: 'youtube', skipAdAvailable: true, skipIntroAvailable: true });
   await settle();
@@ -405,7 +406,7 @@ test('subscriptions for an old key or a non-push host are not kept', async () =>
   app.phone({ type: 'notify_sync', enabled: true, key: 'old', subscription: SUB, prefs: {} });
   await settle();
   assert.equal(app.local.pushTarget.subscription, null);
-  assert.deepEqual(plain(app.sent.at(-1)), { type: 'push_key', key: 'k1' });
+  assert.deepEqual(plain(app.sent.at(-1)), { type: 'push_key', key: 'k1', reachable: true });
   app.phone({ type: 'notify_sync', enabled: true, key: 'k1', subscription: { ...SUB, endpoint: 'https://router.local/x' }, prefs: {} });
   await settle();
   assert.equal(app.local.pushTarget.subscription, null);
@@ -518,4 +519,21 @@ test('a test notification always pushes and reports the outcome to the phone', a
   await unsubscribed.message('getSession');
   unsubscribed.phone({ type: 'notify_test' });
   assert.equal(unsubscribed.sent.at(-1).reason, 'no_subscription');
+});
+
+test('an unreachable push service is reported to the phone and not pushed to', async () => {
+  const app = boot(PAIRED, null, null, { vapid: VAPID, unreachable: 'https://web.push.apple.com' });
+  await app.message('getSession');
+  app.phone({ type: 'notify_sync', enabled: true, key: 'k1', subscription: SUB, prefs: {}, pushOrigin: 'https://web.push.apple.com' });
+  await settle();
+  assert.deepEqual(plain(app.sent.at(-1)), { type: 'push_key', key: 'k1', reachable: false });
+  app.fromTab(7, { ...MEDIA, skipIntroAvailable: true }); // phone off screen
+  await settle();
+  assert.equal(app.pushes.length, 0);
+  app.phone({ type: 'notify_sync', enabled: true, key: 'k1', subscription: SUB, prefs: {}, pushOrigin: 'https://web.push.apple.com' });
+  await settle();
+  assert.equal(app.fetches.filter((f) => f.url === 'https://web.push.apple.com/').length, 1, 'cached for 10 minutes');
+  app.phone({ type: 'notify_sync', enabled: false, key: '', subscription: null, prefs: {}, pushOrigin: 'https://evil.example' });
+  await settle();
+  assert.equal(app.sent.at(-1).reachable, true, 'only known push services are probed');
 });
