@@ -14,6 +14,7 @@
  *   - Player fullscreen (window fullscreen + player lifted above the page)
  *   - Netflix seeking through the page's own player API
  *   - Phone notifications: in-app messages, or Web Push while the app is closed
+ *   - Now-playing poster: page artwork, shrunk and sent to the phone
  */
 importScripts('transport.js', 'webpush.js');
 
@@ -254,9 +255,13 @@ importScripts('transport.js', 'webpush.js');
         break;
       case 'request_media_status':
         requestMediaSnapshot();
+        if (poster.key) sendPoster();
         break;
       case 'notify_sync':
         handleNotifySync(msg);
+        break;
+      case 'notify_test':
+        handleNotifyTest();
         break;
       case 'phone_state':
         notePhone(msg);
@@ -335,6 +340,7 @@ importScripts('transport.js', 'webpush.js');
       // A reconnect may happen while the media view is already open. Fetch a
       // snapshot from every frame without waiting for a playback interaction.
       requestMediaSnapshot();
+      if (poster.key) sendPoster();
       startKeepalive();
       maybeOpenTips();
     }
@@ -420,8 +426,7 @@ importScripts('transport.js', 'webpush.js');
     var subscription = pushTarget.subscription;
     if (!subscription || pushTarget.prefs[note.kind] === false) return;
     vapidKeys().then(function (vapid) {
-      // Topic: an undelivered push of the same kind is replaced, not stacked.
-      return CouchPush.send(subscription, note, vapid, { ttl: NOTIFY_TTL[note.kind] || 30, topic: note.kind });
+      return CouchPush.send(subscription, note, vapid, { ttl: NOTIFY_TTL[note.kind] || 30 });
     }).then(function (result) {
       if (result.gone && pushTarget.subscription === subscription) savePushTarget(null, pushTarget.prefs);
     }, function () {
@@ -470,6 +475,23 @@ importScripts('transport.js', 'webpush.js');
       CouchTransport.send({ type: 'push_key', key: vapid.publicKey });
     }, function () {
       // Key creation failed; the phone asks again on its next connect.
+    });
+  }
+
+  // "Send test notification": always a real push, wherever the app is, and the
+  // outcome goes back to the phone so a failure says why.
+  function handleNotifyTest() {
+    var subscription = pushTarget.subscription;
+    if (!subscription) {
+      CouchTransport.send({ type: 'notify_test_result', ok: false, status: 0, reason: 'no_subscription' });
+      return;
+    }
+    vapidKeys().then(function (vapid) {
+      return CouchPush.send(subscription, { kind: 'test', title: 'CouchLock', body: 'Notifications are working' }, vapid, { ttl: 60 });
+    }).then(function (result) {
+      CouchTransport.send({ type: 'notify_test_result', ok: result.ok, status: result.status, reason: result.reason || '' });
+    }, function (err) {
+      CouchTransport.send({ type: 'notify_test_result', ok: false, status: 0, reason: err && err.message ? err.message : 'key_unavailable' });
     });
   }
 
@@ -1082,9 +1104,120 @@ importScripts('transport.js', 'webpush.js');
     }
   });
 
+  // ── Media Poster ──
+  // Artwork for the phone's now-playing card: the page's Media Session artwork,
+  // else the playing video's poster. Site share images are skipped, since they're
+  // often the platform's own logo. The extension fetches the image (no CORS
+  // limits here), shrinks it to a small JPEG and sends it once per video. Only
+  // the current poster is kept, in memory, so nothing accumulates.
+  var POSTER_WIDTH = 160;          // the phone blurs it heavily; more pixels add nothing
+  var POSTER_MAX_BYTES = 5000000;  // skip oversized sources
+  var POSTER_RECHECK = 4000;       // single-page players can update artwork after the URL
+  var poster = { key: '', url: '', image: '' };
+
+  // Runs in the page (MAIN world): Media Session metadata belongs to the page.
+  function findPosterURL() {
+    function absolute(src) {
+      try {
+        var url = new URL(src, location.href);
+        return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
+      } catch (e) {
+        return '';
+      }
+    }
+    function width(art) {
+      return parseInt(String(art.sizes || '').split('x')[0], 10) || 0;
+    }
+
+    var metadata = navigator.mediaSession && navigator.mediaSession.metadata;
+    var artwork = metadata && metadata.artwork ? Array.prototype.slice.call(metadata.artwork) : [];
+    artwork = artwork.filter(function (art) { return absolute(art.src); });
+    // The smallest image that's still sharp enough, else the largest there is.
+    var sharp = artwork.filter(function (art) { return width(art) >= 256; });
+    var pool = sharp.length ? sharp : artwork;
+    pool.sort(function (a, b) { return sharp.length ? width(a) - width(b) : width(b) - width(a); });
+    if (pool.length) return absolute(pool[0].src);
+
+    var best = '';
+    var bestArea = 0;
+    document.querySelectorAll('video[poster]').forEach(function (video) {
+      var rect = video.getBoundingClientRect();
+      var src = absolute(video.getAttribute('poster'));
+      if (src && rect.width * rect.height > bestArea) {
+        best = src;
+        bestArea = rect.width * rect.height;
+      }
+    });
+    return best;
+  }
+
+  function updatePoster(tabId, frameId, key) {
+    if (!key || key === poster.key) return;
+    poster.key = key;
+    resolvePoster(tabId, frameId, key);
+    setTimeout(function () { resolvePoster(tabId, frameId, key); }, POSTER_RECHECK);
+  }
+
+  function resolvePoster(tabId, frameId, key) {
+    chrome.scripting.executeScript({ target: { tabId: tabId, frameIds: [frameId] }, world: 'MAIN', func: findPosterURL })
+      .then(function (results) {
+        var url = results && results[0] && typeof results[0].result === 'string' ? results[0].result : '';
+        if (key !== poster.key || url === poster.url) return null;
+        poster.url = url;
+        return url ? shrinkImage(url) : '';
+      })
+      .then(function (image) {
+        if (image !== null && key === poster.key) setPosterImage(image);
+      }, function () {
+        // Frame gone, or the image couldn't be fetched or decoded: show no poster.
+        if (key === poster.key) setPosterImage('');
+      });
+  }
+
+  function shrinkImage(url) {
+    return fetch(url, { credentials: 'omit' }).then(function (response) {
+      if (!response.ok) throw new Error('Poster request failed: ' + response.status);
+      return response.blob();
+    }).then(function (blob) {
+      if (blob.size > POSTER_MAX_BYTES) throw new Error('Poster too large');
+      return createImageBitmap(blob);
+    }).then(function (bitmap) {
+      var w = Math.min(POSTER_WIDTH, bitmap.width);
+      var h = Math.max(1, Math.round(bitmap.height * w / bitmap.width));
+      var canvas = new OffscreenCanvas(w, h);
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+      bitmap.close();
+      return canvas.convertToBlob({ type: 'image/jpeg', quality: 0.7 });
+    }).then(function (small) {
+      return small.arrayBuffer();
+    }).then(function (buffer) {
+      var bytes = new Uint8Array(buffer);
+      var bin = '';
+      for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      return 'data:image/jpeg;base64,' + btoa(bin);
+    });
+  }
+
+  function setPosterImage(image) {
+    if (image === poster.image) return;
+    poster.image = image;
+    sendPoster();
+  }
+
+  function sendPoster() {
+    CouchTransport.send({ type: 'media_poster', image: poster.image });
+  }
+
+  function resetPoster() {
+    poster.key = '';
+    poster.url = '';
+    setPosterImage('');
+  }
+
   // ── Popup Communication ──
 
   function clearPhoneMedia() {
+    resetPoster();
     CouchTransport.send({ type: 'media_status', platform: 'unknown', title: '', playing: false,
       currentTime: 0, duration: 0, skipIntroAvailable: false, skipAdAvailable: false, nextEpisodeAvailable: false });
   }
@@ -1125,6 +1258,7 @@ importScripts('transport.js', 'webpush.js');
     });
     // Notifications use only the player's own title: a tab title is often just the site name.
     detectMediaMoments(selected, reportedTitle, nextEpisodeAvailable);
+    updatePoster(tab.id, selectedId, selected.mediaKey);
   }
 
   function broadcastToPopup(msg) {

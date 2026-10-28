@@ -59,7 +59,13 @@ function boot(localSession, legacySession, mediaSnapshot, options = {}) {
       },
       onFocusChanged: on('focus'), onBoundsChanged: on('bounds')
     },
-    scripting: { executeScript(config) { injections.push(config); return Promise.resolve([]); } },
+    scripting: {
+      executeScript(config) {
+        injections.push(config);
+        const poster = config.func && config.func.name === 'findPosterURL' && options.posterURL;
+        return Promise.resolve(poster ? [{ result: options.posterURL }] : []);
+      }
+    },
     runtime: {
       lastError: null,
       onStartup: on('startup'),
@@ -101,7 +107,19 @@ function boot(localSession, legacySession, mediaSnapshot, options = {}) {
       return Promise.resolve(options.pushResult || { ok: true, status: 201, gone: false });
     }
   };
-  const context = { chrome, CouchTransport: transport, CouchPush: push, crypto: webcrypto, importScripts() {},
+  const fetches = [];
+  const canvases = [];
+  const context = { chrome, CouchTransport: transport, CouchPush: push, crypto: webcrypto, importScripts() {}, URL, btoa,
+    fetch(url, init) {
+      fetches.push({ url, init });
+      return Promise.resolve({ ok: true, status: 200, blob: () => Promise.resolve({ size: 2048 }) });
+    },
+    createImageBitmap() { return Promise.resolve({ width: 640, height: 360, close() {} }); },
+    OffscreenCanvas: function (width, height) {
+      canvases.push({ width, height });
+      this.getContext = () => ({ drawImage() {} });
+      this.convertToBlob = () => Promise.resolve({ arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2, 3]).buffer) });
+    },
     Uint8Array, Promise, Date,
     setTimeout(fn, ms) { const timer = { fn, ms }; timers.push(timer); return timer; },
     clearTimeout(timer) { if (timer) timer.cancelled = true; } };
@@ -110,7 +128,7 @@ function boot(localSession, legacySession, mediaSnapshot, options = {}) {
     return new Promise((resolve) => listeners.message({ type }, {}, resolve));
   }
   return {
-    local, sessionStore, pushes, connected, disconnects, sent, tabMessages, deliveries, revoked, message, windowUpdates, timers, listeners, injections,
+    context, fetches, canvases, local, sessionStore, pushes, connected, disconnects, sent, tabMessages, deliveries, revoked, message, windowUpdates, timers, listeners, injections,
     setWindowState(state) { windowState = state; },
     relay: (status) => listeners.status(status),
     phone: (msg) => listeners.transport(msg),
@@ -377,7 +395,7 @@ test('an off-screen phone gets a push to its synced subscription, minus muted ki
   await settle();
   assert.deepEqual(plain(app.pushes.map((p) => p.note)), [{ kind: 'skipAd', title: 'Ad can be skipped', body: 'Ep 1' }]);
   assert.equal(app.pushes[0].subscription.endpoint, SUB.endpoint);
-  assert.deepEqual(plain(app.pushes[0].options), { ttl: 30, topic: 'skipAd' });
+  assert.deepEqual(plain(app.pushes[0].options), { ttl: 30 });
   assert.equal(notes(app).length, 0);
 });
 
@@ -440,4 +458,64 @@ test('forgetting the phone forgets its push subscription', async () => {
   await app.message('getSession');
   await app.message('newSession');
   assert.equal(app.local.pushTarget.subscription, null);
+});
+
+// ── Now-playing poster ──
+
+test('the playing video artwork is fetched once, shrunk and sent; it clears when media goes', async () => {
+  const app = boot(PAIRED, null, null, { posterURL: 'https://i.ytimg.com/vi/x/hq.jpg' });
+  await app.message('getSession');
+  app.fromTab(7, { ...MEDIA, platform: 'youtube' });
+  app.fromTab(7, { ...MEDIA, platform: 'youtube', playing: false }); // same video: no refetch
+  await settle();
+  await settle();
+  const posters = () => app.sent.filter((msg) => msg.type === 'media_poster');
+  assert.deepEqual(plain(posters()), [{ type: 'media_poster', image: 'data:image/jpeg;base64,AQID' }]);
+  assert.equal(app.fetches.length, 1);
+  assert.equal(app.fetches[0].init.credentials, 'omit');
+  assert.deepEqual(app.canvases, [{ width: 160, height: 90 }]);
+  app.timers.find((t) => t.ms === 4000).fn(); // late artwork check finds the same image
+  await settle();
+  assert.equal(app.fetches.length, 1);
+  app.phone({ type: 'request_media_status' }); // a phone back from the lock screen gets it again
+  assert.equal(posters().length, 2);
+  app.fromTab(7, { type: 'mediaStatus', platform: 'unknown' }, 3);
+  assert.deepEqual(plain(posters().at(-1)), { type: 'media_poster', image: '' });
+});
+
+test('artwork prefers the smallest sharp Media Session image, then the largest video poster', () => {
+  const app = boot(PAIRED, null, null);
+  const find = () => {
+    app.fromTab(7, { ...MEDIA, mediaKey: 'k' + app.injections.length });
+    return app.injections.at(-1).func;
+  };
+  const func = find();
+  app.context.location = { href: 'https://site.example/watch/1' };
+  app.context.document = { querySelectorAll: () => [] };
+  app.context.navigator = { mediaSession: { metadata: { artwork: [
+    { src: '/a96.jpg', sizes: '96x96' }, { src: '/a1024.jpg', sizes: '1024x576' },
+    { src: '/a512.jpg', sizes: '512x288' }, { src: 'javascript:alert(1)', sizes: '300x300' }] } } };
+  assert.equal(func(), 'https://site.example/a512.jpg');
+  app.context.navigator.mediaSession.metadata.artwork = [{ src: '/a96.jpg', sizes: '96x96' }, { src: '/a128.jpg', sizes: '128x128' }];
+  assert.equal(func(), 'https://site.example/a128.jpg');
+  const video = (w, h, poster) => ({ getBoundingClientRect: () => ({ width: w, height: h }), getAttribute: () => poster });
+  app.context.navigator = {};
+  app.context.document = { querySelectorAll: () => [video(200, 100, '/small.jpg'), video(1280, 720, '/main.jpg'), video(1920, 1080, 'data:x')] };
+  assert.equal(func(), 'https://site.example/main.jpg');
+});
+
+test('a test notification always pushes and reports the outcome to the phone', async () => {
+  const app = boot(PAIRED, null, null, { vapid: VAPID, pushTarget: { subscription: SUB, prefs: { connected: false } },
+    pushResult: { ok: false, status: 403, gone: false, reason: '{"reason":"BadJwtToken"}' } });
+  await app.message('getSession');
+  app.phone({ type: 'phone_state', visible: true }); // on screen, yet the test still goes out as a push
+  app.phone({ type: 'notify_test' });
+  await settle();
+  assert.equal(app.pushes[0].note.kind, 'test');
+  assert.deepEqual(plain(app.sent.at(-1)), { type: 'notify_test_result', ok: false, status: 403, reason: '{"reason":"BadJwtToken"}' });
+
+  const unsubscribed = boot(PAIRED, null, null, { vapid: VAPID });
+  await unsubscribed.message('getSession');
+  unsubscribed.phone({ type: 'notify_test' });
+  assert.equal(unsubscribed.sent.at(-1).reason, 'no_subscription');
 });

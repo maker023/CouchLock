@@ -10,7 +10,7 @@
  *   CouchPush.createVapidKeys()                  → Promise<{ publicKey, privateJwk }>
  *   CouchPush.encrypt(keys, plaintext[, fixed])  → Promise<Uint8Array>  (aes128gcm body)
  *   CouchPush.vapidAuth(endpoint, vapid, subject)→ Promise<string>      (Authorization header)
- *   CouchPush.send(subscription, payload, vapid, options) → Promise<{ ok, status, gone }>
+ *   CouchPush.send(subscription, payload, vapid, options) → Promise<{ ok, status, gone, reason }>
  *
  * subscription — PushSubscription.toJSON(): { endpoint, keys: { p256dh, auth } }
  * vapid        — { publicKey: base64url raw P-256 point, privateJwk }
@@ -152,8 +152,9 @@ var CouchPush = (function () {
 
   // ── Send ──
 
-  // options: { ttl (seconds), urgency, topic (collapses an undelivered earlier
-  // push with the same topic), subject }
+  // options: { ttl (seconds), urgency, subject }. No Topic header: Apple's push
+  // service rejects it (400 BadWebPushTopic). The notification tag in sw.js
+  // replaces an older notification of the same kind instead.
   function send(subscription, payload, vapid, options) {
     options = options || {};
     var body;
@@ -168,13 +169,21 @@ var CouchPush = (function () {
         'TTL': String(options.ttl || 60),
         'Urgency': options.urgency || 'high'
       };
-      if (options.topic) headers.Topic = options.topic;
       return fetch(subscription.endpoint, { method: 'POST', headers: headers, body: body });
     }).then(function (response) {
       // 404/410: the phone dropped this subscription — stop using it.
-      return { ok: response.ok, status: response.status, gone: response.status === 404 || response.status === 410 };
-    }, function () {
-      return { ok: false, status: 0, gone: false };
+      var result = { ok: response.ok, status: response.status, gone: response.status === 404 || response.status === 410, reason: '' };
+      if (response.ok) return result;
+      // Push services explain rejections in the body, e.g. Apple's {"reason":"BadJwtToken"}.
+      return response.text().then(function (text) {
+        result.reason = text.slice(0, 200);
+        return result;
+      }, function () {
+        return result;
+      });
+    }).catch(function (err) {
+      // Encryption or network failure: nothing reached the push service.
+      return { ok: false, status: 0, gone: false, reason: err && err.message ? err.message : String(err) };
     });
   }
 

@@ -664,6 +664,9 @@ html, body {
 }
 .media-now {
   flex: 1;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   background: var(--ink);
   border: none;
   border-radius: 8px;
@@ -672,6 +675,38 @@ html, body {
   flex-direction: column;
   justify-content: center;
 }
+/* Now-playing artwork, blurred and dimmed under a void scrim so the title and
+   times keep their contrast in every theme. No artwork: a soft accent glow. */
+.media-poster,
+.media-now::before,
+.media-now::after {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 600ms var(--ease-mag);
+}
+.media-poster {
+  inset: -32px; /* blur fades at the edges; overflow clips the spill */
+  z-index: -3;
+  background-size: cover;
+  background-position: center;
+  filter: blur(24px);
+}
+.media-now::after {
+  content: '';
+  inset: 0;
+  z-index: -2;
+  background: linear-gradient(to bottom, rgba(var(--void-rgb),0.35), rgba(var(--void-rgb),0.65));
+}
+.media-now::before {
+  content: '';
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(120% 80% at 50% 100%, rgba(var(--accent-rgb),0.18), transparent 70%);
+}
+.media-now.has-poster .media-poster { opacity: 0.45; }
+.media-now.has-poster::after,
+.media-now.no-poster::before { opacity: 1; }
 .media-platform {
   font-family: var(--font-m);
   font-size: 10px;
@@ -2035,6 +2070,7 @@ html, body {
     <div class="mode-view" id="view-media">
       <div class="media">
         <div class="media-now">
+          <div class="media-poster" id="media-poster" aria-hidden="true"></div>
           <div class="media-platform" id="media-platform">No media detected</div>
           <div class="media-title" id="media-title">—</div>
           <div class="media-progress" id="media-progress-bar"><div class="media-progress-track"><div class="media-progress-fill" id="media-progress"></div></div><div class="media-progress-thumb" id="media-thumb"></div></div>
@@ -2153,6 +2189,10 @@ html, body {
           <div class="setting-row">
             <div><div class="setting-label">Now playing</div><div class="setting-desc">When autoplay starts the next one</div></div>
             <button class="setting-toggle" type="button" role="switch" data-notify-kind="nowPlaying" aria-label="Now playing"></button>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Test notification</div><div class="setting-desc" id="notify-test-desc" role="status">Sends one through your laptop now</div></div>
+            <button class="sticker-ctrl-btn" id="btn-notify-test" type="button">Send</button>
           </div>
         </div>
 
@@ -2322,6 +2362,7 @@ html, body {
   var gyroLastBeta = null;
   var mediaState = { platform: '', title: '', playing: false, currentTime: 0, duration: 0, skipIntroAvailable: false };
   var skipAdAvailable = false;
+  var mediaPoster = '';        // current artwork as a small JPEG data URL; each video replaces it
   var mediaFresh = false;
   var mediaReceivedAt = 0;
   var mediaScrubbing = false;
@@ -2678,6 +2719,8 @@ html, body {
   // offline (its presence flag will say when it's back) or it disconnected us.
   var HELLO_RETRY = 3000;
   var HANDSHAKE_TIMEOUT = 6000;
+  var RECONNECT_GRACE = 4000;  // unlocking rebuilds the socket; it normally takes 0.5–2s
+  var reconnectGraceUntil = 0;
   var LAPTOP_SILENCE = 25000;
 
   function sendHello() {
@@ -2741,6 +2784,7 @@ html, body {
         clearTimeout(handshakeTimer);
         handshakeTimer = setTimeout(checkHandshake, HANDSHAKE_TIMEOUT);
       } else if (status === 'disconnected' || status === 'failed') {
+        reconnectGraceUntil = 0;
         clearTimeout(handshakeTimer);
         stopHello();
         hideRepairNudge();
@@ -2780,7 +2824,7 @@ html, body {
       // proof that the laptop is still alive.
       if (['ready', 'pong', 'media_status', 'skip_ad_available', 'tab_list_result', 'cmd_result',
         'input_focused', 'input_blurred', 'session_available', 'session_paused', 'session_closed',
-        'notify', 'push_key'].indexOf(msg.type) === -1) return;
+        'notify', 'push_key', 'media_poster', 'notify_test_result'].indexOf(msg.type) === -1) return;
       lastLaptopSeen = Date.now();
 
       if (msg.type === 'session_available') {
@@ -2823,6 +2867,10 @@ html, body {
         handlePushKey(msg.key);
       }
 
+      if (msg.type === 'notify_test_result') {
+        showNotifyTestResult(msg);
+      }
+
       if (msg.type === 'session_paused') {
         sessionPaused = true;
         isPaired = false;
@@ -2851,6 +2899,11 @@ html, body {
         };
         skipAdAvailable = !!msg.skipAdAvailable;
         if (document.visibilityState === 'visible' && currentMode === 'media') updateMediaUI();
+      }
+
+      if (msg.type === 'media_poster') {
+        mediaPoster = typeof msg.image === 'string' && msg.image.indexOf('data:image/jpeg;base64,') === 0 ? msg.image : '';
+        if (currentMode === 'media') updateMediaUI();
       }
 
       if (msg.type === 'skip_ad_available') {
@@ -2930,6 +2983,12 @@ html, body {
     if (autoReconnect && (!CouchTransport.isConnected() || wasAway)) {
       mediaFresh = false;
       updateMediaUI();
+      // iOS kills the socket while locked, so every unlock reconnects. Keep the
+      // pill on Connected while that quietly succeeds; it updates if it doesn't.
+      if (isPaired) {
+        reconnectGraceUntil = Date.now() + RECONNECT_GRACE;
+        setTimeout(updateConnUI, RECONNECT_GRACE);
+      }
       CouchTransport.reconnectNow();
     } else if (CouchTransport.isConnected() && isPaired) {
       // Even a short app switch can miss an intro/ad boundary or a pause.
@@ -2969,10 +3028,12 @@ html, body {
     var dot = $('#conn-dot');
     var text = $('#conn-text');
     var offline = !isPaired && laptopPresence === '0' && !sessionPaused;
-    dot.classList.toggle('on', isPaired);
+    var settling = !isPaired && !offline && !sessionPaused && Date.now() < reconnectGraceUntil;
+    var shownPaired = isPaired || settling;
+    dot.classList.toggle('on', shownPaired);
     dot.classList.toggle('offline', offline);
-    $('#conn').disabled = isPaired;
-    if (isPaired) {
+    $('#conn').disabled = shownPaired;
+    if (shownPaired) {
       text.textContent = 'Connected';
     } else if (sessionPaused) {
       text.textContent = 'Disconnected';
@@ -2981,7 +3042,7 @@ html, body {
     } else {
       text.textContent = token && autoReconnect ? 'Reconnecting...' : 'Disconnected';
     }
-    if (isPaired) $('#conn').removeAttribute('aria-label');
+    if (shownPaired) $('#conn').removeAttribute('aria-label');
     else $('#conn').setAttribute('aria-label', text.textContent + ' (tap to pair again)');
     updateNavButtons();
   }
@@ -3440,6 +3501,15 @@ html, body {
     }
   }
 
+  // The old image stays on the hidden layer so it can fade out; the next video replaces it.
+  function renderPoster(isIdle) {
+    var card = document.querySelector('.media-now');
+    var hasPoster = !isIdle && !!mediaPoster;
+    if (hasPoster) $('#media-poster').style.backgroundImage = 'url("' + mediaPoster + '")';
+    card.classList.toggle('has-poster', hasPoster);
+    card.classList.toggle('no-poster', !isIdle && !mediaPoster);
+  }
+
   function updateMediaUI() {
     var pName = PLATFORM_NAMES[mediaState.platform] || '';
     var isIdle = !mediaState.platform || mediaState.platform === 'unknown';
@@ -3459,6 +3529,7 @@ html, body {
       }
     }
 
+    renderPoster(isIdle);
     $('#media-platform').textContent = pName ? pName.toUpperCase() : 'NO MEDIA DETECTED';
     $('#media-title').textContent = mediaState.title || '—';
 
@@ -4009,6 +4080,27 @@ html, body {
       syncNotifications();
     });
   });
+
+  $('#btn-notify-test').addEventListener('click', function () {
+    if (!isPaired) {
+      showToast('Connect to your laptop first');
+      return;
+    }
+    $('#notify-test-desc').textContent = 'Sending…';
+    send({ type: 'notify_test' });
+  });
+
+  // The laptop reports how the push service answered, so a failure is explained.
+  function showNotifyTestResult(msg) {
+    var desc = $('#notify-test-desc');
+    if (msg.ok) {
+      desc.textContent = 'Sent (' + msg.status + '). It should arrive in a moment';
+    } else if (msg.reason === 'no_subscription') {
+      desc.textContent = 'Your laptop has no subscription. Turn notifications off and on again';
+    } else {
+      desc.textContent = 'Failed: ' + (msg.status ? msg.status + ' ' : '') + (msg.reason || 'unknown error');
+    }
+  }
 
   function showNotifyToast(msg) {
     if (!notifyEnabled || notifyPrefs[msg.kind] === false) return;

@@ -26,7 +26,8 @@ function boot() {
     isPaired: true, mediaFresh: false, mediaReceivedAt: 0, mediaScrubbing: false,
     mediaState: { platform: '', currentTime: 0, duration: 0 }, skipAdAvailable: false,
     currentMode: 'media', token: 'saved', sessionPaused: false, autoReconnect: true,
-    lastResumeReconnect: 0, hiddenAt: 0,
+    lastResumeReconnect: 0, hiddenAt: 0, mediaPoster: '', reconnectGraceUntil: 0, RECONNECT_GRACE: 4000,
+    updateConnUI() {}, setTimeout() {},
     CouchTransport: { isConnected: () => true, reconnectNow() { reconnects++; } },
     send(msg) { sent.push(msg); }, setInterval() {}, Date
   };
@@ -51,6 +52,15 @@ test('quick app switches request fresh state without reconnecting; long locks re
   assert.equal(app.reconnects(), 1);
   assert.equal(app.context.mediaFresh, false);
   assert.equal(app.$('#btn-play-pause').disabled, true);
+});
+
+test('unlocking a connected phone keeps the pill on Connected while the socket is rebuilt', () => {
+  const app = boot();
+  app.context.isPaired = true;
+  app.context.hiddenAt = Date.now() - 60000;
+  app.context.resumeReconnect();
+  assert.equal(app.reconnects(), 1);
+  assert.ok(app.context.reconnectGraceUntil > Date.now() + 3000);
 });
 
 test('wake refresh still runs with automatic socket reconnect disabled, but respects manual disconnect', () => {

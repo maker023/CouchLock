@@ -161,6 +161,17 @@ test('Chrome: nested cross-origin fullscreen and phone player UI', { skip: !fs.e
     assert.ok(longToast.left >= 0 && longToast.right <= longToast.vw, JSON.stringify(longToast));
     await evaluate(`document.querySelectorAll('.toast-open')[document.querySelectorAll('.toast-open').length - 1].click()`);
     assert.equal(await evaluate(`document.querySelector('#view-media').classList.contains('active')`), true);
+
+    // Poster: blurred artwork when the laptop sends one, accent glow when there's none.
+    assert.equal(await evaluate(`document.querySelector('.media-now').classList.contains('no-poster')`), true);
+    await evaluate(`(() => { const c = document.createElement('canvas'); c.width = 160; c.height = 90;
+      const g = c.getContext('2d'); const grad = g.createLinearGradient(0, 0, 160, 90);
+      grad.addColorStop(0, '#f2c14e'); grad.addColorStop(0.5, '#ffffff'); grad.addColorStop(1, '#3b7dd8');
+      g.fillStyle = grad; g.fillRect(0, 0, 160, 90);
+      CouchTransport.message({ type: 'media_poster', image: c.toDataURL('image/jpeg') }); })()`);
+    assert.equal(await evaluate(`document.querySelector('.media-now').classList.contains('has-poster')`), true);
+    await evaluate(`CouchTransport.message({ type: 'media_poster', image: 'javascript:alert(1)' })`);
+    assert.equal(await evaluate(`document.querySelector('.media-now').className`), 'media-now no-poster');
     assert.deepEqual(errors, []);
   } finally {
     if (ws) ws.close();

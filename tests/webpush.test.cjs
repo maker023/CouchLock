@@ -51,17 +51,29 @@ test('VAPID header is a valid ES256 JWT for the push service origin', async () =
 
 test('send posts an encrypted body and reports a dropped subscription as gone', async () => {
   const requests = [];
-  const push = load((url, init) => { requests.push({ url, init }); return Promise.resolve({ ok: false, status: 410 }); });
+  const push = load((url, init) => {
+    requests.push({ url, init });
+    return Promise.resolve({ ok: false, status: 410, text: () => Promise.resolve('{"reason":"Unregistered"}') });
+  });
   const vapid = await push.createVapidKeys();
   const phone = await webcrypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']);
   const p256dh = b64url(new Uint8Array(await webcrypto.subtle.exportKey('raw', phone.publicKey)));
   const result = await push.send({ endpoint: 'https://web.push.apple.com/x', keys: { p256dh, auth: b64url(webcrypto.getRandomValues(new Uint8Array(16))) } },
-    { kind: 'skipAd', title: 'Ad can be skipped' }, vapid, { ttl: 30, topic: 'media' });
-  assert.deepEqual({ ...result }, { ok: false, status: 410, gone: true });
+    { kind: 'skipAd', title: 'Ad can be skipped' }, vapid, { ttl: 30 });
+  assert.deepEqual({ ...result }, { ok: false, status: 410, gone: true, reason: '{"reason":"Unregistered"}' });
   const { headers, body } = requests[0].init;
   assert.equal(headers['Content-Encoding'], 'aes128gcm');
   assert.equal(headers.TTL, '30');
-  assert.equal(headers.Topic, 'media');
+  assert.equal(headers.Topic, undefined); // Apple rejects any Topic: 400 BadWebPushTopic
   assert.equal(body[20], 65); // keyid length: the one-off server public key
   assert.ok(!Buffer.from(body).toString().includes('Ad can be skipped'));
+});
+
+test('a request that never reaches the push service reports why', async () => {
+  const push = load(() => Promise.reject(new TypeError('Failed to fetch')));
+  const vapid = await push.createVapidKeys();
+  const phone = await webcrypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']);
+  const p256dh = b64url(new Uint8Array(await webcrypto.subtle.exportKey('raw', phone.publicKey)));
+  const result = await push.send({ endpoint: 'https://web.push.apple.com/x', keys: { p256dh, auth: b64url(new Uint8Array(16)) } }, {}, vapid);
+  assert.deepEqual({ ...result }, { ok: false, status: 0, gone: false, reason: 'Failed to fetch' });
 });
