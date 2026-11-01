@@ -847,6 +847,12 @@ html, body {
   border-color: var(--accent);
   color: var(--accent);
 }
+.media-btn:disabled,
+.media-action:disabled {
+  opacity: 0.25;
+  pointer-events: none;
+  cursor: default;
+}
 
 /* Media idle state — nothing playing */
 .media.media-idle .media-controls {
