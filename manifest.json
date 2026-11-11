@@ -4,7 +4,7 @@
   "description": "Your phone. Your remote. Every screen.",
   "start_url": "./index.html",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "theme_color": "#080A12",
   "background_color": "#080A12",
   "icons": [

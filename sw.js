@@ -5,7 +5,7 @@
  * Network-first for navigations, cache-first for static assets.
  * Shows the laptop's push notifications while the app is closed.
  */
-var CACHE_NAME = 'couchlock-v10';
+var CACHE_NAME = 'couchlock-v11';
 // Scripts are cache-first, so index.html loads them with a ?v= version. Bump it
 // (here and in index.html) whenever a script changes, or an installed app can
 // pair a new page with an old cached script.

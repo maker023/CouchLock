@@ -143,6 +143,107 @@ test('Chrome: nested cross-origin fullscreen and phone player UI', { skip: !fs.e
     assert.equal(await evaluate(`document.querySelector('#btn-next-ep').classList.contains('highlight')`), true);
     assert.equal(await evaluate(`document.documentElement.scrollWidth <= innerWidth`), true);
 
+    // Media controls stay usable across phone sizes, landscape, and desktop.
+    for (const [width, height] of [[320, 568], [390, 844], [430, 932], [568, 320], [740, 300], [667, 375], [812, 375], [844, 390], [932, 430], [1280, 800]]) {
+      await cdp('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width < 1000 });
+      await evaluate(`document.documentElement.style.setProperty('--safe-bottom', '${width === 812 ? 21 : 0}px')`);
+      await evaluate(`new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))`);
+      const layout = await evaluate(`(() => {
+        const view = document.querySelector('#view-media');
+        const buttons = [...view.querySelectorAll('button')].filter(b => b.getClientRects().length);
+        const rects = buttons.map(b => { const r = b.getBoundingClientRect(); return {id:b.id,x:r.x,y:r.y,right:r.right,bottom:r.bottom,w:r.width,h:r.height}; });
+        const bounds = view.getBoundingClientRect();
+        return {rects, vw:innerWidth, top:bounds.top, bottom:bounds.bottom, contentHeight:view.scrollHeight, viewHeight:view.clientHeight, overflow:view.scrollWidth > view.clientWidth,
+          scrollable:view.scrollHeight > view.clientHeight,
+          play:document.querySelector('#btn-play-pause').getBoundingClientRect().width,
+          seek:document.querySelector('#btn-seek-back').getBoundingClientRect().width};
+      })()`);
+      assert.equal(layout.overflow, false, JSON.stringify({ width, height, layout }));
+      assert.ok(layout.play > layout.seek, 'play/pause has primary visual weight');
+      for (const r of layout.rects) {
+        assert.ok(r.w >= 44 && r.h >= 44 && r.x >= 0 && r.right <= layout.vw, JSON.stringify({ width, height, r }));
+      }
+      for (let i = 0; i < layout.rects.length; i++) {
+        for (const b of layout.rects.slice(i + 1)) {
+          const a = layout.rects[i];
+          assert.ok(a.right <= b.x || b.right <= a.x || a.bottom <= b.y || b.bottom <= a.y,
+            'controls must not overlap: ' + JSON.stringify({ width, height, a, b }));
+        }
+      }
+      if (width > height && height <= 600) {
+        assert.equal(layout.scrollable, false, 'landscape actions fit without scrolling: ' + JSON.stringify({width, height, layout}));
+        for (const r of layout.rects) {
+          assert.ok(r.y >= layout.top && r.bottom <= layout.bottom, 'landscape button is fully visible: ' + JSON.stringify(r));
+        }
+        assert.equal(await evaluate(`(() => {
+          const card = document.querySelector('.media-now').getBoundingClientRect();
+          const time = document.querySelector('.media-time').getBoundingClientRect();
+          return time.bottom <= card.bottom && card.top >= document.querySelector('#view-media').getBoundingClientRect().top &&
+            [...document.querySelectorAll('.bottomnav .nav-btn')].every(button => {
+              const r = button.getBoundingClientRect(); return r.width >= 44 && r.height >= 44 && r.bottom <= innerHeight;
+            });
+        })()`), true, 'now-playing timeline fits inside its box');
+      } else if (height < 600 || width >= 1000) {
+        assert.equal(layout.scrollable, true, 'short content areas can scroll to the actions');
+        assert.equal(await evaluate(`(() => {
+          const view = document.querySelector('#view-media'); view.scrollTop = view.scrollHeight;
+          return document.querySelector('#btn-fullscreen').getBoundingClientRect().bottom <= view.getBoundingClientRect().bottom;
+        })()`), true);
+      } else {
+        assert.equal(layout.scrollable, false, 'taller phone and desktop layouts fit: ' + JSON.stringify({width, height, layout}));
+      }
+      await evaluate(`document.querySelector('#view-media').scrollTop = 0`);
+    }
+    // Platform changes must not leave empty grid tracks or clip a long title.
+    await cdp('Emulation.setDeviceMetricsOverride', { width: 568, height: 320, deviceScaleFactor: 1, mobile: true });
+    for (const platform of ['youtube', 'universal', 'unknown', 'netflix']) {
+      await evaluate(`CouchTransport.message({type:'media_status',platform:'${platform}',title:'A very long episode title that must stay inside its landscape card without pushing out the timeline or playback controls',playing:false,currentTime:120,duration:1800,skipAdAvailable:true,skipIntroAvailable:true,nextEpisodeAvailable:true})`);
+      await evaluate(`new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))`);
+      assert.equal(await evaluate(`(() => {
+        const view = document.querySelector('#view-media'), bounds = view.getBoundingClientRect();
+        return view.scrollHeight === view.clientHeight && view.scrollWidth === view.clientWidth &&
+          [...view.querySelectorAll('button')].filter(b => b.getClientRects().length).every(b => {
+            const r = b.getBoundingClientRect(); return r.top >= bounds.top && r.bottom <= bounds.bottom;
+          });
+      })()`), true, platform + ' landscape layout stays fully visible');
+    }
+    if (process.env.COUCHLOCK_LANDSCAPE_SCREENSHOT) {
+      await cdp('Emulation.setDeviceMetricsOverride', { width: 844, height: 390, deviceScaleFactor: 1, mobile: true });
+      await evaluate(`CouchTransport.message({type:'media_status',platform:'netflix',title:'A quiet evening',playing:true,currentTime:1242,duration:3120,skipIntroAvailable:true,nextEpisodeAvailable:true})`);
+      await new Promise((resolve) => setTimeout(resolve, 650));
+      const screenshot = await cdp('Page.captureScreenshot', { format: 'png' });
+      fs.writeFileSync(process.env.COUCHLOCK_LANDSCAPE_SCREENSHOT, Buffer.from(screenshot.data, 'base64'));
+    }
+    await cdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+    for (const [id, action] of Object.entries({
+      'btn-play-pause':'playPause', 'btn-seek-back':'seekBack', 'btn-seek-fwd':'seekForward',
+      'btn-vol-down':'volumeDown', 'btn-mute':'mute', 'btn-vol-up':'volumeUp',
+      'btn-skip-intro':'skipIntro', 'btn-next-ep':'nextEpisode', 'btn-fullscreen':'fullscreen'
+    })) {
+      await evaluate(`document.getElementById('${id}').click()`);
+      assert.deepEqual(await evaluate(`sentMessages.at(-1)`), { type:'cmd', action });
+    }
+    await evaluate(`CouchTransport.message({type:'media_status',platform:'youtube',title:'Test video',playing:true,currentTime:120,duration:1800,skipAdAvailable:true,nextEpisodeAvailable:true})`);
+    assert.equal(await evaluate(`document.querySelector('#media-next-label').textContent`), 'Next video');
+    assert.equal(await evaluate(`document.querySelector('#btn-next-ep svg') !== null`), true, 'platform labels preserve icons');
+    await evaluate(`document.querySelector('#btn-skip-ad').click()`);
+    assert.deepEqual(await evaluate(`sentMessages.at(-1)`), { type:'cmd', action:'skipAd' });
+    await evaluate(`CouchTransport.message({type:'skip_ad_available',available:false})`);
+    assert.equal(await evaluate(`document.querySelector('#btn-skip-ad').disabled`), true);
+    await evaluate(`CouchTransport.message({type:'media_status',platform:'netflix',title:'Test episode',playing:false,currentTime:120,duration:1800})`);
+    assert.equal(await evaluate(`document.querySelector('#btn-skip-intro').disabled && document.querySelector('#btn-next-ep').disabled`), true);
+    await evaluate(`CouchTransport.message({type:'media_status',platform:'universal',title:'Test video',playing:true,currentTime:120,duration:1800})`);
+    assert.equal(await evaluate(`document.querySelector('#media-context').hidden`), true);
+    assert.equal(await evaluate(`document.querySelector('#btn-next-ep').getClientRects().length`), 0);
+    await evaluate(`CouchTransport.message({type:'media_status',platform:'unknown'})`);
+    assert.equal(await evaluate(`[...document.querySelectorAll('#view-media button')].every(b => b.disabled)`), true);
+    await evaluate(`CouchTransport.message({type:'media_status',platform:'netflix',title:'A quiet evening',playing:true,currentTime:1242,duration:3120,skipIntroAvailable:true,nextEpisodeAvailable:true})`);
+    if (process.env.COUCHLOCK_SCREENSHOT) {
+      await new Promise((resolve) => setTimeout(resolve, 650)); // Let the existing progress transition finish.
+      const screenshot = await cdp('Page.captureScreenshot', { format: 'png' });
+      fs.writeFileSync(process.env.COUCHLOCK_SCREENSHOT, Buffer.from(screenshot.data, 'base64'));
+    }
+
     // Notification toasts: suppressed on Media, actionable elsewhere.
     const notify = `CouchTransport.message({type:'notify',kind:'skipAd',title:'Ad can be skipped',body:'Test episode'})`;
     await evaluate(notify);

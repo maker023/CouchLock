@@ -655,21 +655,30 @@ html, body {
 /* ═══════════════════════════════════════════
    MEDIA MODE
 ═══════════════════════════════════════════ */
+#view-media {
+  overflow-y: auto;
+  touch-action: pan-y;
+}
 .media {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 12px 16px;
-  gap: 0;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 12px 20px 20px;
+  gap: 24px;
 }
 .media-now {
   flex: 1;
+  flex-shrink: 0;
+  min-height: 180px;
   position: relative;
   isolation: isolate;
   overflow: hidden;
   background: var(--ink);
   border: none;
-  border-radius: 8px;
+  border-radius: 24px;
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -718,12 +727,17 @@ html, body {
 }
 .media-title {
   font-family: var(--font-d);
-  font-size: 24px;
+  font-size: clamp(22px, 6vw, 28px);
   font-weight: 800;
   letter-spacing: -0.6px;
   color: rgba(var(--ui-rgb),0.8);
   margin-bottom: 20px;
   line-height: 1.2;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 .media-progress {
   height: 28px;
@@ -737,7 +751,7 @@ html, body {
 .media-progress-track {
   width: 100%;
   height: 4px;
-  background: var(--ink);
+  background: rgba(var(--ui-rgb),0.16);
   border-radius: 999px;
   position: relative;
   overflow: hidden;
@@ -773,73 +787,119 @@ html, body {
   display: flex;
   justify-content: space-between;
   font-family: var(--font-m);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.5px;
   color: rgba(var(--ui-rgb),0.72);
 }
 .media-bottom {
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 12px;
-  padding-top: 12px;
+  gap: 24px;
 }
 .media-controls {
-  display: flex;
+  display: grid;
+  grid-template-columns: 72px 96px 72px;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: clamp(16px, 6vw, 28px);
 }
 .media-btn {
-  width: 60px; height: 60px;
+  width: 72px; height: 72px;
   border: none;
   border-radius: 50%;
   background: var(--ink);
   display: flex;
+  flex-direction: column;
+  gap: 4px;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  color: rgba(var(--ui-rgb),0.82);
+  font-family: var(--font-b);
+  font-size: 11px;
+  font-weight: 600;
   transition: opacity 150ms var(--ease-mag);
 }
-.media-btn:active { opacity: 0.6; }
-.media-btn svg {
+.media-btn:not(:disabled):active { opacity: 0.65; }
+.media-btn svg,
+.media-action svg {
   width: 24px; height: 24px;
-  stroke: rgba(var(--ui-rgb),0.82);
+  stroke: currentColor;
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 .media-btn-play {
-  width: 80px; height: 80px;
+  width: 96px; height: 96px;
   background: var(--accent);
   border-color: transparent;
   box-shadow: 0 0 32px rgba(var(--accent-rgb),calc(0.35 * var(--glow-strength)));
 }
-.media-btn-play svg { stroke: rgb(var(--accent-on)); width: 28px; height: 28px; }
+.media-btn-play svg { stroke: rgb(var(--accent-on)); width: 32px; height: 32px; }
 .media-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.media-volume {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--ink);
+  gap: 4px;
+}
+.media-volume .media-action { background: transparent; }
+.media-volume #btn-mute {
+  border-radius: 0;
+  border-inline: 1px solid rgba(var(--ui-rgb),0.12);
+}
+.media-context,
+.media-utilities {
+  display: flex;
+  gap: 10px;
+}
+.media-context[hidden] { display: none; }
+.media-context .media-action,
+.media-utilities .media-action { flex: 1; }
+.media-context .media-action { min-height: 48px; }
+.media-utilities .media-action {
+  min-height: 64px;
+  flex-direction: column;
   gap: 6px;
 }
 .media-action {
-  padding: 16px 8px;
-  border: none;
+  min-width: 0;
+  min-height: 48px;
+  padding: 12px;
+  border: 1px solid transparent;
   border-radius: 999px;
   background: var(--ink);
-  font-family: var(--font-d);
+  font-family: var(--font-b);
   font-size: 13px;
-  font-weight: 700;
-  color: rgba(var(--ui-rgb),0.7);
+  font-weight: 600;
+  color: rgba(var(--ui-rgb),0.82);
   cursor: pointer;
   text-align: center;
-  transition: opacity 150ms var(--ease-mag), background 200ms var(--ease-mag), color 200ms var(--ease-mag);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 150ms var(--ease-mag);
 }
-.media-action:active { opacity: 0.6; }
+.media-action svg { width: 20px; height: 20px; flex-shrink: 0; }
+.media-action:not(:disabled):active { opacity: 0.65; }
+.media-btn:focus-visible,
+.media-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
 .media-action.faded {
-  opacity: 0.25;
+  opacity: 0.45;
   pointer-events: none;
 }
 .media-action.highlight {
@@ -849,26 +909,103 @@ html, body {
 }
 .media-btn:disabled,
 .media-action:disabled {
-  opacity: 0.25;
+  opacity: 0.45;
   pointer-events: none;
   cursor: default;
 }
 
 /* Media idle state — nothing playing */
-.media.media-idle .media-controls {
-  opacity: 0.3;
-  pointer-events: none;
-}
-.media.media-idle .media-actions {
-  opacity: 0.2;
-  pointer-events: none;
-}
 .media.media-idle .media-progress {
   opacity: 0.2;
   pointer-events: none;
 }
 .media.media-idle .media-time {
   opacity: 0.2;
+}
+@media (max-height: 700px) {
+  .media { padding: 8px 16px 12px; gap: 16px; }
+  .media-now { min-height: 148px; padding: 20px; }
+  .media-title { margin-bottom: 10px; -webkit-line-clamp: 2; }
+  .media-bottom { gap: 16px; }
+  .media-controls { grid-template-columns: 64px 80px 64px; }
+  .media-btn { width: 64px; height: 64px; }
+  .media-btn-play { width: 80px; height: 80px; }
+  .media-actions { gap: 8px; }
+}
+
+/* A horizontal remote: keep playback and every supported action in view.
+   Compact the surrounding navigation only while Media is the active mode. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .app:has(#view-media.active) .topbar {
+    min-height: 44px;
+    padding: 8px max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left));
+  }
+  .app:has(#view-media.active) .topbar-nav { display: none; }
+  .app:has(#view-media.active) .bottomnav {
+    padding: 6px max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left));
+    gap: 8px;
+  }
+  .app:has(#view-media.active) .nav-item {
+    flex-direction: row;
+    justify-content: center;
+    gap: 6px;
+  }
+  .app:has(#view-media.active) .nav-btn {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 14px;
+  }
+  .app:has(#view-media.active) .nav-item.active .nav-label::after { bottom: -8px; }
+  .media {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 64px;
+    gap: 12px 16px;
+    max-width: 1100px;
+    min-height: 204px;
+    padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+  }
+  .media-now {
+    grid-column: 1;
+    grid-row: 1;
+    min-height: 0;
+    padding: 14px 18px;
+    border-radius: 20px;
+  }
+  .media-platform { font-size: 9px; letter-spacing: 2px; margin-bottom: 6px; }
+  .media-title { font-size: 20px; margin-bottom: 6px; -webkit-line-clamp: 2; }
+  .media-progress { height: 24px; flex-shrink: 0; margin-bottom: 2px; }
+  .media-time { font-size: 10px; }
+  .media-bottom { display: contents; }
+  .media-controls {
+    grid-column: 1;
+    grid-row: 2;
+    grid-template-columns: 56px 72px 56px;
+    gap: 20px;
+  }
+  .media-btn { width: 56px; height: 56px; gap: 2px; }
+  .media-btn-play { width: 72px; height: 64px; border-radius: 24px; }
+  .media-btn svg { width: 20px; height: 20px; }
+  .media-btn-play svg { width: 28px; height: 28px; }
+  .media-actions {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    display: grid;
+    grid-template-rows: 52px minmax(44px, 1fr) minmax(60px, 1fr);
+    gap: 10px;
+  }
+  .media-actions:has(.media-context[hidden]) { grid-template-rows: 52px minmax(60px, 1fr); }
+  .media-volume { border-radius: 20px; }
+  .media-action { min-height: 44px; padding: 8px; border-radius: 20px; }
+  .media-context .media-action { min-height: 44px; }
+  .media-utilities .media-action { min-height: 60px; }
+}
+@media (orientation: landscape) and (max-height: 360px) {
+  .media { min-height: 192px; row-gap: 8px; }
+  .media-now { padding: 10px 14px; }
+  .media-platform { margin-bottom: 4px; }
+  .media-title { margin-bottom: 4px; -webkit-line-clamp: 1; }
 }
 
 /* ═══════════════════════════════════════════
@@ -2084,22 +2221,28 @@ html, body {
           <div class="media-time"><span id="media-current">0:00</span><span id="media-duration">0:00</span></div>
         </div>
         <div class="media-bottom">
-          <div class="media-controls">
-            <button class="media-btn" id="btn-seek-back"><svg viewBox="0 0 24 24"><path d="M12 8l-6 4 6 4V8z"/><path d="M18 8l-6 4 6 4V8z"/></svg></button>
-            <button class="media-btn media-btn-play" id="btn-play-pause">
-              <svg viewBox="0 0 24 24" id="icon-play"><polygon points="8,5 20,12 8,19"/></svg>
-              <svg viewBox="0 0 24 24" id="icon-pause" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+          <div class="media-controls" role="group" aria-label="Playback">
+            <button class="media-btn" id="btn-seek-back" aria-label="Seek backward"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9a8 8 0 1 1 0 6"/><path d="M4 4v5h5"/></svg><span>Rewind</span></button>
+            <button class="media-btn media-btn-play" id="btn-play-pause" aria-label="Play">
+              <svg viewBox="0 0 24 24" id="icon-play" aria-hidden="true"><polygon points="8,5 20,12 8,19"/></svg>
+              <svg viewBox="0 0 24 24" id="icon-pause" aria-hidden="true" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
             </button>
-            <button class="media-btn" id="btn-seek-fwd"><svg viewBox="0 0 24 24"><path d="M6 8l6 4-6 4V8z"/><path d="M12 8l6 4-6 4V8z"/></svg></button>
+            <button class="media-btn" id="btn-seek-fwd" aria-label="Seek forward"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 9a8 8 0 1 0 0 6"/><path d="M20 4v5h-5"/></svg><span>Forward</span></button>
           </div>
           <div class="media-actions">
-            <button class="media-action faded" id="btn-skip-ad">Skip Ad</button>
-            <button class="media-action faded" id="btn-skip-intro">Skip</button>
-            <button class="media-action" id="btn-next-ep">Next Ep</button>
-            <button class="media-action" id="btn-fullscreen">Full</button>
-            <button class="media-action" id="btn-vol-down">Vol −</button>
-            <button class="media-action" id="btn-vol-up">Vol +</button>
-            <button class="media-action" id="btn-mute">Mute</button>
+            <div class="media-volume" role="group" aria-label="Volume">
+              <button class="media-action" id="btn-vol-down" aria-label="Volume down"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+              <button class="media-action" id="btn-mute" aria-label="Toggle mute"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="m16 9 6 6m0-6-6 6"/></svg><span>Mute</span></button>
+              <button class="media-action" id="btn-vol-up" aria-label="Volume up"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
+            </div>
+            <div class="media-context" id="media-context" role="group" aria-label="Quick actions" hidden>
+              <button class="media-action faded" id="btn-skip-ad"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 10 7-10 7V5zM19 5v14"/></svg><span>Skip ad</span></button>
+              <button class="media-action faded" id="btn-skip-intro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 10 7-10 7V5zM19 5v14"/></svg><span>Skip intro</span></button>
+            </div>
+            <div class="media-utilities" role="group" aria-label="Viewing">
+              <button class="media-action" id="btn-next-ep"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg><span id="media-next-label">Next episode</span></button>
+              <button class="media-action" id="btn-fullscreen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg><span>Fullscreen</span></button>
+            </div>
           </div>
         </div>
       </div>
@@ -3495,16 +3638,18 @@ html, body {
     $('#btn-vol-down').style.display    = cfg.volDown    ? '' : 'none';
     $('#btn-vol-up').style.display      = cfg.volUp      ? '' : 'none';
     $('#btn-mute').style.display        = cfg.mute       ? '' : 'none';
+    $('#media-context').hidden = !cfg.skipAd && !cfg.skipIntro;
 
     if (p === 'youtube') {
-      $('#btn-next-ep').textContent = 'Next Vid';
+      $('#media-next-label').textContent = 'Next video';
     } else {
-      $('#btn-next-ep').textContent = 'Next Ep';
+      $('#media-next-label').textContent = 'Next episode';
     }
   }
 
   function updateSkipAdButton() {
     var btn = $('#btn-skip-ad');
+    btn.disabled = !isPaired || !mediaFresh || !skipAdAvailable || !(MEDIA_BUTTONS[mediaState.platform] || {}).skipAd;
     if (skipAdAvailable) {
       btn.classList.remove('faded');
       btn.classList.add('highlight');
@@ -3561,6 +3706,7 @@ html, body {
 
     // Skip Intro availability
     var skipBtn = $('#btn-skip-intro');
+    skipBtn.disabled = !canControl || !mediaState.skipIntroAvailable;
     if (mediaState.skipIntroAvailable) {
       skipBtn.classList.remove('faded');
       skipBtn.classList.add('highlight');
@@ -3571,6 +3717,7 @@ html, body {
 
     updateMediaActions(mediaState.platform);
     var nextBtn = $('#btn-next-ep');
+    nextBtn.disabled = !canControl || !mediaState.nextEpisodeAvailable;
     nextBtn.classList.toggle('faded', !mediaState.nextEpisodeAvailable);
     nextBtn.classList.toggle('highlight', !!mediaState.nextEpisodeAvailable);
     updateSkipAdButton();
